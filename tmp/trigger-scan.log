@@ -1,0 +1,29 @@
+TRIGGER_SELECTOR nav div.cursor-pointer.rounded-full:has(> svg)
+TRIGGER_COUNT 2
+
+TRY_INDEX 0 TEXT=-
+ARTIFACT_HTML C:\Users\lenovo\Desktop\barrow\tmp\shamcash-autofit\post-trigger-1773259740336-0.html
+ARTIFACT_PNG C:\Users\lenovo\Desktop\barrow\tmp\shamcash-autofit\post-trigger-1773259740336-0.png
+INPUT_COUNT 1
+- INPUT tag=input type=text name=- id=- placeholder=-
+BUTTON_SAMPLES ["╪ú","Toggle Sidebar","╪º┘ä┘ü┘ä╪º╪¬╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪¬╪╡╪»┘è╪▒","╪╡┘ê╪▒╪⌐","╪╣┘å┘ê╪º┘å","┘ä╪╡┘é ╪º┘ä╪╣┘å┘ê╪º┘å"]
+
+TRY_INDEX 1 TEXT=-
+CLICK_FAIL locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('nav div.cursor-pointer.rounded-full:has(> svg)').nth(1)[22m
+[2m    - locator resolved to <div class="flex justify-center items-center rounded-full cursor-pointerΓå╡                  backdrop-blur-md bg-gradient-to-br from-primary/70 to-primary/40Γå╡                  border border-white/20 shadow-[0_4px_15px_rgba(0,0,0,0.2)]Γå╡                  transition-transform duration-300 hover:scale-105 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)]Γå╡                  hidden">ΓÇª</div>[22m
+[2m  - attempting click action[22m
+[2m    2 ├ù waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 ├ù waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    18 ├ù waiting for element to be visible, enabled and stable[22m
+[2m       - element is not visible[22m
+[2m     - retrying click action[22m
+[2m       - waiting 500ms[22m
+

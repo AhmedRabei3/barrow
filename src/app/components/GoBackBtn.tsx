@@ -1,0 +1,33 @@
+"use client";
+import React from "react";
+import { useRouter } from "next/navigation";
+import { RiArrowGoBackFill } from "react-icons/ri";
+
+const GoBackBtn = () => {
+  const router = useRouter();
+  return (
+    <button
+      id="go-back"
+      className="
+       bg-white/72 dark:bg-slate-900/72
+       text-rose-600 dark:text-rose-300
+       border border-white/70 dark:border-slate-700/70
+       shadow-md hover:shadow-lg
+       hover:bg-white/85 dark:hover:bg-slate-900/85
+       w-fit p-2.5 rounded-full
+       backdrop-blur-md
+       z-30
+       fixed
+       text-bold
+       top-[27vh]
+       left-5
+       cursor-pointer
+      "
+      onClick={router.back}
+    >
+      <RiArrowGoBackFill />
+    </button>
+  );
+};
+
+export default GoBackBtn;

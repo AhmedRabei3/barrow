@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "esnext",
+    "target": "es2020",
+    "lib": ["es2020"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["server.ts", "src/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

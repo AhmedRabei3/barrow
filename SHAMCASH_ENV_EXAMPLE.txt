@@ -1,0 +1,72 @@
+SHAMCASH_API_BASE_URL=https://api.shamcash.com
+SHAMCASH_API_LOGIN_PATH=/auth/login
+SHAMCASH_API_WITHDRAW_PATH=/wallet/withdraw
+
+# Credentials provided by ShamCash for server-to-server API access.
+SHAMCASH_API_USERNAME=replace-with-api-username
+SHAMCASH_API_PASSWORD=replace-with-api-password
+
+# Optional API key and custom header name.
+# SHAMCASH_API_KEY=replace-with-api-key
+# SHAMCASH_API_KEY_HEADER=x-api-key
+
+# Optional auth header config for session token.
+# SHAMCASH_API_AUTH_HEADER=Authorization
+# SHAMCASH_API_AUTH_SCHEME=Bearer
+
+# Optional request and session tuning.
+# SHAMCASH_API_TIMEOUT_MS=20000
+# SHAMCASH_API_SESSION_TTL_MS=1500000
+
+# Optional custom field names if ShamCash uses different payload keys.
+# SHAMCASH_API_LOGIN_USERNAME_FIELD=username
+# SHAMCASH_API_LOGIN_PASSWORD_FIELD=password
+# SHAMCASH_API_WITHDRAW_WALLET_FIELD=walletCode
+# SHAMCASH_API_WITHDRAW_AMOUNT_FIELD=amount
+# SHAMCASH_API_WITHDRAW_NOTE_FIELD=note
+# SHAMCASH_API_WITHDRAW_REFERENCE_FIELD=reference
+# SHAMCASH_API_WITHDRAW_CURRENCY_FIELD=currency
+
+# Incoming transfer webhook auth (choose ONE strategy):
+# 1) HMAC signature verification (recommended)
+# SHAMCASH_WEBHOOK_SECRET=replace-with-shared-secret
+# Expected request header: x-shamcash-signature (sha256 HMAC of raw body)
+
+# 2) Static token verification (fallback)
+# SHAMCASH_WEBHOOK_TOKEN=replace-with-webhook-token
+# Expected request header: x-shamcash-token or Authorization: Bearer <token>
+
+# =========================
+# ShamCash payout execution mode
+# =========================
+# API               -> uses server-to-server API flow (requires merchant API)
+# QUEUE_PLAYWRIGHT  -> queues requests and executes them via Playwright worker
+SHAMCASH_PAYOUT_MODE=QUEUE_PLAYWRIGHT
+
+# Queue/worker retries
+# Requires REDIS_URL to be configured in your environment.
+# SHAMCASH_PAYOUT_MAX_ATTEMPTS=3
+# SHAMCASH_PAYOUT_WORKER_POLL_MS=2500
+
+# =========================
+# Playwright portal automation (required for QUEUE_PLAYWRIGHT)
+# =========================
+SHAMCASH_WEB_LOGIN_URL=https://wallet.shamcash.com/login
+# SHAMCASH_WEB_PAYOUT_URL=https://wallet.shamcash.com/payout
+SHAMCASH_WEB_USERNAME=replace-with-portal-username
+SHAMCASH_WEB_PASSWORD=replace-with-portal-password
+
+# Optional selector overrides (change these to match ShamCash portal DOM)
+# SHAMCASH_WEB_USERNAME_SELECTOR=input[name="username"]
+# SHAMCASH_WEB_PASSWORD_SELECTOR=input[name="password"]
+# SHAMCASH_WEB_LOGIN_SUBMIT_SELECTOR=button[type="submit"]
+# SHAMCASH_WEB_PAYOUT_WALLET_SELECTOR=input[name="walletCode"]
+# SHAMCASH_WEB_PAYOUT_AMOUNT_SELECTOR=input[name="amount"]
+# SHAMCASH_WEB_PAYOUT_NOTE_SELECTOR=textarea[name="note"]
+# SHAMCASH_WEB_PAYOUT_CURRENCY_SELECTOR=input[name="currency"]
+# SHAMCASH_WEB_PAYOUT_REFERENCE_SELECTOR=input[name="reference"]
+# SHAMCASH_WEB_PAYOUT_SUBMIT_SELECTOR=button[type="submit"]
+# SHAMCASH_WEB_SUCCESS_SELECTOR=.alert-success
+# SHAMCASH_WEB_TRANSACTION_ID_SELECTOR=.transaction-id
+# SHAMCASH_WEB_TIMEOUT_MS=30000
+# SHAMCASH_WEB_HEADLESS=true

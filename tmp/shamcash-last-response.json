@@ -1,0 +1,11 @@
+{
+  "status": 202,
+  "body": {
+    "success": false,
+    "manualFallback": true,
+    "manualRequestId": "cmmoo3knx0011usd46x0zrwen",
+    "mode": "MANUAL_ADMIN_FALLBACK",
+    "message": "Automated withdrawal failed. Request has been moved to admin manual review and balance was not deducted.",
+    "fallbackReason": "Redis is not configured. Set REDIS_URL to enable payout queue. | Cannot read properties of null (reading 'locator')"
+  }
+}

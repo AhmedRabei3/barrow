@@ -1,0 +1,37 @@
+
+> barrow@0.1.0 worker:shamcash:autofit
+> tsx scripts/shamcash-selector-autofit.ts
+
+
+[login] URL: https://shamcash.sy/ar/application/home
+[login] title: ╪┤╪º┘à ┘â╪º╪┤
+[login] frame count: 1
+
+=== Login selector suggestions ===
+No selector candidates found.
+
+[login] control samples:
+Frame #0 (https://shamcash.sy/ar/application/home):
+- <button> type=button name=- id=- placeholder=- text=╪ú
+- <input> type=text name=- id=- placeholder=- text=-
+- <button> type=submit name=- id=- placeholder=- text=-
+- <button> type=submit name=- id=- placeholder=- text=-
+- <button> type=submit name=- id=- placeholder=- text=Toggle Sidebar
+- <button> type=submit name=- id=- placeholder=- text=╪Ñ╪▒╪│╪º┘ä
+- <button> type=submit name=- id=- placeholder=- text=╪Ñ╪│╪¬┘é╪¿╪º┘ä
+- <button> type=button name=- id=radix-_R_9inpfl55ubtb_-trigger-exchange placeholder=- text=╪º┘ä╪¡┘ê╪º┘ä╪º╪¬
+- <button> type=button name=- id=radix-_R_9inpfl55ubtb_-trigger-ElectronicPayments placeholder=- text=┘à╪»┘ü┘ê╪╣╪º╪¬ ╪º┘ä┘â╪¬╪▒┘ê┘å┘è╪⌐
+[login] debug html: C:\Users\lenovo\Desktop\barrow\tmp\shamcash-autofit\login-1773259527489.html
+[login] debug screenshot: C:\Users\lenovo\Desktop\barrow\tmp\shamcash-autofit\login-1773259527489.png
+
+Login step skipped (missing credentials or required selectors).
+
+[payout] URL: https://shamcash.sy/ar/application/transaction
+[payout] title: ╪┤╪º┘à ┘â╪º╪┤
+[payout] frame count: 1
+
+=== Payout selector suggestions ===
+SHAMCASH_ADD_RECIPIENT_TRIGGER_SELECTOR="button.mb-2.hover\:text-primary"  # matches: 1
+SHAMCASH_RECIPIENT_MODAL_SELECTOR="div[role="dialog"][data-state="open"]"  # matches: 1
+
+Done. Copy the suggested lines into your .env and rerun doctor.

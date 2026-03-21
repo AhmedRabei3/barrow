@@ -1,0 +1,691 @@
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * =========================
+ * ENUMS
+ * =========================
+ */
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PurchaseRequestStatus {
+  PENDING_ADMIN
+  ADMIN_REJECTED
+  PENDING_OWNER
+  OWNER_DECLINED
+  OWNER_ACCEPTED
+  CONVERTED_TO_TRANSACTION
+}
+
+enum Transmission {
+  AUTOMATIC
+  MANUAL
+}
+
+enum TransactionType {
+  SELL
+  RENT
+}
+
+enum RentType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum Directions {
+  NORTH
+  EAST
+  WEST
+  SOUTH
+}
+
+enum Availability {
+  AVAILABLE
+  RESERVED
+  RENTED
+  SOLD
+  MAINTENANCE
+}
+
+enum LedgerType {
+  CREDIT // إضافة رصيد
+  DEBIT // خصم
+  HOLD // حجز
+  RELEASE // فك حجز
+}
+
+enum PaymentMethod {
+  PAYPAL
+  CARD
+  CRYPTO
+  SHAMCASH
+  BALANCE
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  HOLD // المال محجوز
+  COMPLETED // تم التحويل
+  RELEASED // فك الحجز بدون تحويل
+  REFUNDED
+  FAILED
+}
+
+enum ItemType {
+  PROPERTY
+  NEW_CAR
+  USED_CAR
+  OTHER
+}
+
+enum FuelType {
+  DIESEL
+  GASOLINE
+  HYBRID
+  ELECTRIC
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  PURCHASEREQUEST
+  ERROR
+}
+
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
+enum SupportSenderRole {
+  USER
+  ADMIN
+}
+
+enum ShamCashManualWithdrawalStatus {
+  PENDING_ADMIN
+  VERIFYING
+  COMPLETED
+  REJECTED
+}
+
+/**
+ * =========================
+ * USER & CORE
+ * =========================
+ */
+
+model User {
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  name                    String
+  password                String
+  profileImage            String?
+  isActive                Boolean   @default(false)
+  isAdmin                 Boolean   @default(false)
+  emailVerified           DateTime?
+  balance                 Decimal   @default(0) @db.Decimal(12, 2)
+  activeUntil             DateTime?
+  pendingReferralEarnings Decimal   @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  properties Property[]
+  newCars    NewCar[]
+  oldCars    OldCar[]
+  otherItems OtherItem[]
+
+  ownedTransactions  Transaction[] @relation("OwnerTransactions")
+  clientTransactions Transaction[] @relation("ClientTransactions")
+
+  reviews                            Review[]
+  favorites                          favoratedItem[]
+  pinnedItems                        PinnedItem[]
+  notifications                      Notification[]
+  referrals                          Referral[]
+  chargingLogs                       ChargingLog[]
+  shamCashManualWithdrawals          ShamCashManualWithdrawal[] @relation("ManualShamCashWithdrawalUser")
+  verifiedShamCashManualWithdrawals  ShamCashManualWithdrawal[] @relation("ManualShamCashWithdrawalVerifiedBy")
+  completedShamCashManualWithdrawals ShamCashManualWithdrawal[] @relation("ManualShamCashWithdrawalCompletedBy")
+
+  payerPayments                Payment[]                     @relation("PayerPayments")
+  payeePayments                Payment[]                     @relation("PayeePayments")
+  walletLedgers                WalletLedger[]
+  purchaseRequests             PurchaseRequest[]
+  assignedAdmin                PurchaseRequest[]             @relation("assignedAdmin")
+  profileEditVerificationCodes ProfileEditVerificationCode[]
+  emailVerificationTokens      EmailVerificationToken[]
+  supportTickets               SupportTicket[]               @relation("SupportTicketOwner")
+  supportMessages              SupportTicketMessage[]        @relation("SupportMessageSender")
+  passwordResetTokens          PasswordResetToken[]
+}
+
+/**
+ * =========================
+ * CATEGORY
+ * =========================
+ */
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  type      ItemType
+  icon      String?
+  isDeleted Boolean  @default(false)
+
+  properties Property[]
+  newCars    NewCar[]
+  oldCars    OldCar[]
+  otherItems OtherItem[]
+
+  @@unique([name, type])
+}
+
+/**
+ * =========================
+ * LOCATION (ONE PER ITEM)
+ * =========================
+ */
+
+model Location {
+  id        String @id @default(cuid())
+  latitude  Float
+  longitude Float
+  address   String
+  city      String
+  state     String
+  country   String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  propertyId  String? @unique
+  newCarId    String? @unique
+  oldCarId    String? @unique
+  otherItemId String? @unique
+
+  property  Property?  @relation(fields: [propertyId], references: [id])
+  newCar    NewCar?    @relation(fields: [newCarId], references: [id])
+  oldCar    OldCar?    @relation(fields: [oldCarId], references: [id])
+  otherItem OtherItem? @relation(fields: [otherItemId], references: [id])
+
+  @@index([city, country])
+}
+
+/**
+ * =========================
+ * ITEMS
+ * =========================
+ */
+
+model Property {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  price       Decimal         @db.Decimal(12, 2)
+  sellOrRent  TransactionType
+  rentType    RentType?
+  status      Availability    @default(AVAILABLE)
+  ownerId     String
+  categoryId  String
+  guests      Int
+  bedrooms    Int
+  bathrooms   Int
+  livingrooms Int
+  kitchens    Int
+  area        Float
+  floor       Int
+  elvator     Boolean         @default(false)
+  direction   Directions[]
+  petAllowed  Boolean         @default(false)
+  furnished   Boolean         @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+}
+
+model NewCar {
+  id          String          @id @default(cuid())
+  brand       String
+  model       String
+  year        Int
+  price       Decimal         @db.Decimal(12, 2)
+  sellOrRent  TransactionType
+  rentType    RentType?
+  fuelType    FuelType
+  gearType    Transmission
+  status      Availability    @default(AVAILABLE)
+  ownerId     String
+  categoryId  String
+  color       String
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+}
+
+model OldCar {
+  id          String          @id @default(cuid())
+  brand       String
+  model       String
+  year        Int
+  price       Decimal         @db.Decimal(12, 2)
+  sellOrRent  TransactionType
+  rentType    RentType?
+  fuelType    FuelType
+  gearType    Transmission
+  status      Availability    @default(AVAILABLE)
+  ownerId     String
+  categoryId  String
+  color       String
+  description String?
+  reAssembled Boolean         @default(false)
+  mileage     Int
+  repainted   Boolean         @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+}
+
+model OtherItem {
+  id          String          @id @default(cuid())
+  name        String
+  brand       String?
+  description String?
+  price       Decimal         @db.Decimal(12, 2)
+  sellOrRent  TransactionType
+  rentType    RentType?
+  status      Availability    @default(AVAILABLE)
+  ownerId     String
+  categoryId  String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+}
+
+/**
+ * =========================
+ * IMAGES (POLYMORPHIC)
+ * =========================
+ */
+
+model ItemImage {
+  id        String   @id @default(cuid())
+  itemId    String
+  itemType  ItemType
+  url       String
+  publicId  String
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  itemType  ItemType
+  rate      Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model favoratedItem {
+  id       String   @id @default(cuid())
+  userId   String
+  itemId   String
+  itemType ItemType
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemId, itemType])
+}
+
+model PinnedItem {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  itemType  ItemType
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemId, itemType])
+}
+
+/**
+ * =========================
+ * TRANSACTIONS & EXTRAS
+ * =========================
+ */
+
+model Transaction {
+  id               String            @id @default(cuid())
+  ownerId          String
+  clientId         String
+  itemId           String
+  itemType         ItemType
+  type             TransactionType
+  rentType         RentType?
+  startDate        DateTime?
+  endDate          DateTime?
+  status           TransactionStatus @default(PENDING)
+  totalPrice       Decimal           @db.Decimal(12, 2)
+  totalPlatformFee Decimal           @db.Decimal(12, 2)
+  payment          Payment?
+
+  createdAt DateTime @default(now())
+
+  owner            User              @relation("OwnerTransactions", fields: [ownerId], references: [id])
+  client           User              @relation("ClientTransactions", fields: [clientId], references: [id])
+  platformBalances PlatformBalance[]
+
+  @@index([id])
+  @@index([itemId])
+  @@index([ownerId])
+  @@index([clientId])
+}
+
+model PurchaseRequest {
+  id       String   @id @default(cuid())
+  itemId   String
+  itemType ItemType
+
+  buyerId      String
+  buyerNote    String?
+  offeredPrice Decimal? @db.Decimal(12, 2)
+  phoneNumber  String
+
+  status PurchaseRequestStatus @default(PENDING_ADMIN)
+
+  assignedAdminId String?
+  assignedAdmin   User?   @relation("assignedAdmin", fields: [assignedAdminId], references: [id])
+
+  ownerPhoneNumber String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer User @relation(fields: [buyerId], references: [id])
+
+  @@index([assignedAdminId])
+}
+
+/**
+ * =========================
+ * PAYMENTS & UTILS
+ * =========================
+ */
+
+model Payment {
+  id String @id @default(cuid())
+
+  payerId       String // المستأجر / المشتري
+  payeeId       String? // المالك (nullable قبل التسليم)
+  transactionId String? @unique
+
+  amount   Decimal       @db.Decimal(12, 2)
+  currency String        @default("USD")
+  method   PaymentMethod
+  status   PaymentStatus
+
+  createdAt DateTime @default(now())
+
+  payer       User         @relation("PayerPayments", fields: [payerId], references: [id])
+  payee       User?        @relation("PayeePayments", fields: [payeeId], references: [id])
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([payerId])
+  @@index([payeeId])
+}
+
+model WalletLedger {
+  id          String     @id @default(cuid())
+  userId      String
+  amount      Decimal    @db.Decimal(12, 2)
+  type        LedgerType
+  referenceId String?
+  createdAt   DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model PlatformBalance {
+  id            String   @id @default(cuid())
+  amount        Decimal  @db.Decimal(12, 2)
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+}
+
+model PlatformFee {
+  id        String   @id @default(cuid())
+  percent   Decimal  @default(5) @db.Decimal(5, 2)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model AppPaymentSettings {
+  id                       Int      @id @default(1)
+  subscriptionMonthlyPrice Decimal  @default(30) @db.Decimal(12, 2)
+  featuredAdMonthlyPrice   Decimal  @default(10) @db.Decimal(12, 2)
+  shamCashWalletCode       String?
+  shamCashQrCodeUrl        String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model ShamCashWebhookEvent {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  paymentId   String?
+  userId      String?
+  payerEmail  String?
+  amount      Decimal  @db.Decimal(12, 2)
+  currency    String   @default("USD")
+  status      String
+  rawPayload  Json
+  processedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([processedAt])
+}
+
+model ActivationCode {
+  id        String   @id @default(cuid())
+  code      String   @unique @default(uuid())
+  balance   Decimal  @db.Decimal(12, 2)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ChargingLog {
+  id     String  @id @default(cuid())
+  userId String
+  type   String
+  amount Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Referral {
+  id      String @id @default(cuid())
+  userId  String
+  newUser String
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  type      NotificationType?
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+}
+
+model SupportTicket {
+  id        String              @id @default(cuid())
+  userId    String
+  subject   String
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user     User                   @relation("SupportTicketOwner", fields: [userId], references: [id])
+  messages SupportTicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SupportTicketMessage {
+  id         String            @id @default(cuid())
+  ticketId   String
+  senderId   String
+  senderRole SupportSenderRole
+  body       String
+  createdAt  DateTime          @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation("SupportMessageSender", fields: [senderId], references: [id])
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model ProfileEditVerificationCode {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model ShamCashManualWithdrawal {
+  id         String  @id @default(cuid())
+  userId     String
+  amount     Decimal @db.Decimal(12, 2)
+  currency   String  @default("USD")
+  walletCode String
+  qrCode     String?
+  note       String?
+
+  status              ShamCashManualWithdrawalStatus @default(PENDING_ADMIN)
+  failureReason       String?
+  transactionId       String?
+  verificationRawText String?
+
+  requestedAt DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  verifiedAt  DateTime?
+  completedAt DateTime?
+
+  verifiedByAdminId  String?
+  completedByAdminId String?
+
+  user             User  @relation("ManualShamCashWithdrawalUser", fields: [userId], references: [id])
+  verifiedByAdmin  User? @relation("ManualShamCashWithdrawalVerifiedBy", fields: [verifiedByAdminId], references: [id])
+  completedByAdmin User? @relation("ManualShamCashWithdrawalCompletedBy", fields: [completedByAdminId], references: [id])
+
+  @@index([userId, requestedAt])
+  @@index([status, updatedAt])
+  @@index([verifiedByAdminId])
+  @@index([completedByAdminId])
+}

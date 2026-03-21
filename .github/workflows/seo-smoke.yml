@@ -1,0 +1,51 @@
+name: SEO Smoke
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  seo-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Start app
+        run: npm run start &
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Wait for app
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3000 > /dev/null; then
+              echo "App is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time"
+          exit 1
+
+      - name: Run SEO smoke
+        run: npm run seo:smoke
+        env:
+          SEO_BASE_URL: http://localhost:3000

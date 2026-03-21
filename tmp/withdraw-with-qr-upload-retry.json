@@ -1,0 +1,1 @@
+{"success":true,"transactionId":"حساب شخصي","mode":"PLAYWRIGHT_DIRECT","message":"ShamCash withdrawal completed through browser automation","fallbackReason":"Redis is not configured. Set REDIS_URL to enable payout queue."}

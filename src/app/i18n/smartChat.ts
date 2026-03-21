@@ -1,0 +1,157 @@
+import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "./brand";
+
+export const SMART_CHAT_TEXT = {
+  headerTitle: {
+    ar: ASSISTANT_NAME_AR,
+    en: ASSISTANT_NAME_EN,
+  },
+  headerSubtitle: {
+    ar: "دليلك السريع للنشر عبر أسئلة موجهة حسب نوع العنصر",
+    en: "Create a listing through guided questions based on item type",
+  },
+  greeting: {
+    ar: "مرحباُ ... ، أنا أمين  أتشرف بخدمتك هل تبحث عن شيء معين ؟ أم ترغب بالاشتراك في موقعنا كي تكسب الكثير من الميزات الرائعة ؟ ",
+    en: "Hey superstar 👋 I'm happy to help! What would you like to list today? Choose: new cars, used cars, real estate, or other items.",
+  },
+  newVisitorPitch: {
+    ar: "أهلاً بك ✨ الاشتراك يمنحك أفضلية حقيقية: ظهور أقوى لإعلاناتك، ثقة أعلى من المشترين، وأدوات أفضل لإدارة عروضك بسرعة واحترافية.\n\n💳 التفعيل متاح عبر PayPal، وكذلك عبر أكواد التفعيل الرسمية — خصوصًا للدول التي لا تدعم بوابات الدفع مثل سوريا.\n\n💸 كيف تزيد أرباحك؟\n1) فعّل حسابك.\n2) شارك رابط الدعوة الخاص بك.\n3) عند تسجيل وتفعيل المدعو عبر رابطك، تُحتسب أرباح الإحالة في حسابك وفق النظام.\n\n🏦 وعند جاهزية الأرباح، يمكنك طلب السحب بسهولة من قسم الرصيد.\n\n🚀 ابدأ الآن: انشر عبر المساعد، فعّل اشتراكك، وحوّل كل دعوة إلى فرصة دخل إضافي.",
+    en: "Welcome ✨ You made a smart choice! Subscription gives you a strong boost: better listing visibility, higher buyer trust, and better tools to manage offers faster and smarter.\n\n💳 Activation is available via PayPal, and also via official activation codes — especially useful for countries where payment gateways are not supported, like Syria.\n\n💸 How to grow your earnings:\n1) Activate your account.\n2) Share your personal referral link.\n3) When invited users sign up and activate through your link, referral earnings are credited to your account according to the system.\n\n🏦 Once earnings are ready, you can request withdrawal easily from the balance section.\n\n🚀 Start now: publish through the assistant, activate your subscription, and turn each referral into higher income.",
+  },
+  readyToSubmit: {
+    ar: "✅ اكتملت البيانات. راجع إجاباتك ثم اضغط تأكيد الإضافة أو إلغاء.",
+    en: "✅ Data collected. Review your answers then click confirm or cancel.",
+  },
+  itemTypeMissing: {
+    ar: "نوع العنصر غير محدد",
+    en: "Item type is not selected",
+  },
+  invalidData: {
+    ar: "البيانات غير صالحة",
+    en: "Invalid data",
+  },
+  confirmImages: {
+    ar: "تأكيد الصور",
+    en: "Confirm images",
+  },
+  confirmLocation: {
+    ar: "تأكيد الموقع من الخريطة",
+    en: "Confirm location from map",
+  },
+  answerPlaceholder: {
+    ar: "اكتب إجابتك هنا...",
+    en: "Type your answer...",
+  },
+  send: {
+    ar: "إرسال",
+    en: "Send",
+  },
+  previous: {
+    ar: "السابق",
+    en: "Previous",
+  },
+  next: {
+    ar: "التالي",
+    en: "Next",
+  },
+  editAnswer: {
+    ar: "تعديل إجابة",
+    en: "Edit answer",
+  },
+  submitting: {
+    ar: "جاري الإضافة...",
+    en: "Submitting...",
+  },
+  confirmSubmit: {
+    ar: "تأكيد الإضافة",
+    en: "Confirm submit",
+  },
+  cancel: {
+    ar: "إلغاء",
+    en: "Cancel",
+  },
+  resetConversation: {
+    ar: "إعادة المحادثة",
+    en: "Reset conversation",
+  },
+  skip: {
+    ar: "تخطي",
+    en: "Skip",
+  },
+  confirmSelection: {
+    ar: "تأكيد الاختيار",
+    en: "Confirm selection",
+  },
+  yes: {
+    ar: "نعم",
+    en: "Yes",
+  },
+  no: {
+    ar: "لا",
+    en: "No",
+  },
+} as const;
+
+export const SMART_CHAT_EN_MAP: Record<string, string> = {
+  "🚗 سيارات جديدة": "🚗 New cars",
+  "🚙 سيارات مستعملة": "🚙 Used cars",
+  "🏠 عقارات": "🏠 Real estate",
+  "📦 أشياء أخرى": "📦 Other items",
+  نعم: "Yes",
+  لا: "No",
+  للبيع: "For sale",
+  للإيجار: "For rent",
+  يومي: "Daily",
+  أسبوعي: "Weekly",
+  شهري: "Monthly",
+  سنوي: "Yearly",
+  متاح: "Available",
+  محجوز: "Reserved",
+  مؤجر: "Rented",
+  مباع: "Sold",
+  صيانة: "Maintenance",
+  بنزين: "Gasoline",
+  ديزل: "Diesel",
+  هجين: "Hybrid",
+  كهربائي: "Electric",
+  أوتوماتيك: "Automatic",
+  عادي: "Manual",
+  "اختر الموقع من الخريطة": "Choose location from map",
+  "العنوان التفصيلي": "Detailed address",
+  "مثال: حي الملك فهد": "Example: King Fahd District",
+  المدينة: "City",
+  "مثال: الرياض": "Example: Riyadh",
+  "المنطقة/الولاية (اختياري)": "State/Region (optional)",
+  الدولة: "Country",
+  "مثال: Saudi Arabia": "Example: Saudi Arabia",
+  "ارفع صور الإعلان": "Upload listing images",
+  "اختر الفئة المناسبة": "Choose the suitable category",
+  "ما هي ماركة السيارة؟": "What is the car brand?",
+  "ما هو الموديل؟": "What is the model?",
+  "سنة الصنع": "Manufacturing year",
+  اللون: "Color",
+  السعر: "Price",
+  "نوع الإعلان": "Listing type",
+  "نوع الإيجار": "Rent type",
+  "نوع الوقود": "Fuel type",
+  "نوع القير": "Gear type",
+  "حالة الإعلان": "Listing status",
+  "الوصف (اختياري)": "Description (optional)",
+  "الممشى (كم)": "Mileage (km)",
+  "هل السيارة مرشوشة؟": "Is the car repainted?",
+  "هل السيارة مفككة/مركبة؟": "Is the car reassembled?",
+  "عنوان الإعلان": "Listing title",
+  "عدد الضيوف": "Guests count",
+  "عدد غرف المعيشة": "Living rooms count",
+  "عدد الحمامات": "Bathrooms count",
+  "عدد غرف النوم": "Bedrooms count",
+  "عدد المطابخ": "Kitchens count",
+  المساحة: "Area",
+  "رقم الطابق": "Floor number",
+  "اختر اتجاه العقار (يمكن اختيار أكثر من اتجاه)":
+    "Choose property direction (multi-select)",
+  "هل الحيوانات الأليفة مسموحة؟": "Are pets allowed?",
+  "هل العقار مفروش؟": "Is the property furnished?",
+  "هل يوجد مصعد؟": "Is there an elevator?",
+  "اسم العنصر": "Item name",
+  "العلامة التجارية": "Brand",
+};

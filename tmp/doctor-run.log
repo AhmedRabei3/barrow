@@ -1,0 +1,42 @@
+
+> barrow@0.1.0 worker:shamcash:doctor
+> tsx scripts/shamcash-playwright-doctor.ts
+
+
+=== ShamCash Playwright Doctor ===
+Overall: FAIL
+Login attempted: false
+Login passed: false
+QR login detected: false
+Payout page checked: true
+Login URL: https://shamcash.sy/ar/auth/login
+Payout URL: https://shamcash.sy/ar/application/transaction
+
+Selector probes:
+- login.username: MISSING (count=0) :: input[name="username"], input[type="email"], input[autocomplete="username"]
+- login.password: MISSING (count=0) :: input[name="password"], input[type="password"]
+- login.submit: MISSING (count=0) :: button[type="submit"], button:has-text("╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä"), button:has-text("Login")
+- login.qr: MISSING (count=0) :: canvas#react-qrcode-logo, canvas[id='react-qrcode-logo'], canvas[id*='qrcode' i]
+- payout.wallet: MISSING (count=0) :: input[name*='wallet' i], input[name="walletCode"], input[name*="wallet" i], textarea[name*="wallet" i], input[placeholder*="wallet" i], input[placeholder*="┘à╪¡┘ü╪╕" i], textarea[placeholder*="┘à╪¡┘ü╪╕" i]
+- payout.amount: MISSING (count=0) :: div[role='alertdialog'] input[inputmode='decimal'], input[placeholder*='╪º┘ä┘à╪¿┘ä╪║'], input[name="amount"], input[name*="amount" i], input[inputmode="decimal"], input[type="number"], input[placeholder*="╪º┘ä┘à╪¿┘ä╪║" i]
+- payout.note: MISSING (count=0) :: textarea[name="note"], textarea
+- payout.submit: MISSING (count=0) :: div[role='alertdialog'] button[type='submit']:has-text('╪¬╪¡┘ê┘è┘ä'), button:has-text('╪¬╪¡┘ê┘è┘ä'), div[role="alertdialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), [role="dialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("Withdraw"), button:has-text("Transfer"), button:has-text("Send")
+- payout.trigger: FOUND (count=3) :: nav div.cursor-pointer.rounded-full:has(> svg), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("Transfer"), button:has-text("Send"), button.mb-2.hover\:text-primary, nav div.cursor-pointer.rounded-full:has(> svg)
+- payout.modal: FOUND (count=1) :: div[role='dialog'][data-state='open'], div[role='alertdialog'][data-state='open'], div[role="dialog"][data-state="open"], div[role="alertdialog"][data-state="open"], [role="dialog"], [role="alertdialog"]
+- payout.recipientCode: MISSING (count=0) :: div[role='tabpanel'][id$='content-address'] textarea, div[role='tabpanel'][id$='content-address'] input[type='text'], div[role="tabpanel"] textarea, div[role="tabpanel"] input[type="text"], [role="dialog"] textarea, [role="dialog"] input[type="text"], [role="alertdialog"] textarea, [role="alertdialog"] input[type="text"], input[name*="wallet" i], textarea[name*="wallet" i]
+- payout.amount.afterTrigger: MISSING (count=0) :: div[role='alertdialog'] input[inputmode='decimal'], input[placeholder*='╪º┘ä┘à╪¿┘ä╪║'], input[name="amount"], input[name*="amount" i], input[inputmode="decimal"], input[type="number"], input[placeholder*="╪º┘ä┘à╪¿┘ä╪║" i]
+- payout.submit.afterTrigger: MISSING (count=0) :: div[role='alertdialog'] button[type='submit']:has-text('╪¬╪¡┘ê┘è┘ä'), button:has-text('╪¬╪¡┘ê┘è┘ä'), div[role="alertdialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), [role="dialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("Withdraw"), button:has-text("Transfer"), button:has-text("Send")
+- payout.amount.fallback: MISSING (count=0) :: div[role='alertdialog'] input[inputmode='decimal'], input[placeholder*='╪º┘ä┘à╪¿┘ä╪║'], input[name="amount"], input[name*="amount" i], input[inputmode="decimal"], input[type="number"], input[placeholder*="╪º┘ä┘à╪¿┘ä╪║" i]
+- payout.submit.fallback: FOUND (count=1) :: div[role='alertdialog'] button[type='submit']:has-text('╪¬╪¡┘ê┘è┘ä'), button:has-text('╪¬╪¡┘ê┘è┘ä'), div[role="alertdialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), [role="dialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("Withdraw"), button:has-text("Transfer"), button:has-text("Send")
+- payout.trigger.fallback: FOUND (count=4) :: nav div.cursor-pointer.rounded-full:has(> svg), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("Transfer"), button:has-text("Send"), button.mb-2.hover\:text-primary, nav div.cursor-pointer.rounded-full:has(> svg)
+- payout.amount.fallback: MISSING (count=0) :: div[role='alertdialog'] input[inputmode='decimal'], input[placeholder*='╪º┘ä┘à╪¿┘ä╪║'], input[name="amount"], input[name*="amount" i], input[inputmode="decimal"], input[type="number"], input[placeholder*="╪º┘ä┘à╪¿┘ä╪║" i]
+- payout.submit.fallback: FOUND (count=1) :: div[role='alertdialog'] button[type='submit']:has-text('╪¬╪¡┘ê┘è┘ä'), button:has-text('╪¬╪¡┘ê┘è┘ä'), div[role="alertdialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), [role="dialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("Withdraw"), button:has-text("Transfer"), button:has-text("Send")
+- payout.trigger.fallback: FOUND (count=4) :: nav div.cursor-pointer.rounded-full:has(> svg), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("Transfer"), button:has-text("Send"), button.mb-2.hover\:text-primary, nav div.cursor-pointer.rounded-full:has(> svg)
+- payout.amount.fallback: MISSING (count=0) :: div[role='alertdialog'] input[inputmode='decimal'], input[placeholder*='╪º┘ä┘à╪¿┘ä╪║'], input[name="amount"], input[name*="amount" i], input[inputmode="decimal"], input[type="number"], input[placeholder*="╪º┘ä┘à╪¿┘ä╪║" i]
+- payout.submit.fallback: FOUND (count=6) :: div[role='alertdialog'] button[type='submit']:has-text('╪¬╪¡┘ê┘è┘ä'), button:has-text('╪¬╪¡┘ê┘è┘ä'), div[role="alertdialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), [role="dialog"] button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("Withdraw"), button:has-text("Transfer"), button:has-text("Send")
+- payout.trigger.fallback: FOUND (count=9) :: nav div.cursor-pointer.rounded-full:has(> svg), button:has-text("╪Ñ╪▒╪│╪º┘ä"), button:has-text("╪º╪▒╪│╪º┘ä"), button:has-text("╪¬╪¡┘ê┘è┘ä"), button:has-text("Transfer"), button:has-text("Send"), button.mb-2.hover\:text-primary, nav div.cursor-pointer.rounded-full:has(> svg)
+
+Notes:
+- One or more login selectors are missing on login page.
+- Login credentials are missing in env; login submit was skipped (selector probes still valid).
+- Doctor attempted trigger-based payout reveal to validate modal/amount flow.

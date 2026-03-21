@@ -1,0 +1,43 @@
+import { NextAuthConfig } from "next-auth";
+import { loginUserSchema } from "./app/validations/userValidations";
+import Credentials from "next-auth/providers/credentials";
+import { prisma } from "./lib/prisma";
+import * as bcrypt from "bcryptjs";
+
+export default (<NextAuthConfig>{
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const validation = loginUserSchema.safeParse(credentials);
+        if (!validation.success) return null;
+
+        const { email, password } = validation.data;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user || !user.email) return null;
+
+        const { password: hashedPassword } = user;
+        if (!hashedPassword) return null;
+
+        const passwordMatch = await bcrypt.compare(password, hashedPassword);
+        if (!passwordMatch) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.profileImage,
+          balance: Number(user.balance),
+          isActive: user.isActive,
+          isAdmin: user.isAdmin,
+          activeUntil: user.activeUntil,
+          pendingReferralEarnings: Number(user.pendingReferralEarnings),
+          notifications: [],
+        };
+      },
+    }),
+  ],
+}) satisfies NextAuthConfig;

@@ -1,0 +1,253 @@
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { authHelper } from "../../utils/authHelper";
+import { Errors } from "../../lib/errors/errors";
+import { handleApiError } from "../../lib/errors/errorHandler";
+import { attachExtrasBatch } from "../../items/functions/helpers";
+import { requireProfileEditTicket } from "../../utils/profileEditVerification";
+
+/**
+ * @description Get user profile
+ * @route ~/api/profile
+ * @method Get
+ * @access Public
+ */
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await authHelper();
+    const user = await prisma.user.findUnique({
+      where: { id: session.id },
+      include: {
+        properties: {
+          where: { isDeleted: false },
+          include: { category: true, location: true },
+        },
+        newCars: {
+          where: { isDeleted: false },
+          include: { category: true, location: true },
+        },
+        oldCars: {
+          where: { isDeleted: false },
+          include: { category: true, location: true },
+        },
+        otherItems: {
+          where: { isDeleted: false },
+          include: { category: true, location: true },
+        },
+        favorites: true,
+        referrals: true,
+        purchaseRequests: true,
+      },
+    });
+    if (!user) throw Errors.UNAUTHORIZED();
+    const items = [
+      ...user.newCars,
+      ...user.oldCars,
+      ...user.otherItems,
+      ...user.properties,
+    ];
+
+    const itemsExtra = await attachExtrasBatch(items);
+    const safeUser = {
+      ...user,
+      password: undefined,
+      items: itemsExtra,
+    };
+    return NextResponse.json(safeUser, { status: 200 });
+  } catch (error) {
+    return handleApiError(error, req);
+  }
+}
+
+/**
+ * @description Upload user profile image
+ * @route ~/api/profile/:id
+ * @method POST
+ * @access private
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await authHelper();
+    const id = user?.id;
+
+    const body = await req.json();
+    const { profileImage } = body as { profileImage: string };
+    if (!profileImage)
+      return NextResponse.json({ message: "الصور مطلوبة" }, { status: 400 });
+    await prisma.user.update({
+      where: { id },
+      data: { profileImage },
+    });
+    return NextResponse.json(
+      { message: "تم تحديث صورة الملف الشخصي بنجاح" },
+      { status: 200 },
+    );
+  } catch {
+    return NextResponse.json({ message: "حدث خطأ داخلي في الخادم" });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
+ * @description Charge Acoount balance by code
+ * @route ~/api/profile
+ * @method PUT
+ * @access private (owner Of account only)
+ */
+
+export async function PUT(req: NextRequest) {
+  try {
+    const user = await authHelper();
+    const id = user?.id;
+
+    const body = await req.json();
+    const { code } = body || {};
+
+    if (!code) {
+      return NextResponse.json(
+        { success: false, message: "كود التفعيل مطلوب" },
+        { status: 400 },
+      );
+    }
+
+    // ✅ التحقق من وجود كود التفعيل
+    const existingCode = await prisma.activationCode.findUnique({
+      where: { code },
+    });
+
+    if (!existingCode) {
+      return NextResponse.json(
+        { success: false, message: "كود التفعيل غير صالح أو منتهي" },
+        { status: 400 },
+      );
+    }
+
+    // ✅ تنفيذ جميع العمليات في معاملة واحدة
+    const [updatedUser, transactionLog] = await prisma.$transaction([
+      // 🔹 تحديث رصيد المستخدم (زيادة الرصيد الحالي)
+      prisma.user.update({
+        where: { id },
+        data: { balance: { increment: existingCode.balance } },
+        select: { id: true, balance: true },
+      }),
+
+      // 🔹 حذف كود التفعيل بعد الاستخدام
+      prisma.activationCode.delete({ where: { code: existingCode.code } }),
+
+      // 🔹 تسجيل العملية في سجل المعاملات
+      prisma.chargingLog.create({
+        data: {
+          userId: id,
+          type: "CREDIT",
+          amount: existingCode.balance,
+        },
+      }),
+    ]);
+
+    // ✅ إرجاع الاستجابة النهائية
+    return NextResponse.json({
+      success: true,
+      message: "تم تحديث الرصيد بنجاح",
+      data: {
+        user: updatedUser,
+        transaction: transactionLog,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error in PUT /api/user/[id]:", error);
+    return handleApiError(error, req);
+  }
+}
+
+/**
+ * @description Update user basic profile data (name/email)
+ * @route ~/api/profile
+ * @method PATCH
+ * @access private
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await authHelper();
+    const userId = session.id;
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    if (!currentUser) {
+      throw Errors.UNAUTHORIZED();
+    }
+
+    const body = (await req.json()) as {
+      name?: string;
+      email?: string;
+    };
+
+    const nextName = body?.name?.trim();
+    const nextEmail = body?.email?.trim().toLowerCase();
+
+    if (!nextName && !nextEmail) {
+      return NextResponse.json(
+        { success: false, message: "لا توجد بيانات للتحديث" },
+        { status: 400 },
+      );
+    }
+
+    requireProfileEditTicket(req, {
+      userId,
+      email: currentUser.email,
+    });
+
+    if (nextName && nextName.length < 2) {
+      return NextResponse.json(
+        { success: false, message: "الاسم قصير جدًا" },
+        { status: 400 },
+      );
+    }
+
+    if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return NextResponse.json(
+        { success: false, message: "صيغة البريد الإلكتروني غير صحيحة" },
+        { status: 400 },
+      );
+    }
+
+    if (nextEmail) {
+      const emailOwner = await prisma.user.findUnique({
+        where: { email: nextEmail },
+        select: { id: true },
+      });
+
+      if (emailOwner && emailOwner.id !== userId) {
+        return NextResponse.json(
+          { success: false, message: "البريد الإلكتروني مستخدم بالفعل" },
+          { status: 409 },
+        );
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(nextName ? { name: nextName } : {}),
+        ...(nextEmail ? { email: nextEmail } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profileImage: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تحديث بيانات الحساب بنجاح",
+      user: updated,
+    });
+  } catch (error) {
+    return handleApiError(error, req);
+  }
+}

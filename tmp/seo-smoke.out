@@ -1,0 +1,10 @@
+Γ£à GET /robots.txt is 200 (status=200)
+
+SEO smoke failed: 1 check(s).
+Γ£à GET /manifest.webmanifest is 200 (status=200)
+Γ£à GET /sitemap.xml is 200 (status=200)
+Γ£à GET /sitemap/0 is 200 (status=200)
+Γ£à GET /opengraph-image is 200 (status=200)
+Γ£à GET /twitter-image is 200 (status=200)
+Γ¥î home HTML check (AbortError: This operation was aborted)
+Γ£à sample item for detail checks (skipped (no items available))

@@ -1,0 +1,125 @@
+
+> barrow@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.4.6
+   - Environments: .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 17.0s
+   Linting and checking validity of types ...
+   Collecting page data ...
+ ΓÜá Using edge runtime on a page currently disables static generation for that page
+   Generating static pages (0/74) ...
+   Generating static pages (18/74) 
+   Generating static pages (36/74) 
+   Generating static pages (55/74) 
+ Γ£ô Generating static pages (74/74)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                         Size  First Load JS
+Γöî ╞Æ /                                            19.1 kB        7.64 MB
+Γö£ ╞Æ /_not-found                                     1 kB         102 kB
+Γö£ ╞Æ /admin                                        136 kB        7.59 MB
+Γö£ ╞Æ /admin/purchase-request                      3.85 kB         542 kB
+Γö£ ╞Æ /admin/purchase-request/[requestId]          2.53 kB         108 kB
+Γö£ ╞Æ /admin/purchase-request/my-req               2.31 kB         537 kB
+Γö£ ╞Æ /admin/purchase-request/my-req/assigned        333 B         101 kB
+Γö£ ╞Æ /api/activate                                  333 B         101 kB
+Γö£ ╞Æ /api/admin/achivment                           333 B         101 kB
+Γö£ ╞Æ /api/admin/active_code                         333 B         101 kB
+Γö£ ╞Æ /api/admin/active_code/send                    333 B         101 kB
+Γö£ ╞Æ /api/admin/dashboard                           333 B         101 kB
+Γö£ ╞Æ /api/admin/dashboard/actions                   333 B         101 kB
+Γö£ ╞Æ /api/admin/financial-report                    333 B         101 kB
+Γö£ ╞Æ /api/admin/payment-settings                    333 B         101 kB
+Γö£ ╞Æ /api/admin/purchase-req/details/[requestId]    333 B         101 kB
+Γö£ ╞Æ /api/admin/purchase-req/my-req                 333 B         101 kB
+Γö£ ╞Æ /api/admin/purchase-req/my-req/[requestId]     333 B         101 kB
+Γö£ ╞Æ /api/admin/purchase-req/unassigned             333 B         101 kB
+Γö£ ╞Æ /api/admin/shamcash-payout-jobs                333 B         101 kB
+Γö£ ╞Æ /api/admin/support/messages                    333 B         101 kB
+Γö£ ╞Æ /api/admin/support/reply                       333 B         101 kB
+Γö£ ╞Æ /api/analytics/web-vitals                      333 B         101 kB
+Γö£ ╞Æ /api/auth/[...nextauth]                        333 B         101 kB
+Γö£ ╞Æ /api/auth/verify-email                         333 B         101 kB
+Γö£ ╞Æ /api/cars                                      333 B         101 kB
+Γö£ ╞Æ /api/cars/new_car/[id]                         333 B         101 kB
+Γö£ ╞Æ /api/cars/used_car                             333 B         101 kB
+Γö£ ╞Æ /api/cars/used_car/[id]                        333 B         101 kB
+Γö£ ╞Æ /api/categories                                333 B         101 kB
+Γö£ ╞Æ /api/charging_account                          333 B         101 kB
+Γö£ ╞Æ /api/favorites                                 333 B         101 kB
+Γö£ ╞Æ /api/geocode/reverse                           333 B         101 kB
+Γö£ ╞Æ /api/items                                     333 B         101 kB
+Γö£ ╞Æ /api/items/delete/[id]                         333 B         101 kB
+Γö£ ╞Æ /api/items/details/[id]                        333 B         101 kB
+Γö£ ╞Æ /api/items/featured                            333 B         101 kB
+Γö£ ╞Æ /api/notifications                             333 B         101 kB
+Γö£ ╞Æ /api/notifications/[id]/read                   333 B         101 kB
+Γö£ ╞Æ /api/notifications/stream                      333 B         101 kB
+Γö£ ╞Æ /api/notifications/unread-count                333 B         101 kB
+Γö£ ╞Æ /api/otherItems                                333 B         101 kB
+Γö£ ╞Æ /api/otherItems/[id]                           333 B         101 kB
+Γö£ ╞Æ /api/pay/fatora                                333 B         101 kB
+Γö£ ╞Æ /api/pay/fatora/confirm                        333 B         101 kB
+Γö£ ╞Æ /api/pay/paypal/capture                        333 B         101 kB
+Γö£ ╞Æ /api/pay/paypal/withdraw                       333 B         101 kB
+Γö£ ╞Æ /api/pay/settings                              333 B         101 kB
+Γö£ ╞Æ /api/pay/shamcash/withdraw                     333 B         101 kB
+Γö£ ╞Æ /api/profile                                   333 B         101 kB
+Γö£ ╞Æ /api/profile-image                             333 B         101 kB
+Γö£ ╞Æ /api/profile/[id]                              333 B         101 kB
+Γö£ ╞Æ /api/profile/edit-verification/send-code       333 B         101 kB
+Γö£ ╞Æ /api/profile/edit-verification/verify-code     333 B         101 kB
+Γö£ ╞Æ /api/profile/summary                           333 B         101 kB
+Γö£ ╞Æ /api/profile/withdrawals/shamcash              333 B         101 kB
+Γö£ ╞Æ /api/purchase                                  333 B         101 kB
+Γö£ ╞Æ /api/purchase/admin_aggremental                333 B         101 kB
+Γö£ ╞Æ /api/purchase/admin_claim                      333 B         101 kB
+Γö£ ╞Æ /api/purchase/final_transaction                333 B         101 kB
+Γö£ ╞Æ /api/purchase/owner_decision                   333 B         101 kB
+Γö£ ╞Æ /api/ratings/item                              333 B         101 kB
+Γö£ ╞Æ /api/ratings/property                          333 B         101 kB
+Γö£ ╞Æ /api/ratings/user                              333 B         101 kB
+Γö£ ╞Æ /api/realestate                                333 B         101 kB
+Γö£ ╞Æ /api/realestate/[id]                           333 B         101 kB
+Γö£ ╞Æ /api/realestate/update                         333 B         101 kB
+Γö£ ╞Æ /api/support/activation-code-request           333 B         101 kB
+Γö£ ╞Æ /api/support/contact                           333 B         101 kB
+Γö£ ╞Æ /api/support/tickets                           333 B         101 kB
+Γö£ ╞Æ /api/support/tickets/[ticketId]                333 B         101 kB
+Γö£ ╞Æ /api/support/tickets/[ticketId]/reply          333 B         101 kB
+Γö£ ╞Æ /api/transactions/manage                       333 B         101 kB
+Γö£ ╞Æ /api/transactions/rent                         333 B         101 kB
+Γö£ ╞Æ /api/transactions/sell                         333 B         101 kB
+Γö£ ╞Æ /api/upload                                    333 B         101 kB
+Γö£ ╞Æ /api/webhooks/fatora                           333 B         101 kB
+Γö£ ╞Æ /api/webhooks/shamcash                         333 B         101 kB
+Γö£ ╞Æ /api/ws                                        333 B         101 kB
+Γö£ ╞Æ /items/details/[id]                           8.4 kB        7.45 MB
+Γö£ ╞Æ /items/details/[id]/opengraph-image            333 B         101 kB
+Γö£ ╞Æ /items/details/[id]/twitter-image              333 B         101 kB
+Γö£ Γùï /manifest.webmanifest                          333 B         101 kB
+Γö£ ╞Æ /opengraph-image                               333 B         101 kB
+Γö£ ╞Æ /payment                                      5.8 kB         106 kB
+Γö£ ╞Æ /profile                                     15.6 kB        7.51 MB
+Γö£ Γùï /robots.txt                                    333 B         101 kB
+Γö£ Γùï /sitemap.xml                                   333 B         101 kB
+Γö£ ╞Æ /sitemap/[id]                                  333 B         101 kB
+Γö£ ╞Æ /twitter-image                                 333 B         101 kB
+Γöö ╞Æ /verify-email                                  165 B         104 kB
++ First Load JS shared by all                     101 kB
+  Γö£ chunks/4bd1b696-cc729d47eba2cee4.js          54.1 kB
+  Γö£ chunks/5964-6d6a41800488ba64.js              43.9 kB
+  Γöö other shared chunks (total)                  2.57 kB
+
+
+╞Æ Middleware                                     45.2 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

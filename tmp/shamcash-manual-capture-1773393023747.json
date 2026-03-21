@@ -1,0 +1,17 @@
+{
+  "captureStartedAt": "2026-03-13T09:03:20.941Z",
+  "captureEndedAt": "2026-03-13T09:10:23.745Z",
+  "captureMs": 420000,
+  "sourceUrl": "https://shamcash.sy/ar/application/transaction",
+  "events": [],
+  "envSuggestions": [
+    "SHAMCASH_TRANSFER_CURRENCY_USD_OPTION_SELECTOR=\"text=USD\""
+  ],
+  "notes": [
+    "Could not infer transfer-details modal selector.",
+    "Could not infer amount field from your manual actions.",
+    "Could not infer note field from your manual actions.",
+    "Could not infer currency control from your manual actions.",
+    "Could not infer final submit button click in transfer modal."
+  ]
+}

@@ -1,0 +1,1 @@
+{"message":"Could not queue withdrawal request and direct payout failed. Balance was not deducted. (Redis is not configured. Set REDIS_URL to enable payout queue.) (Payout submit did not produce a confirmed outgoing 1.00 USD transaction in ShamCash history within 75000ms.)"}

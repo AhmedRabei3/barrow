@@ -1,26 +1,253 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body,
+:root {
+  height: 100%;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --app-bg: #ffffff;
+  --app-fg: #0f172a;
+  --app-surface: #ffffff;
+  --app-border: #e2e8f0;
+  --field-bg: #ffffff;
+  --field-fg: #0f172a;
+  --field-border: #cbd5e1;
+  --field-placeholder: #64748b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  color-scheme: dark;
+  --app-bg: #020617;
+  --app-fg: #f8fafc;
+  --app-surface: #0f172a;
+  --app-border: #334155;
+  --field-bg: #0b1220;
+  --field-fg: #e2e8f0;
+  --field-border: #475569;
+  --field-placeholder: #94a3b8;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
 }
+
+html.dark body {
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+}
+
+
+html[lang="ar"],
+html[lang="ar"] body {
+  font-family: var(--font-noto-kufi), sans-serif !important;
+}
+
+html[lang="en"],
+html[lang="en"] body {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select,
+html[lang="ar"] button {
+  font-family: inherit;
+}
+
+/* Global dark-mode form controls to keep contrast consistent across all modals/pages */
+html.dark
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="color"]
+      ):not([type="file"]),
+    textarea,
+    select
+  ) {
+  background-color: var(--field-bg) !important;
+  color: var(--field-fg) !important;
+  border-color: var(--field-border) !important;
+  caret-color: var(--field-fg);
+}
+
+html.dark
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="color"]
+      ):not([type="file"]),
+    textarea,
+    select
+  )::placeholder {
+  color: var(--field-placeholder) !important;
+  opacity: 1;
+}
+
+html.dark
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="color"]
+      ):not([type="file"]),
+    textarea,
+    select
+  ):focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+  outline: none;
+}
+
+html.dark
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="color"]
+      ):not([type="file"]),
+    textarea,
+    select
+  ):disabled {
+  background-color: #111827 !important;
+  color: #9ca3af !important;
+  border-color: #374151 !important;
+}
+
+html.dark select option {
+  background-color: var(--field-bg);
+  color: var(--field-fg);
+}
+
+html.dark input[type="file"]::file-selector-button {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}
+
+html.dark input:-webkit-autofill,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-text-fill-color: var(--field-fg);
+  -webkit-box-shadow: 0 0 0 1000px var(--field-bg) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+.no-scrollbar::-webkit-scrollbar{
+  display: none;
+}
+
+.no-scroll{
+  -ms-overflow-style: none;
+}
+
+.container{
+  margin-inline: clamp(12px, 3vw, 40px);
+  width: auto;
+}
+
+.leaflet-bottom,
+.leaflet-control,
+.leaflet-pane,
+.leaflet-top {
+  z-index: 0 !important;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 12px;
+  z-index: 1;
+}
+
+
+.rdrMonth {
+  width: 100% !important;
+}
+
+.rdrCalendarWrapper {
+  width: 100% !important;
+  font-size: 16px !important;
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE و Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome و Safari */
+  }
+}
+/* لإخفاء الأسهم الافتراضية في متصفح Chrome */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* لجعل الـ input بدون الأسهم */
+.no-spinner {
+  -moz-appearance: textfield; /* فايرفوكس */
+}
+
+
+.loader{
+      color: #282828;
+      display: inline-block;
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 400;
+      position: relative;
+    }
+    .loader:after{
+      content: 'Loading';
+      position: relative;
+      z-index: 5;
+    }
+    .loader:before{
+      content: '';
+      height: 6px;
+      border: 1px solid;
+      border-radius: 10px;
+      width: 100%;
+      position: absolute;
+      bottom: 0px;
+      background: linear-gradient(#04275f 100%, transparent 0) no-repeat;
+      background-size: 0% auto;
+      animation: 10s lineGrow linear infinite;
+    }
+
+    @keyframes lineGrow {to {  background-size: 100% auto}}
+
+    /*----------------spinner -------------------*/
+.spinner {
+  min-width: 18px;
+  --b: 8px; 
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 1px;
+  background: conic-gradient(#0000 10%,#3659f4) content-box;
+  -webkit-mask:
+    repeating-conic-gradient(#0000 0deg,#000 1deg 20deg,#0000 21deg 36deg),
+    radial-gradient(farthest-side,#0000 calc(100% - var(--b) - 1px),#000 calc(100% - var(--b)));
+  -webkit-mask-composite: destination-in;
+          mask-composite: intersect;
+  animation:l4 1s infinite steps(10);
+}
+@keyframes l4 {to{transform: rotate(1turn)}}
+
+@keyframes indigoBlueShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-indigo-border {
+  background: linear-gradient(120deg, #4f46e5, #2563eb, #4f46e5);
+  background-size: 220% 220%;
+  animation: indigoBlueShift 3.2s ease infinite;
+}
+

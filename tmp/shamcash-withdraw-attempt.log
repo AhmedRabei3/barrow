@@ -1,0 +1,7 @@
+START=2026-03-12T14:41:06.0317124+03:00
+CSRF_OK
+PROFILE_STATUS=200
+PROFILE_BODY={"id":"cmma3gyro0000us0c7nqv6hyb","email":"e2e.user@example.com","name":"E2E User","profileImage":null,"isActive":true,"isAdmin":false,"emailVerified":null,"balance":"123","activeUntil":"2026-04-02T04:15:13.556Z","pendingReferralEarnings":"0","createdAt":"2026-03-03T04:15:13.666Z","updatedAt":"2026-03-12T11:37:06.163Z","isDeleted":false,"deletedAt":null,"properties":[],"newCars":[],"oldCars":[],"otherItems":[],"favorites":[],"referrals":[],"purchaseRequests":[],"items":[]}
+WITHDRAW_STATUS=503
+WITHDRAW_BODY={"message":"Could not queue withdrawal request and direct payout failed. Balance was not deducted. (Redis is not configured. Set REDIS_URL to enable payout queue.) (Could not reach any ShamCash entry URL: https://shamcash.sy/ar/auth/login, https://shamcash.sy/ar, https://shamcash.sy/ar/application/home, https://shamcash.sy/ar/application/transaction, https://shamcash.sy/ar/application/favorite)"}
+END=2026-03-12T14:42:04.1492437+03:00
