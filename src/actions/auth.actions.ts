@@ -12,6 +12,7 @@ import {
   createEmailVerification,
   sendEmailVerificationMail,
 } from "@/lib/emailVerification";
+import { matchPassword } from "./passwordMatcher";
 
 /** login user */
 export const loginAction = async (data: LoginUserInput, isArabic: boolean) => {
@@ -23,6 +24,7 @@ export const loginAction = async (data: LoginUserInput, isArabic: boolean) => {
     };
 
   const { email, password } = validations.data;
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.password)
     return {
@@ -41,14 +43,7 @@ export const loginAction = async (data: LoginUserInput, isArabic: boolean) => {
     };
   }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match)
-    return {
-      success: false,
-      message: isArabic
-        ? "خطأ في كلمة المرور أو البريد الإلكتروني"
-        : "Incorrect password or email",
-    };
+  await matchPassword(password, user.password, isArabic);
 
   // منطق الجلسة النشطة يعتمد على JWT فقط
   // يمكن إضافة claim في التوكن لتتبع الجهاز أو sessionId إذا رغبت بذلك
@@ -90,7 +85,6 @@ export const registerAction = async (
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // ✅ إنشاء المستخدم
       const newUser = await tx.user.create({
         data: {
           name,
@@ -99,31 +93,32 @@ export const registerAction = async (
         },
       });
 
-      // ✅ معالجة الإحالة (إن وجدت)
       if (referredBy) {
-        // ❗ منع الإحالة الذاتية
-        if (referredBy === newUser.id) {
-          throw new Error(
-            isArabic ? "لا يمكنك إحالة نفسك" : "You cannot refer yourself",
-          );
-        }
-
         const referrer = await tx.user.findUnique({
           where: { id: referredBy },
-          select: { id: true, isDeleted: true },
+          select: { id: true, isDeleted: true, isActive: true },
         });
 
-        if (!referrer || referrer.isDeleted) {
-          throw new Error(isArabic ? "إحالة غير صحيحة" : "Invalid referral");
+        const existingReferral = await tx.referral.findFirst({
+          where: { newUser: newUser.id },
+          select: { id: true },
+        });
+
+        if (
+          referrer &&
+          referrer.isActive &&
+          !referrer.isDeleted &&
+          !existingReferral
+        ) {
+          await tx.referral.create({
+            data: {
+              newUser: newUser.id,
+              userId: referredBy,
+            },
+          });
         }
-
-        await tx.referral.create({
-          data: {
-            newUser: newUser.id,
-            userId: referredBy,
-          },
-        });
       }
+
       return { id: newUser.id, name: newUser.name, email: newUser.email };
     });
 

@@ -14,7 +14,33 @@ import { useRouter } from "next/navigation";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { APP_NAME_AR, APP_NAME_EN } from "@/app/i18n/brand";
 import { useSession } from "next-auth/react";
-import { isCuid } from "@paralleldrive/cuid2";
+
+const REFERRAL_STORAGE_KEY = "pending-referrer-id";
+
+const isReferralId = (value: unknown): value is string =>
+  typeof value === "string" && /^c[a-z0-9]{24,}$/i.test(value);
+
+const readStoredReferrer = (): string | undefined => {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const value = window.sessionStorage.getItem(REFERRAL_STORAGE_KEY);
+  return isReferralId(value) ? value : undefined;
+};
+
+const persistReferrer = (value?: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (isReferralId(value)) {
+    window.sessionStorage.setItem(REFERRAL_STORAGE_KEY, value);
+    return;
+  }
+
+  window.sessionStorage.removeItem(REFERRAL_STORAGE_KEY);
+};
 
 const RegisterModal = () => {
   const registerModal = useRegisterModal();
@@ -33,6 +59,7 @@ const RegisterModal = () => {
   const {
     register,
     handleSubmit,
+    reset,
     setValue,
     formState: { errors },
   } = useForm<FieldValues>({
@@ -45,23 +72,41 @@ const RegisterModal = () => {
   });
 
   useEffect(() => {
-    setValue("referredBy", registerModal.referredBy || undefined);
-  }, [registerModal.referredBy, setValue]);
+    const resolvedReferrer = isReferralId(registerModal.referredBy)
+      ? registerModal.referredBy
+      : readStoredReferrer();
+
+    persistReferrer(resolvedReferrer);
+
+    if (registerModal.isOpen) {
+      reset({
+        name: "",
+        email: "",
+        password: "",
+        referredBy: resolvedReferrer,
+      });
+      return;
+    }
+
+    setValue("referredBy", resolvedReferrer);
+  }, [registerModal.isOpen, registerModal.referredBy, reset, setValue]);
 
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     try {
       setIsLoading(true);
-      // تحقق من referredBy قبل الإرسال
+
       const cleanData = { ...data };
-      if (cleanData.referredBy && !isCuid(cleanData.referredBy)) {
+      if (!isReferralId(cleanData.referredBy)) {
         delete cleanData.referredBy;
+        persistReferrer(undefined);
       }
-      
+
       const result = await registerAction(
         cleanData as RegisterUserInput,
         isArabic,
       );
       if (result.success) {
+        persistReferrer(undefined);
         toast.success(result.message);
         registerModal.onClose();
         loginModal.onOpen();

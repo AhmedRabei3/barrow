@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { ensurePaymentSettings } from "@/lib/paymentSettings";
 import { enqueueShamCashIncomingPaymentJob } from "@/lib/shamcashIncomingPaymentQueue";
 import type { ItemType } from "@prisma/client";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
-
-const REFERRAL_DISCOUNT_RATE = 0.1;
+import { getReferralDiscountValue } from "@/lib/referralBenefits";
 
 type RequestBody = {
   type?: "SUBSCRIPTION" | "FEATURED_AD";
@@ -94,12 +92,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paymentSettings = await ensurePaymentSettings();
+    const paymentSettings = await prisma.appPaymentSettings.findUnique({
+      where: { id: 1 },
+    });
 
     const originalAmount =
       type === "FEATURED_AD"
-        ? paymentSettings.featuredAdMonthlyPrice
-        : paymentSettings.subscriptionMonthlyPrice;
+        ? Number(paymentSettings?.featuredAdMonthlyPrice ?? 0)
+        : Number(paymentSettings?.subscriptionMonthlyPrice ?? 0);
 
     if (!originalAmount || originalAmount <= 0) {
       return NextResponse.json(
@@ -113,20 +113,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const referral =
+    const referralDiscountValue =
       type === "FEATURED_AD"
-        ? null
-        : await prisma.referral.findFirst({
-            where: { newUser: user.id },
-            select: { id: true },
-          });
+        ? 0
+        : await getReferralDiscountValue(prisma, user.id, originalAmount);
 
-    const canGetReferralDiscount = Boolean(
-      referral && type !== "FEATURED_AD" && !user.activeUntil,
-    );
-
+    const canGetReferralDiscount = referralDiscountValue > 0;
     const discountedAmount = canGetReferralDiscount
-      ? Number((originalAmount * (1 - REFERRAL_DISCOUNT_RATE)).toFixed(2))
+      ? Number((originalAmount - referralDiscountValue).toFixed(2))
       : originalAmount;
 
     const payment = await prisma.payment.create({

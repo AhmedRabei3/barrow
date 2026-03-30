@@ -6,8 +6,7 @@ import { authHelper } from "../../utils/authHelper";
 import { Errors } from "../../lib/errors/errors";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
-
-const REFERRAL_DISCOUNT_RATE = 0.1;
+import { getReferralDiscountValue } from "@/lib/referralBenefits";
 
 export async function PUT(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
@@ -46,10 +45,10 @@ export async function PUT(req: NextRequest) {
     }
 
     const code = await prisma.activationCode.findUnique({
-      where: { code: activationCode, used: false },
+      where: { code: activationCode },
     });
 
-    if (!code) {
+    if (!code || code.used) {
       throw Errors.NOT_FOUND(
         t(
           "رمز التفعيل غير موجود أو تم استخدامه مسبقًا",
@@ -58,18 +57,11 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const activeUntil = user.activeUntil ? new Date(user.activeUntil) : null;
-    const isFirstActivation = !activeUntil;
-
-    const referralLink = await prisma.referral.findFirst({
-      where: { newUser: user.id },
-      select: { userId: true },
-    });
-
-    const referralDiscountValue =
-      isFirstActivation && referralLink?.userId
-        ? Number(code.balance) * REFERRAL_DISCOUNT_RATE
-        : 0;
+    const referralDiscountValue = await getReferralDiscountValue(
+      prisma,
+      user.id,
+      Number(code.balance),
+    );
 
     let newActiveUntil: Date;
 

@@ -5,14 +5,14 @@ interface RegisterModalStore {
   referredBy?: string;
   onOpen: (refId?: string) => void;
   onClose: () => void;
-  setReferrer: (refId: string) => void;
+  setReferrer: (refId?: string) => void;
 }
 
 const useRegisterModal = create<RegisterModalStore>((set) => ({
   isOpen: false,
-  referredBy: "",
+  referredBy: undefined,
   onOpen: (refId?: string) => set({ isOpen: true, referredBy: refId }),
-  onClose: () => set({ isOpen: false }),
+  onClose: () => set({ isOpen: false, referredBy: undefined }),
   setReferrer: (refId) => set({ referredBy: refId ? refId : undefined }),
 }));
 

@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { applySubscriptionActivation } from "@/lib/subscriptionActivation";
-import { ensurePaymentSettings } from "@/lib/paymentSettings";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { getReferralDiscountValue } from "@/lib/referralBenefits";
 
 type ShamCashWebhookPayload = {
   id?: string;
@@ -214,9 +214,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const settings = await ensurePaymentSettings();
-    const requiredAmount = settings.subscriptionMonthlyPrice;
-
+    const settings = await prisma.appPaymentSettings.findUnique({
+      where: { id: 1 },
+    });
+    const requiredAmount = Number(settings?.subscriptionMonthlyPrice ?? 0);
     if (receivedAmount < requiredAmount) {
       await prisma.shamCashWebhookEvent.update({
         where: { externalId },
@@ -254,11 +255,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        const referralDiscountValue = await getReferralDiscountValue(
+          tx,
+          user.id,
+          requiredAmount,
+        );
+
         await applySubscriptionActivation({
           tx,
           userId: user.id,
           subscriptionAmount: requiredAmount,
           sourceLabel: "ShamCash QR",
+          referralDiscountValue,
         });
 
         return createdPayment;
