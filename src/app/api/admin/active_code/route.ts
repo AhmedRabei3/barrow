@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdminUser } from "../../utils/authHelper";
 
 /**
  * @description create new activation code
@@ -10,15 +10,9 @@ import { prisma } from "@/lib/prisma";
  */
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: "غير مصرح" }, { status: 401 });
-  }
-
+  await requireAdminUser();
   try {
     const { balance, countOfCodes } = await req.json();
-
     // 🛑 Validation يدوي (سريع وخفيف)
     if (
       typeof balance !== "number" ||
@@ -28,17 +22,9 @@ export async function POST(req: NextRequest) {
       countOfCodes > 100
     ) {
       return NextResponse.json(
-        { message: "المدخلات غير صحيحة" },
+        { error: "المدخلات غير صحيحة" },
         { status: 400 },
       );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || !user.isAdmin || user.isDeleted) {
-      return NextResponse.json({ message: "ممنوع" }, { status: 403 });
     }
 
     // ✅ Transaction لضمان الذرّية
@@ -61,7 +47,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("🔥 create activation code error:", error);
     return NextResponse.json(
-      { success: false, message: "حدث خطأ داخلي في الخادم" },
+      { error: "حدث خطأ داخلي في الخادم" },
       { status: 500 },
     );
   }
@@ -74,35 +60,24 @@ export async function POST(req: NextRequest) {
  * @method GET
  */
 export async function GET() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: "غير مصرح" }, { status: 401 });
-  }
-
+  await requireAdminUser();
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || !user.isAdmin || user.isDeleted) {
-      return NextResponse.json({ message: "ممنوع" }, { status: 403 });
-    }
-
     const codes = await prisma.activationCode.findMany({
       select: {
         id: true,
         code: true,
         balance: true,
+        used: true,
+        createdAt: true,
       },
-      orderBy: { balance: "desc" },
+      orderBy: [{ used: "asc" }, { createdAt: "desc" }],
     });
 
     return NextResponse.json(codes, { status: 200 });
   } catch (error) {
     console.error("🔥 get activation codes error:", error);
     return NextResponse.json(
-      { message: "حدث خطأ داخلي في الخادم" },
+      { error: "حدث خطأ داخلي في الخادم" },
       { status: 500 },
     );
   }

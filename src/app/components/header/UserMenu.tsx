@@ -236,25 +236,22 @@ const UserMenu = () => {
         label={subscriptionLabel}
         onClick={handleSubscriptionAction}
         iconName={subscriptionIcon}
+        isArabic={isArabic}
       />
       <UserMenueItem
         label={isArabic ? "الصفحة الشخصية" : "Profile"}
         onClick={goToProfile}
         iconName="MdPerson"
+        isArabic={isArabic}
       />
       {user?.isAdmin && (
         <UserMenueItem
           label={isArabic ? "لوحة الإدارة" : "Admin dashboard"}
           onClick={goToAdmin}
           iconName="MdOutlineDashboard"
+          isArabic={isArabic}
         />
       )}
-      <UserMenueItem
-        label={isArabic ? "الإعدادات" : "Settings"}
-        onClick={goToProfile}
-        iconName="AiFillTool"
-      />
-
       <UserMenueItem
         label={isArabic ? "تواصل معنا" : "Contact Us"}
         onClick={openSupportContact}
@@ -266,6 +263,7 @@ const UserMenu = () => {
         label={isArabic ? "تسجيل الخروج" : "Logout"}
         onClick={handleLogout}
         iconName="MdLogout"
+        isArabic={isArabic}
       />
     </>
   );
@@ -330,7 +328,6 @@ const UserMenu = () => {
                   : !user
                     ? renderGuestMenuItems()
                     : renderUserMenuItems()}
-                {renderPreferenceControls()}
               </motion.div>
             )}
           </AnimatePresence>
@@ -409,7 +406,12 @@ const UserMenu = () => {
                           transition={{ duration: 0.2, ease: "easeOut" }}
                           className="overflow-hidden"
                         >
-                          <div className="px-3 pb-3 pt-1 flex flex-col gap-2.5 border-t border-slate-100 dark:border-slate-700">
+                          <div
+                            className="px-3 pb-3 pt-1 flex 
+                          flex-col gap-2.5 border-t
+                           border-slate-100
+                            dark:border-slate-700"
+                          >
                             <input
                               type="text"
                               value={drawerQuery}

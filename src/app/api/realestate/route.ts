@@ -74,13 +74,14 @@ export async function POST(req: NextRequest) {
         tx.property.create({
           data: {
             ...parsed.data,
+            status: "AVAILABLE",
             ownerId: owner.id,
           },
         }),
     });
     return NextResponse.json({
       success: true,
-      message: "تم إنشاء العقار بنجاح",
+      message: "تم نشر العقار بنجاح",
     });
   } catch (err) {
     console.error("CREATE PROPERTY ERROR:", err);

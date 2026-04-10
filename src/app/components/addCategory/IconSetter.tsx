@@ -34,12 +34,14 @@ interface DynamicIconInterface {
   iconName?: string;
   size?: number;
   className?: string;
+  onClick?: () => void;
 }
 
 export function DynamicIcon({
   iconName,
   size,
   className,
+  onClick,
 }: DynamicIconInterface) {
   if (!iconName) return null;
 
@@ -50,5 +52,5 @@ export function DynamicIcon({
 
   if (!Icon) return null;
 
-  return <Icon size={size || 24} className={className} />;
+  return <Icon size={size || 24} className={className} onClick={onClick} />;
 }

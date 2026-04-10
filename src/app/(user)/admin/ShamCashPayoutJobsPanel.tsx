@@ -55,13 +55,45 @@ type JobsResponse = {
   message?: string;
 };
 
+type ApiMessageResponse = {
+  message?: string;
+};
+
+const SHAMCASH_PAYOUT_JOBS_API =
+  "/api/admin/shamcash-activation-requests/shamcash-payout-jobs";
+const SHAMCASH_MANUAL_WITHDRAWALS_API =
+  "/api/admin/shamcash-activation-requests/shamcash-manual-withdrawals";
+
+const readJsonResponse = async <T,>(
+  response: Response,
+  fallbackMessage: string,
+): Promise<T> => {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(fallbackMessage);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(fallbackMessage);
+  }
+};
+
 const formatMoney = (amount: number) => Number(amount || 0).toFixed(2);
 
 const statusClassName = (status: PayoutJob["status"]) => {
-  if (status === "COMPLETED") return "bg-emerald-100 text-emerald-700";
-  if (status === "FAILED") return "bg-rose-100 text-rose-700";
-  if (status === "PROCESSING") return "bg-amber-100 text-amber-700";
-  return "bg-sky-100 text-sky-700";
+  if (status === "COMPLETED") {
+    return "border border-emerald-500/20 bg-emerald-500/15 text-emerald-200";
+  }
+  if (status === "FAILED") {
+    return "border border-rose-500/20 bg-rose-500/15 text-rose-200";
+  }
+  if (status === "PROCESSING") {
+    return "border border-amber-500/20 bg-amber-500/15 text-amber-200";
+  }
+  return "border border-sky-500/20 bg-sky-500/15 text-sky-200";
 };
 
 const toLocaleDateTime = (value: string, locale: string) => {
@@ -110,7 +142,7 @@ const ShamCashPayoutJobsPanel = ({
         });
 
         const response = await fetch(
-          `/api/admin/shamcash-payout-jobs?${params.toString()}`,
+          `${SHAMCASH_PAYOUT_JOBS_API}?${params.toString()}`,
           {
             headers: {
               "x-lang": isArabic ? "ar" : "en",
@@ -118,7 +150,10 @@ const ShamCashPayoutJobsPanel = ({
           },
         );
 
-        const body = (await response.json()) as JobsResponse;
+        const body = await readJsonResponse<JobsResponse>(
+          response,
+          t("تعذر تحميل طلبات السحب", "Failed to load payout jobs"),
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -164,7 +199,7 @@ const ShamCashPayoutJobsPanel = ({
       try {
         setRetryingId(jobId);
 
-        const response = await fetch("/api/admin/shamcash-payout-jobs", {
+        const response = await fetch(SHAMCASH_PAYOUT_JOBS_API, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -176,7 +211,10 @@ const ShamCashPayoutJobsPanel = ({
           }),
         });
 
-        const body = (await response.json()) as { message?: string };
+        const body = await readJsonResponse<ApiMessageResponse>(
+          response,
+          t("تعذر إعادة المحاولة", "Failed to retry payout job"),
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -217,7 +255,7 @@ const ShamCashPayoutJobsPanel = ({
             ),
           ) || "";
 
-        const response = await fetch("/api/admin/shamcash-manual-withdrawals", {
+        const response = await fetch(SHAMCASH_MANUAL_WITHDRAWALS_API, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -231,7 +269,10 @@ const ShamCashPayoutJobsPanel = ({
           }),
         });
 
-        const body = (await response.json()) as { message?: string };
+        const body = await readJsonResponse<ApiMessageResponse>(
+          response,
+          t("تعذر إتمام الطلب اليدوي", "Failed to complete manual withdrawal"),
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -361,14 +402,17 @@ const ShamCashPayoutJobsPanel = ({
   ];
 
   return (
-    <section className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <section className="space-y-5">
+      <div className="admin-card rounded-3xl p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <div className="admin-kicker">
+              {t("السحوبات", "Withdrawals queue")}
+            </div>
+            <h2 className="mt-2 text-lg font-bold text-white">
               {t("مراقبة طابور سحب شام كاش", "ShamCash Payout Queue Monitor")}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="mt-1 text-xs text-slate-400">
               {t(
                 "تحديث تلقائي كل 8 ثوانٍ مع إمكانية إعادة محاولة الطلبات الفاشلة",
                 "Auto-refresh every 8 seconds with manual retry for failed jobs",
@@ -380,7 +424,7 @@ const ShamCashPayoutJobsPanel = ({
             <button
               type="button"
               onClick={() => loadJobs()}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="admin-btn-secondary rounded-lg px-3 py-2 text-sm"
             >
               {t("تحديث", "Refresh")}
             </button>
@@ -396,18 +440,16 @@ const ShamCashPayoutJobsPanel = ({
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
-                    isActive
-                      ? "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className={`inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition-colors ${
+                    isActive ? "admin-tab admin-tab-active" : "admin-tab"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       isActive
-                        ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-800/50 dark:text-cyan-100"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        ? "bg-blue-500/20 text-blue-100"
+                        : "bg-slate-800 text-slate-300"
                     }`}
                   >
                     {tab.count}
@@ -418,7 +460,7 @@ const ShamCashPayoutJobsPanel = ({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
           <MetricCard
             title={t("حجم الطابور", "Queue size")}
             value={String(data?.summary.queueSize || 0)}
@@ -445,7 +487,7 @@ const ShamCashPayoutJobsPanel = ({
           />
         </div>
 
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400 whitespace-normal wrap-break-words">
+        <p className="mt-3 whitespace-normal wrap-break-words text-xs text-slate-400">
           {t("وضع التنفيذ", "Runtime mode")}: {data?.runtime.payoutMode || "-"}
           {data?.runtime.workerRequired
             ? t(" (يتطلب عامل معالجة worker)", " (worker required)")
@@ -453,7 +495,7 @@ const ShamCashPayoutJobsPanel = ({
         </p>
 
         {data && !data.runtime.queueEnabled ? (
-          <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 whitespace-normal wrap-break-words">
+          <p className="mt-2 whitespace-normal wrap-break-words text-xs text-amber-300">
             {t(
               "Redis غير مفعّل. يتم عرض الطلبات اليدوية من قاعدة البيانات داخل نفس قائمة الطابور.",
               "Redis is disabled. Manual fallback requests are shown from database in this queue view.",
@@ -463,11 +505,11 @@ const ShamCashPayoutJobsPanel = ({
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        <div className="admin-card rounded-3xl p-4 text-sm text-slate-400">
           {t("جاري تحميل الطلبات...", "Loading payout jobs...")}
         </div>
       ) : filteredJobs.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        <div className="admin-card rounded-3xl p-4 text-sm text-slate-400">
           {t(
             "لا توجد طلبات مطابقة للفلتر الحالي",
             "No jobs found for this filter",
@@ -484,12 +526,12 @@ const ShamCashPayoutJobsPanel = ({
                     ? job.manualRequestId
                     : undefined
                 }
-                className={`rounded-2xl border bg-white p-3 shadow-sm dark:bg-slate-900 ${
+                className={`rounded-2xl p-3 ${
                   focusManualRequestId &&
                   job.source === "MANUAL_FALLBACK" &&
                   job.manualRequestId === focusManualRequestId
-                    ? "border-cyan-400 ring-2 ring-cyan-300/70 dark:border-cyan-600 dark:ring-cyan-800/70"
-                    : "border-slate-200 dark:border-slate-700"
+                    ? "admin-card border border-cyan-500/50 ring-2 ring-cyan-500/20"
+                    : "admin-card"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -499,22 +541,20 @@ const ShamCashPayoutJobsPanel = ({
                     >
                       {statusLabel(job.status, t)}
                     </span>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-[11px] text-slate-500">
                       {job.source === "MANUAL_FALLBACK"
                         ? t("طلب يدوي", "Manual request")
                         : t("طلب طابور", "Queue request")}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  <p className="text-sm font-semibold text-slate-100">
                     ${formatMoney(job.amount)} {job.currency}
                   </p>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-300">
                   <div>
-                    <p className="text-slate-500 dark:text-slate-400">
-                      {t("المستخدم", "User")}
-                    </p>
+                    <p className="text-slate-500">{t("المستخدم", "User")}</p>
                     <p className="font-semibold whitespace-normal wrap-break-words">
                       {job.userName || job.userId}
                     </p>
@@ -525,9 +565,7 @@ const ShamCashPayoutJobsPanel = ({
                     ) : null}
                   </div>
                   <div>
-                    <p className="text-slate-500 dark:text-slate-400">
-                      {t("المحفظة", "Wallet")}
-                    </p>
+                    <p className="text-slate-500">{t("المحفظة", "Wallet")}</p>
                     <p className="font-mono whitespace-normal break-all">
                       {job.walletCode || "-"}
                     </p>
@@ -542,13 +580,13 @@ const ShamCashPayoutJobsPanel = ({
                         <img
                           src={job.qrCode}
                           alt={t("صورة كود QR", "QR image")}
-                          className="h-20 w-20 rounded-md border border-slate-200 dark:border-slate-700 object-cover"
+                          className="h-20 w-20 rounded-md border border-slate-800 object-cover"
                         />
                         <a
                           href={job.qrCode}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-1 inline-block text-xs text-cyan-600 hover:underline"
+                          className="mt-1 inline-block text-xs text-blue-300 hover:underline"
                         >
                           {t("فتح صورة QR", "Open QR image")}
                         </a>
@@ -558,18 +596,18 @@ const ShamCashPayoutJobsPanel = ({
                 ) : null}
 
                 {job.note ? (
-                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 whitespace-normal wrap-break-words">
+                  <p className="mt-2 whitespace-normal wrap-break-words text-xs text-slate-300">
                     {job.note}
                   </p>
                 ) : null}
 
                 {job.lastError ? (
-                  <p className="mt-2 text-xs text-rose-600 whitespace-normal wrap-break-words">
+                  <p className="mt-2 whitespace-normal wrap-break-words text-xs text-rose-300">
                     {job.lastError}
                   </p>
                 ) : null}
 
-                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                <div className="mt-2 space-y-1 text-[11px] text-slate-500">
                   <p>
                     {t("طلب", "Requested")}:{" "}
                     {toLocaleDateTime(job.requestedAt, locale)}
@@ -590,7 +628,7 @@ const ShamCashPayoutJobsPanel = ({
                         completingId === job.id
                       }
                       onClick={() => handleCompleteManual(job)}
-                      className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="admin-btn-success w-full rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {completingId === job.id
                         ? t("جارِ التأكيد...", "Completing...")
@@ -603,7 +641,7 @@ const ShamCashPayoutJobsPanel = ({
                         job.status !== "FAILED" || retryingId === job.id
                       }
                       onClick={() => handleRetry(job.id)}
-                      className="w-full rounded-lg bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="admin-btn-danger w-full rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {retryingId === job.id
                         ? t("جارِ الإرسال...", "Retrying...")
@@ -615,18 +653,18 @@ const ShamCashPayoutJobsPanel = ({
             ))}
           </div>
 
-          <div className="hidden md:block rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-sm">
-                <thead className="text-slate-500 dark:text-slate-400">
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
+          <div className="admin-card rounded-3xl p-3">
+            <div className="admin-table-shell hidden overflow-x-auto rounded-2xl md:block">
+              <table className="admin-table w-full table-fixed text-sm">
+                <thead>
+                  <tr>
                     <th className="w-32.5 text-right py-2 px-2">
                       {t("الحالة", "Status")}
                     </th>
                     <th className="w-27.5 text-right py-2 px-2">
                       {t("المبلغ", "Amount")}
                     </th>
-                    <th className="w-42.5] text-right py-2 px-2">
+                    <th className="w-42.5 text-right py-2 px-2">
                       {t("المستخدم", "User")}
                     </th>
                     <th className="w-55 text-right py-2 px-2">
@@ -655,11 +693,11 @@ const ShamCashPayoutJobsPanel = ({
                           ? job.manualRequestId
                           : undefined
                       }
-                      className={`border-b border-slate-100 dark:border-slate-800 align-top ${
+                      className={`align-top ${
                         focusManualRequestId &&
                         job.source === "MANUAL_FALLBACK" &&
                         job.manualRequestId === focusManualRequestId
-                          ? "bg-cyan-50/70 dark:bg-cyan-900/20"
+                          ? "bg-cyan-500/10"
                           : ""
                       }`}
                     >
@@ -669,31 +707,31 @@ const ShamCashPayoutJobsPanel = ({
                         >
                           {statusLabel(job.status, t)}
                         </span>
-                        <p className="text-[11px] mt-1 text-slate-500 dark:text-slate-400 whitespace-normal wrap-break-words">
+                        <p className="mt-1 whitespace-normal wrap-break-words text-[11px] text-slate-500">
                           {job.source === "MANUAL_FALLBACK"
                             ? t("يدوي", "Manual")
                             : t("طابور", "Queue")}
                         </p>
                         {job.pendingPosition ? (
-                          <p className="text-[11px] text-slate-500 mt-1">
+                          <p className="mt-1 text-[11px] text-slate-500">
                             {t("الترتيب", "Position")}: #{job.pendingPosition}
                           </p>
                         ) : null}
                       </td>
-                      <td className="py-2 px-2 text-slate-700 dark:text-slate-200">
+                      <td className="py-2 px-2 text-slate-200">
                         ${formatMoney(job.amount)} {job.currency}
                       </td>
-                      <td className="py-2 px-2 text-slate-700 dark:text-slate-200">
+                      <td className="py-2 px-2 text-slate-200">
                         <p className="whitespace-normal wrap-break-words">
                           {job.userName || job.userId}
                         </p>
                         {job.userEmail ? (
-                          <p className="text-xs text-slate-500 whitespace-normal wrap-break-words">
+                          <p className="whitespace-normal wrap-break-words text-xs text-slate-500">
                             {job.userEmail}
                           </p>
                         ) : null}
                       </td>
-                      <td className="py-2 px-2 text-slate-700 dark:text-slate-200">
+                      <td className="py-2 px-2 text-slate-200">
                         <p className="font-mono text-xs whitespace-normal wrap-break-words">
                           {job.walletCode}
                         </p>
@@ -708,13 +746,13 @@ const ShamCashPayoutJobsPanel = ({
                                     "صورة كود QR الخاصة بالمستخدم",
                                     "User QR image",
                                   )}
-                                  className="h-16 w-16 rounded border border-slate-200 dark:border-slate-700 object-cover"
+                                  className="h-16 w-16 rounded border border-slate-800 object-cover"
                                 />
                                 <a
                                   href={job.qrCode}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="mt-1 inline-block text-[11px] text-cyan-600 hover:underline"
+                                  className="mt-1 inline-block text-[11px] text-blue-300 hover:underline"
                                 >
                                   {t("فتح صورة QR", "Open QR image")}
                                 </a>
@@ -724,12 +762,12 @@ const ShamCashPayoutJobsPanel = ({
                                 href={job.qrCode}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[11px] text-cyan-600 hover:underline"
+                                className="text-[11px] text-blue-300 hover:underline"
                               >
                                 {t("فتح QR", "Open QR")}
                               </a>
                             ) : (
-                              <p className="font-mono text-[10px] wrap-break-words text-slate-500 dark:text-slate-400">
+                              <p className="wrap-break-words font-mono text-[10px] text-slate-500">
                                 {job.qrCode.length > 80
                                   ? `${job.qrCode.slice(0, 80)}...`
                                   : job.qrCode}
@@ -738,15 +776,15 @@ const ShamCashPayoutJobsPanel = ({
                           </div>
                         ) : null}
                         {job.note ? (
-                          <p className="text-xs text-slate-500 mt-1 whitespace-normal wrap-break-words">
+                          <p className="mt-1 whitespace-normal wrap-break-words text-xs text-slate-500">
                             {job.note}
                           </p>
                         ) : null}
                       </td>
-                      <td className="py-2 px-2 text-slate-700 dark:text-slate-200">
+                      <td className="py-2 px-2 text-slate-200">
                         {job.attempts}
                       </td>
-                      <td className="py-2 px-2 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="py-2 px-2 text-xs text-slate-300">
                         <p>
                           {t("طلب", "Requested")}:{" "}
                           {toLocaleDateTime(job.requestedAt, locale)}
@@ -756,14 +794,14 @@ const ShamCashPayoutJobsPanel = ({
                           {toLocaleDateTime(job.updatedAt, locale)}
                         </p>
                       </td>
-                      <td className="py-2 px-2 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="py-2 px-2 text-xs text-slate-300">
                         {job.transactionId ? (
                           <p className="whitespace-normal break-all">
                             {t("المعاملة", "Transaction")}: {job.transactionId}
                           </p>
                         ) : null}
                         {job.lastError ? (
-                          <p className="text-rose-600 whitespace-normal wrap-break-words max-h-20 overflow-auto pr-1">
+                          <p className="max-h-20 overflow-auto whitespace-normal wrap-break-words pr-1 text-rose-300">
                             {job.lastError}
                           </p>
                         ) : (
@@ -780,7 +818,7 @@ const ShamCashPayoutJobsPanel = ({
                               completingId === job.id
                             }
                             onClick={() => handleCompleteManual(job)}
-                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="admin-btn-success rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {completingId === job.id
                               ? t("جارِ التأكيد...", "Completing...")
@@ -793,7 +831,7 @@ const ShamCashPayoutJobsPanel = ({
                               job.status !== "FAILED" || retryingId === job.id
                             }
                             onClick={() => handleRetry(job.id)}
-                            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="admin-btn-danger rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {retryingId === job.id
                               ? t("جارِ الإرسال...", "Retrying...")
@@ -814,11 +852,11 @@ const ShamCashPayoutJobsPanel = ({
 };
 
 const MetricCard = ({ title, value }: { title: string; value: string }) => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60">
-    <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400 whitespace-normal wrap-break-words">
+  <div className="admin-stat-card rounded-xl px-3 py-3">
+    <p className="whitespace-normal wrap-break-words text-[11px] leading-4 text-slate-500">
       {title}
     </p>
-    <p className="text-base font-semibold text-slate-800 dark:text-slate-100 mt-1 leading-none">
+    <p className="mt-2 text-base font-semibold leading-none text-slate-100">
       {value}
     </p>
   </div>

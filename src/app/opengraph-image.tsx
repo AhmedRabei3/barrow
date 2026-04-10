@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import { SITE_NAME } from "@/lib/seo";
 
 export const runtime = "edge";
-export const alt = "Rent Anything";
+export const alt = SITE_NAME;
 export const size = {
   width: 1200,
   height: 630,
@@ -23,7 +24,7 @@ export default function OpengraphImage() {
         padding: 56,
       }}
     >
-      <div style={{ fontSize: 36, opacity: 0.9 }}>Rent Anything</div>
+      <div style={{ fontSize: 36, opacity: 0.9 }}>{SITE_NAME}</div>
       <div style={{ fontSize: 68, fontWeight: 700, marginTop: 12 }}>
         Smart Marketplace
       </div>

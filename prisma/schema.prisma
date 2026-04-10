@@ -1,3 +1,29 @@
+model ShamCashActivationRequest {
+  id              String                   @id @default(cuid())
+  userId          String
+  txNumber        String
+  amount          Decimal                  @db.Decimal(12, 2)
+  status          ShamCashActivationStatus @default(PENDING)
+  checkedByWorker Boolean                  @default(false)
+  isValid         Boolean?
+  adminNote       String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([txNumber, amount])
+  @@index([userId, createdAt])
+}
+
+enum ShamCashActivationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  ADMIN_REVIEW
+  ACTIVATED
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
@@ -69,6 +95,7 @@ enum Directions {
 }
 
 enum Availability {
+  PENDING_REVIEW
   AVAILABLE
   RESERVED
   RENTED
@@ -138,6 +165,24 @@ enum ShamCashManualWithdrawalStatus {
   REJECTED
 }
 
+enum OwnerProfitWithdrawalStatus {
+  COMPLETED
+}
+
+enum PlatformProfitLedgerType {
+  SUBSCRIPTION_REVENUE
+  OPERATING_RESERVE
+  PENDING_REFERRAL_LIABILITY
+  READY_BALANCE_BONUS_LIABILITY
+  ACTIVATION_CODE_LIABILITY
+  TRANSACTION_PAYOUT_LIABILITY
+  TRANSACTION_REFUND_LIABILITY
+  USER_WITHDRAWAL_LIABILITY_RELEASE
+  FORFEITED_PENDING_EARNINGS_RELEASE
+  MANUAL_REWARD_LIABILITY
+  RANDOM_LOW_REWARD_LIABILITY
+}
+
 /**
  * =========================
  * USER & CORE
@@ -152,6 +197,7 @@ model User {
   profileImage            String?
   isActive                Boolean   @default(false)
   isAdmin                 Boolean   @default(false)
+  isOwner                 Boolean   @default(false)
   emailVerified           DateTime?
   balance                 Decimal   @default(0) @db.Decimal(12, 2)
   activeUntil             DateTime?
@@ -190,6 +236,8 @@ model User {
   supportTickets               SupportTicket[]               @relation("SupportTicketOwner")
   supportMessages              SupportTicketMessage[]        @relation("SupportMessageSender")
   passwordResetTokens          PasswordResetToken[]
+  shamCashActivationRequests   ShamCashActivationRequest[]
+  platformProfitLedgerEntries  PlatformProfitLedger[]
 }
 
 /**
@@ -253,26 +301,30 @@ model Location {
  */
 
 model Property {
-  id          String          @id @default(cuid())
-  title       String
-  description String?
-  price       Decimal         @db.Decimal(12, 2)
-  sellOrRent  TransactionType
-  rentType    RentType?
-  status      Availability    @default(AVAILABLE)
-  ownerId     String
-  categoryId  String
-  guests      Int
-  bedrooms    Int
-  bathrooms   Int
-  livingrooms Int
-  kitchens    Int
-  area        Float
-  floor       Int
-  elvator     Boolean         @default(false)
-  direction   Directions[]
-  petAllowed  Boolean         @default(false)
-  furnished   Boolean         @default(false)
+  id               String          @id @default(cuid())
+  title            String
+  description      String?
+  price            Decimal         @db.Decimal(12, 2)
+  sellOrRent       TransactionType
+  rentType         RentType?
+  status           Availability    @default(AVAILABLE)
+  ownerId          String
+  categoryId       String
+  guests           Int
+  bedrooms         Int
+  bathrooms        Int
+  livingrooms      Int
+  kitchens         Int
+  area             Float
+  floor            Int
+  elvator          Boolean         @default(false)
+  direction        Directions[]
+  petAllowed       Boolean         @default(false)
+  furnished        Boolean         @default(false)
+  moderationAction String?
+  moderationNote   String?
+  moderatedAt      DateTime?
+  moderatedById    String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -285,20 +337,24 @@ model Property {
 }
 
 model NewCar {
-  id          String          @id @default(cuid())
-  brand       String
-  model       String
-  year        Int
-  price       Decimal         @db.Decimal(12, 2)
-  sellOrRent  TransactionType
-  rentType    RentType?
-  fuelType    FuelType
-  gearType    Transmission
-  status      Availability    @default(AVAILABLE)
-  ownerId     String
-  categoryId  String
-  color       String
-  description String?
+  id               String          @id @default(cuid())
+  brand            String
+  model            String
+  year             Int
+  price            Decimal         @db.Decimal(12, 2)
+  sellOrRent       TransactionType
+  rentType         RentType?
+  fuelType         FuelType
+  gearType         Transmission
+  status           Availability    @default(AVAILABLE)
+  ownerId          String
+  categoryId       String
+  color            String
+  description      String?
+  moderationAction String?
+  moderationNote   String?
+  moderatedAt      DateTime?
+  moderatedById    String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -311,23 +367,27 @@ model NewCar {
 }
 
 model OldCar {
-  id          String          @id @default(cuid())
-  brand       String
-  model       String
-  year        Int
-  price       Decimal         @db.Decimal(12, 2)
-  sellOrRent  TransactionType
-  rentType    RentType?
-  fuelType    FuelType
-  gearType    Transmission
-  status      Availability    @default(AVAILABLE)
-  ownerId     String
-  categoryId  String
-  color       String
-  description String?
-  reAssembled Boolean         @default(false)
-  mileage     Int
-  repainted   Boolean         @default(false)
+  id               String          @id @default(cuid())
+  brand            String
+  model            String
+  year             Int
+  price            Decimal         @db.Decimal(12, 2)
+  sellOrRent       TransactionType
+  rentType         RentType?
+  fuelType         FuelType
+  gearType         Transmission
+  status           Availability    @default(AVAILABLE)
+  ownerId          String
+  categoryId       String
+  color            String
+  description      String?
+  reAssembled      Boolean         @default(false)
+  mileage          Int
+  repainted        Boolean         @default(false)
+  moderationAction String?
+  moderationNote   String?
+  moderatedAt      DateTime?
+  moderatedById    String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -340,16 +400,20 @@ model OldCar {
 }
 
 model OtherItem {
-  id          String          @id @default(cuid())
-  name        String
-  brand       String?
-  description String?
-  price       Decimal         @db.Decimal(12, 2)
-  sellOrRent  TransactionType
-  rentType    RentType?
-  status      Availability    @default(AVAILABLE)
-  ownerId     String
-  categoryId  String
+  id               String          @id @default(cuid())
+  name             String
+  brand            String?
+  description      String?
+  price            Decimal         @db.Decimal(12, 2)
+  sellOrRent       TransactionType
+  rentType         RentType?
+  status           Availability    @default(AVAILABLE)
+  ownerId          String
+  categoryId       String
+  moderationAction String?
+  moderationNote   String?
+  moderatedAt      DateTime?
+  moderatedById    String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -528,14 +592,48 @@ model PlatformFee {
   createdAt DateTime @default(now())
 }
 
+model PlatformProfitLedger {
+  id          String                   @id @default(cuid())
+  type        PlatformProfitLedgerType
+  amount      Decimal                  @db.Decimal(12, 2)
+  userId      String?
+  referenceId String?
+  note        String?
+  createdAt   DateTime                 @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
+  @@index([referenceId])
+}
+
 model AppPaymentSettings {
-  id                       Int      @id @default(1)
-  subscriptionMonthlyPrice Decimal  @default(30) @db.Decimal(12, 2)
-  featuredAdMonthlyPrice   Decimal  @default(10) @db.Decimal(12, 2)
-  shamCashWalletCode       String?
-  shamCashQrCodeUrl        String?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                       Int       @id @default(1)
+  subscriptionMonthlyPrice Decimal   @default(30) @db.Decimal(12, 2)
+  featuredAdMonthlyPrice   Decimal   @default(10) @db.Decimal(12, 2)
+  url                      String?
+  publicId                 String?
+  adminSettingsPassword    String? // كلمة مرور إعدادات الدفع (مشفر)
+  paymentResetEmail        String?
+  ownerProfitWalletCode    String?
+  paymentResetTokenHash    String?
+  paymentResetTokenExpires DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model OwnerProfitWithdrawal {
+  id         String                      @id @default(cuid())
+  amount     Decimal                     @db.Decimal(12, 2)
+  walletCode String
+  note       String?
+  status     OwnerProfitWithdrawalStatus @default(COMPLETED)
+  adminId    String?
+  createdAt  DateTime                    @default(now())
+
+  @@index([createdAt])
+  @@index([adminId])
 }
 
 model ShamCashWebhookEvent {
@@ -560,6 +658,8 @@ model ActivationCode {
   balance   Decimal  @db.Decimal(12, 2)
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([code])
 }
 
 model ChargingLog {

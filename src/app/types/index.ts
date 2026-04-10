@@ -22,6 +22,28 @@ export type GrandItem = {
     isNew?: boolean;
     isFeatured?: boolean;
     type?: $Enums.ItemType | string | null;
+    status?: string | null;
+    moderationAction?: string | null;
+    moderationNote?: string | null;
+    moderatedAt?: string | null;
+    // Property-specific
+    bedrooms?: number | null;
+    bathrooms?: number | null;
+    guests?: number | null;
+    livingrooms?: number | null;
+    kitchens?: number | null;
+    area?: number | null;
+    floor?: number | null;
+    furnished?: boolean | null;
+    petAllowed?: boolean | null;
+    elvator?: boolean | null;
+    // Car-specific
+    color?: string | null;
+    fuelType?: string | null;
+    gearType?: string | null;
+    mileage?: number | null;
+    repainted?: boolean | null;
+    reAssembled?: boolean | null;
   };
   ownerId?: string | null;
   itemImages: { url: string | null }[];

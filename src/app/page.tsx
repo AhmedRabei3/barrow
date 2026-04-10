@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import HomePageClient from "./HomePageClient";
-import { absoluteUrl, buildMetadata, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { buildMetadata, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const acceptLanguage = (await headers()).get("accept-language") ?? "";
@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: isArabic ? `${SITE_NAME} | الرئيسية` : `${SITE_NAME} | Home`,
     description: isArabic
-      ? "اعثر على عقارات وسيارات وعناصر موثقة للبيع أو الإيجار مع فلاتر ذكية ودفعات آمنة وتجربة سوق احترافية."
+      ? "اعثر على عقارات وسيارات وعناصر موثقة للبيع أو الإيجار مع فلاتر ذكية ودفعات آمنة وتجربة احترافية."
       : "Find verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
     path: "/",
     keywords: [
@@ -59,10 +59,6 @@ const homeWebPageJsonLd = {
     "@type": "SearchAction",
     target: `${SITE_URL}/?q={search_term_string}`,
     "query-input": "required name=search_term_string",
-  },
-  primaryImageOfPage: {
-    "@type": "ImageObject",
-    url: absoluteUrl("/images/logo.png"),
   },
 };
 

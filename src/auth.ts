@@ -31,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.balance = Number(user.balance ?? token.balance ?? 0);
         token.isActive = Boolean(user.isActive ?? token.isActive ?? false);
         token.isAdmin = Boolean(user.isAdmin ?? token.isAdmin ?? false);
+        token.isOwner = Boolean(user.isOwner ?? token.isOwner ?? false);
         token.activeUntil = (user.activeUntil ??
           token.activeUntil ??
           null) as Date | null;
@@ -43,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.balance = Number(token.balance ?? 0);
       token.isActive = Boolean(token.isActive ?? false);
       token.isAdmin = Boolean(token.isAdmin ?? false);
+      token.isOwner = Boolean(token.isOwner ?? false);
       token.activeUntil = (token.activeUntil ?? null) as Date | null;
       token.pendingReferralEarnings = Number(
         token.pendingReferralEarnings ?? 0,
@@ -63,6 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           balance: true,
           isActive: true,
           isAdmin: true,
+          isOwner: true,
           activeUntil: true,
           pendingReferralEarnings: true,
           notifications: {
@@ -81,6 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.balance = Number(dbUser?.balance ?? 0);
       session.user.isActive = dbUser?.isActive ?? false;
       session.user.isAdmin = dbUser?.isAdmin ?? false;
+      session.user.isOwner = dbUser?.isOwner ?? false;
       session.user.activeUntil = dbUser?.activeUntil ?? null;
       session.user.pendingReferralEarnings = Number(
         dbUser?.pendingReferralEarnings ?? 0,

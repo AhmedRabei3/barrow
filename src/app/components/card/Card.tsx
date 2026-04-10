@@ -12,6 +12,7 @@ import CardContainer from "./CardContainer";
 import { GrandItem } from "@/app/types/index";
 import { FormattedItem } from "../home/getItems";
 import { $Enums } from "@prisma/client";
+import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
 type CardItem = {
   item: {
@@ -31,19 +32,25 @@ type CardItem = {
   averageRating: number | null;
   totalReviews?: number;
   ownerId?: string | null;
+  moderationAction?: string | null;
+  moderationNote?: string | null;
+  moderatedAt?: string | null;
 };
 
 interface CardProps {
   grandItem: GrandItem | FormattedItem | CardItem;
   setItemIdToEdit?: Dispatch<React.SetStateAction<string | null>>;
   setItemIdToDelete?: Dispatch<React.SetStateAction<string | null>>;
+  onStatusChanged?: () => Promise<void> | void;
 }
 
 const Card: FC<CardProps> = ({
   grandItem,
   setItemIdToEdit,
   setItemIdToDelete,
+  onStatusChanged,
 }) => {
+  const { isArabic } = useAppPreferences();
   const item = grandItem?.item;
   const itemImages = (grandItem?.itemImages ?? []).map((img) => ({
     url: img?.url ?? null,
@@ -51,6 +58,7 @@ const Card: FC<CardProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
   const cardWrapperRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -92,6 +100,13 @@ const Card: FC<CardProps> = ({
   const isNew = "isNew" in item ? item.isNew : false;
   const isFeatured = "isFeatured" in item ? item.isFeatured : false;
   const ownerId = "ownerId" in grandItem ? grandItem.ownerId : undefined;
+  const isOwnerCard = Boolean(ownerId && setItemIdToDelete && setItemIdToEdit);
+  const moderationAction =
+    "moderationAction" in item ? item.moderationAction : undefined;
+  const moderationNote =
+    "moderationNote" in item ? item.moderationNote : undefined;
+  const moderatedAt = "moderatedAt" in item ? item.moderatedAt : undefined;
+  const status = "status" in item ? item.status : undefined;
   const detailCardItem = {
     item,
     averageRating:
@@ -118,24 +133,37 @@ const Card: FC<CardProps> = ({
 
   const detailHref = item.id ? `items/details/${item.id}` : "#";
   const itemLabel = [brand, model].filter(Boolean).join(" ") || "listing";
+  const moderationLabel =
+    moderationAction === "REJECT"
+      ? isArabic
+        ? "مرفوض ويحتاج تعديل"
+        : "Rejected and needs changes"
+      : status === "PENDING_REVIEW"
+        ? isArabic
+          ? "بانتظار مراجعة الصور"
+          : "Pending image review"
+        : null;
+  const moderationHint =
+    moderationAction === "REJECT"
+      ? moderationNote ||
+        (isArabic
+          ? "حدّث الصور حسب الملاحظة ثم أعد الحفظ أو الإرسال للمراجعة."
+          : "Update the images based on the note, then save or resubmit for review.")
+      : status === "PENDING_REVIEW"
+        ? isArabic
+          ? "إعلانك مخفي حاليًا حتى تنتهي مراجعة الصور من الإدارة."
+          : "Your listing is hidden until image review is completed by admin."
+        : null;
 
   return (
     <div ref={cardWrapperRef} className="w-full h-full">
-      <CardContainer setIsPaused={setIsPaused}>
+      <CardContainer setIsPaused={setIsPaused} isOverlayOpen={isStateMenuOpen}>
         <Link
           href={detailHref}
           aria-label={`Open details for ${itemLabel}`}
-          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff385c]/60"
+          className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
         />
-        {/* ---------- الصورة الرئيسية ---------- */}
-        <div
-          className="
-         relative w-full aspect-4/3
-         overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-900
-         shadow-[0_8px_20px_rgba(15,23,42,0.08)]
-         transition-shadow duration-300 group-hover:shadow-[0_12px_24px_rgba(15,23,42,0.16)]
-         "
-        >
+        <div className="relative w-full aspect-4/3 overflow-hidden rounded-t-[20px] dark:bg-slate-950/60">
           {/* ❤️ زر الإعجاب */}
           <LikeBtn itemId={item.id} itemType={itemType ?? null} />
           {/* صندوق الأدوات */}
@@ -149,6 +177,8 @@ const Card: FC<CardProps> = ({
                 setItemIdToEdit={setItemIdToEdit}
                 itemId={item.id}
                 itemType={itemType}
+                currentStatus={typeof status === "string" ? status : null}
+                onStatusChanged={onStatusChanged}
               />
             )}
           {/* ✅ عرض صورة واحدة بتأثير Fade */}
@@ -168,8 +198,28 @@ const Card: FC<CardProps> = ({
           {/* Badges */}
           <Badges isFeatured={isFeatured} isNew={isNew} />
         </div>
-        {/* ---------- تفاصيل العنصر ---------- */}
-        <DetailCard grandItem={detailCardItem} />
+        {isOwnerCard && moderationLabel && moderationHint ? (
+          <div className="mx-4 mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-100">
+            <div className="font-semibold">{moderationLabel}</div>
+            <div className="mt-1 leading-5">{moderationHint}</div>
+            {moderatedAt ? (
+              <div className="mt-1 text-[11px] text-amber-200/80">
+                {isArabic ? "آخر تحديث:" : "Last update:"}{" "}
+                {new Date(moderatedAt).toLocaleString(
+                  isArabic ? "ar" : "en-US",
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <DetailCard
+          grandItem={detailCardItem}
+          itemType={itemType}
+          isOwnerCard={isOwnerCard}
+          onStatusChanged={onStatusChanged}
+          onMenuOpenChange={setIsStateMenuOpen}
+        />
       </CardContainer>
     </div>
   );

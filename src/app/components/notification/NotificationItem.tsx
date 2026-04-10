@@ -7,6 +7,7 @@ import SetReadBtn from "./SetReadBtn";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import {
   extractRequestId,
+  extractShamCashActivationRequestId,
   extractShamCashRequestId,
 } from "./notificationHelper";
 import { motion } from "framer-motion";
@@ -15,10 +16,12 @@ import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useRouter } from "next/navigation";
 
 const typeStyles: Record<NotificationType, string> = {
-  INFO: "border-blue-400 bg-blue-50",
-  PURCHASEREQUEST: "border-emerald-500 bg-emerald-50",
-  WARNING: "border-yellow-500 bg-yellow-50",
-  ERROR: "border-red-500 bg-red-50",
+  INFO: "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/50",
+  PURCHASEREQUEST:
+    "border-emerald-500 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/50",
+  WARNING:
+    "border-yellow-500 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/50",
+  ERROR: "border-red-500 bg-red-50 dark:border-red-700 dark:bg-red-900/50",
 };
 
 interface Props {
@@ -40,12 +43,24 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
   const requestId =
     type === "PURCHASEREQUEST" ? extractRequestId(message) : null;
   const shamCashRequestId = extractShamCashRequestId(message, title);
+  const shamCashActivationRequestId = extractShamCashActivationRequestId(
+    message,
+    title,
+  );
   const hasShamCashQueueLink = Boolean(shamCashRequestId);
+  const hasShamCashActivationLink = Boolean(shamCashActivationRequestId);
 
   const openShamCashQueue = () => {
     if (!shamCashRequestId) return;
     router.push(
       `/admin?page=shamcash-payout-jobs&manualRequestId=${shamCashRequestId}`,
+    );
+  };
+
+  const openShamCashActivationRequest = () => {
+    if (!shamCashActivationRequestId) return;
+    router.push(
+      `/admin?page=shamcash-activation-requests&activationRequestId=${shamCashActivationRequestId}`,
     );
   };
 
@@ -82,22 +97,38 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, height: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      onClick={hasShamCashQueueLink ? openShamCashQueue : undefined}
+      onClick={
+        hasShamCashActivationLink
+          ? openShamCashActivationRequest
+          : hasShamCashQueueLink
+            ? openShamCashQueue
+            : undefined
+      }
       className={clsx(
         "p-4 rounded-lg border-l-4 shadow-sm",
         typeStyles[type],
         !isRead && "ring-1 ring-emerald-300",
-        hasShamCashQueueLink && "cursor-pointer",
+        (hasShamCashQueueLink || hasShamCashActivationLink) && "cursor-pointer",
       )}
     >
       <div className="flex justify-between items-start">
-        <h4 className="font-semibold text-gray-800">{title}</h4>
-        <span className="text-xs text-gray-500">
+        <h4 className="font-semibold text-gray-800 dark:text-slate-200">
+          {title}
+        </h4>
+        <span className="text-xs text-gray-500 dark:text-slate-400">
           {new Date(createdAt).toLocaleString(isArabic ? "ar" : "en")}
         </span>
       </div>
 
-      <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
+      <p
+        className="mt-1 text-sm
+       text-gray-700 
+       dark:text-slate-200
+       dark:before:bg-slate-700/50
+       dark:bg-gray-700/50
+       dark:hover:bg-gray-700/70
+       whitespace-pre-line"
+      >
         {message}
       </p>
       {!isRead ? (
@@ -151,6 +182,20 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
           className="mt-3 w-full text-sm text-cyan-700 hover:underline"
         >
           {isArabic ? "متابعة طلب السحب" : "Open withdrawal queue request"}
+        </button>
+      )}
+
+      {hasShamCashActivationLink && (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            openShamCashActivationRequest();
+          }}
+          className="mt-3 w-full text-sm text-cyan-700 hover:underline"
+        >
+          {isArabic
+            ? "فتح طلب تفعيل شام كاش"
+            : "Open ShamCash activation request"}
         </button>
       )}
     </motion.div>

@@ -7,6 +7,7 @@ declare module "next-auth" {
       balance: number;
       isActive: boolean;
       isAdmin: boolean;
+      isOwner: boolean;
       activeUntil: Date | null;
       pendingReferralEarnings: number;
       notifications: {
@@ -22,6 +23,7 @@ declare module "next-auth" {
     balance: number;
     isActive: boolean;
     isAdmin: boolean;
+    isOwner: boolean;
     activeUntil: Date | null;
     pendingReferralEarnings: number;
     notifications: {
@@ -38,6 +40,7 @@ declare module "next-auth/jwt" {
     balance: number;
     isActive: boolean;
     isAdmin: boolean;
+    isOwner: boolean;
     activeUntil: Date | null;
     pendingReferralEarnings: number;
     notifications: {

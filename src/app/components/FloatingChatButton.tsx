@@ -8,6 +8,7 @@ import useActivationModal from "@/app/hooks/useActivationModal";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "@/app/i18n/brand";
 import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 const FloatingChatButton = () => {
   const [open, setOpen] = useState(false);
@@ -16,6 +17,7 @@ const FloatingChatButton = () => {
   const registerModal = useRegisterModal();
   const activationModal = useActivationModal();
   const { isArabic } = useAppPreferences();
+  const pathname = usePathname();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -23,6 +25,7 @@ const FloatingChatButton = () => {
   const isSessionLoading = status === "loading";
   const isLoggedIn = Boolean(user?.id);
   const isUserActive = Boolean(user?.isActive);
+  const shouldRender = pathname === "/" || pathname === "/profile";
 
   useEffect(() => {
     const handleOpenSmartChat = () => {
@@ -62,6 +65,10 @@ const FloatingChatButton = () => {
     setWaveKey((prev) => prev + 1);
   };
 
+  if (!shouldRender) {
+    return null;
+  }
+
   return (
     <>
       <button
@@ -89,10 +96,13 @@ const FloatingChatButton = () => {
       </button>
 
       {open && (
-        <div ref={panelRef} className="fixed bottom-40 right-6 z-60">
+        <div
+          ref={panelRef}
+          className="fixed bottom-40 right-4 left-4 sm:left-auto sm:right-6 z-60"
+        >
           {isSessionLoading ? (
             <div
-              className="w-90 sm:w-97.5 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+              className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
               dir={isArabic ? "rtl" : "ltr"}
             >
               <div className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
@@ -105,7 +115,7 @@ const FloatingChatButton = () => {
             <SmartChatBot onClose={() => setOpen(false)} />
           ) : (
             <div
-              className="w-90 sm:w-97.5 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+              className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
               dir={isArabic ? "rtl" : "ltr"}
             >
               <div className="px-4 py-3 border-b border-neutral-100 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800">
@@ -171,14 +181,6 @@ const FloatingChatButton = () => {
                     >
                       {isArabic ? "فعّل حسابك الآن" : "Activate account"}
                     </button>
-                    <a
-                      href="/payment"
-                      className="block text-center text-xs text-sky-700 dark:text-sky-300 hover:underline"
-                    >
-                      {isArabic
-                        ? "الانتقال إلى صفحة التفعيل والدفع"
-                        : "Activation & payment link"}
-                    </a>
                   </div>
                 )}
               </div>

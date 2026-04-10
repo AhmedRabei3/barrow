@@ -5,7 +5,13 @@ import { prisma } from "@/lib/prisma";
 type RentableItem = {
   id: string;
   ownerId: string;
-  status: "AVAILABLE" | "RESERVED" | "RENTED" | "SOLD" | "MAINTENANCE";
+  status:
+    | "PENDING_REVIEW"
+    | "AVAILABLE"
+    | "RESERVED"
+    | "RENTED"
+    | "SOLD"
+    | "MAINTENANCE";
   rentType: RentType | null;
   price: number | { toString(): string };
 };
@@ -17,7 +23,7 @@ type RentClient = {
     }) => Promise<RentableItem | null>;
     update: (args: {
       where: { id: string };
-      data: { status: "AVAILABLE" | "RESERVED" };
+      data: { status: RentableItem["status"] };
     }) => Promise<unknown>;
   };
   newCar: {
@@ -26,7 +32,7 @@ type RentClient = {
     }) => Promise<RentableItem | null>;
     update: (args: {
       where: { id: string };
-      data: { status: "AVAILABLE" | "RESERVED" };
+      data: { status: RentableItem["status"] };
     }) => Promise<unknown>;
   };
   oldCar: {
@@ -35,7 +41,7 @@ type RentClient = {
     }) => Promise<RentableItem | null>;
     update: (args: {
       where: { id: string };
-      data: { status: "AVAILABLE" | "RESERVED" };
+      data: { status: RentableItem["status"] };
     }) => Promise<unknown>;
   };
   otherItem: {
@@ -44,7 +50,7 @@ type RentClient = {
     }) => Promise<RentableItem | null>;
     update: (args: {
       where: { id: string };
-      data: { status: "AVAILABLE" | "RESERVED" };
+      data: { status: RentableItem["status"] };
     }) => Promise<unknown>;
   };
 };
@@ -142,7 +148,7 @@ export async function updateItemStatus(
   tx: RentClient,
   itemType: ItemType,
   itemId: string,
-  status: "AVAILABLE" | "RESERVED",
+  status: RentableItem["status"],
 ) {
   switch (itemType) {
     case "PROPERTY":

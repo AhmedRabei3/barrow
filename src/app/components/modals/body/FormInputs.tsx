@@ -4,13 +4,15 @@ import { DynamicIcon } from "../../addCategory/IconSetter";
 import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 
 interface FormInputProps<T extends Record<string, unknown>> {
-  register: UseFormRegister<T>;
+  register?: UseFormRegister<T>;
   name: Path<T>; // اسم الحقل
   type?: string;
   label?: string;
   placeholder?: string;
   required?: boolean;
   iconName?: string;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 function FormInput<T extends Record<string, unknown>>({
@@ -21,6 +23,8 @@ function FormInput<T extends Record<string, unknown>>({
   iconName,
   placeholder,
   required = false,
+  value,
+  onChange,
 }: FormInputProps<T>) {
   const { isArabic } = useAppPreferences();
 
@@ -54,14 +58,17 @@ function FormInput<T extends Record<string, unknown>>({
            placeholder:text-slate-400 dark:placeholder:text-slate-500
            bg-transparent"
           placeholder={placeholder}
-          {...register(name, {
-            required: required
-              ? isArabic
-                ? `${label} مطلوب`
-                : `${label} is required`
-              : false,
-            ...(type === "number" ? { valueAsNumber: true } : {}),
-          })}
+          {...(register && !onChange && !value
+            ? register(name, {
+                required: required
+                  ? isArabic
+                    ? `${label} مطلوب`
+                    : `${label} is required`
+                  : false,
+              })
+            : {})}
+          value={value}
+          onChange={onChange}
         />
         <DynamicIcon
           className="text-slate-500 dark:text-slate-400"

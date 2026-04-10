@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
+import { updateItemStatus } from "../../utils/rentHelper";
 
 /**
  * @description موافقة أو رفض المالك على طلب الإيجار
@@ -56,28 +58,48 @@ export async function PATCH(req: NextRequest) {
       const feeAmount = (paymentAmount * feePercentage) / 100;
       const ownerAmount = paymentAmount - feeAmount;
 
-      await prisma.$transaction([
-        prisma.user.update({
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
           where: { id: owner.id },
           data: { balance: { increment: ownerAmount } },
-        }),
-        prisma.payment.update({
+        });
+
+        await tx.payment.update({
           where: { id: payment.id },
           data: { status: "COMPLETED" },
-        }),
-        prisma.transaction.update({
+        });
+
+        await tx.transaction.update({
           where: { id: transaction.id },
           data: { status: "APPROVED" },
-        }),
-        prisma.notification.create({
+        });
+
+        await updateItemStatus(
+          tx,
+          transaction.itemType,
+          transaction.itemId,
+          transaction.type === "RENT" ? "RENTED" : "RESERVED",
+        );
+
+        await recordPlatformProfitLedgerEntries(tx, [
+          {
+            type: "TRANSACTION_PAYOUT_LIABILITY",
+            amount: -ownerAmount,
+            userId: owner.id,
+            referenceId: transaction.id,
+            note: "Approved transaction increased owner ready balance liability",
+          },
+        ]);
+
+        await tx.notification.create({
           data: {
             userId: renter.id,
             title: "تمت الموافقة على الحجز ✅",
             message: `تمت الموافقة على طلبك لاستئجار العنصر من ${owner.name}.`,
             type: "INFO",
           },
-        }),
-      ]);
+        });
+      });
 
       return NextResponse.json(
         { message: "تمت الموافقة على المعاملة" },
@@ -86,28 +108,48 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === "REJECT") {
-      await prisma.$transaction([
-        prisma.user.update({
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
           where: { id: renter.id },
           data: { balance: { increment: paymentAmount } },
-        }),
-        prisma.payment.update({
+        });
+
+        await tx.payment.update({
           where: { id: payment.id },
           data: { status: "REFUNDED" },
-        }),
-        prisma.transaction.update({
+        });
+
+        await tx.transaction.update({
           where: { id: transaction.id },
           data: { status: "REJECTED" },
-        }),
-        prisma.notification.create({
+        });
+
+        await updateItemStatus(
+          tx,
+          transaction.itemType,
+          transaction.itemId,
+          "AVAILABLE",
+        );
+
+        await recordPlatformProfitLedgerEntries(tx, [
+          {
+            type: "TRANSACTION_REFUND_LIABILITY",
+            amount: -paymentAmount,
+            userId: renter.id,
+            referenceId: transaction.id,
+            note: "Rejected transaction refunded renter balance and increased liability",
+          },
+        ]);
+
+        await tx.notification.create({
           data: {
             userId: renter.id,
             title: "تم الرفض",
             message: `تم رفض طلبك من قبل المالك: ${owner.name}`,
             type: "INFO",
           },
-        }),
-      ]);
+        });
+      });
 
       return NextResponse.json(
         { message: "تم رفض المعاملة واسترجاع " },

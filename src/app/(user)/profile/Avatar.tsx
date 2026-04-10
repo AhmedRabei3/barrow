@@ -11,7 +11,8 @@ interface Props {
 const Avatar = ({ user, size = 40 }: Props) => {
   return (
     <div
-      className={`w-20 h-20 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden`}
+      style={{ width: size, height: size }}
+      className="flex items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-primary/10 dark:bg-slate-800 shadow-sm"
     >
       {user?.profileImage ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -21,7 +22,11 @@ const Avatar = ({ user, size = 40 }: Props) => {
           className="w-full h-full object-cover"
         />
       ) : (
-        <DynamicIcon iconName="BiUser" size={size} />
+        <DynamicIcon
+          iconName="BiUser"
+          size={Math.max(24, size * 0.45)}
+          className="text-slate-300"
+        />
       )}
     </div>
   );

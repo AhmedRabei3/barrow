@@ -43,7 +43,13 @@ export const loginAction = async (data: LoginUserInput, isArabic: boolean) => {
     };
   }
 
-  await matchPassword(password, user.password, isArabic);
+  const passwordMatches = await matchPassword(password, user.password);
+  if (!passwordMatches) {
+    return {
+      success: false,
+      message: isArabic ? "كلمة المرور غير صحيحة" : "Incorrect password",
+    };
+  }
 
   // منطق الجلسة النشطة يعتمد على JWT فقط
   // يمكن إضافة claim في التوكن لتتبع الجهاز أو sessionId إذا رغبت بذلك

@@ -51,22 +51,22 @@ export async function findItemByType(type: $Enums.ItemType, id: string) {
   switch (type) {
     case $Enums.ItemType.NEW_CAR:
       return prisma.newCar.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, isDeleted: false, status: "AVAILABLE" },
       });
 
     case $Enums.ItemType.USED_CAR:
       return prisma.oldCar.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, isDeleted: false, status: "AVAILABLE" },
       });
 
     case $Enums.ItemType.PROPERTY:
       return prisma.property.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, isDeleted: false, status: "AVAILABLE" },
       });
 
     case $Enums.ItemType.OTHER:
       return prisma.otherItem.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, isDeleted: false, status: "AVAILABLE" },
       });
 
     default:

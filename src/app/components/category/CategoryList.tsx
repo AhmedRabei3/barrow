@@ -11,8 +11,8 @@ interface ListProps {
 
 const CategoryList = ({ list, setCatName, catName }: ListProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-    const uniqueList = Array.from(
-    new Map(list.map((item) => [item.name, item])).values()
+  const uniqueList = Array.from(
+    new Map(list.map((item) => [item.name, item])).values(),
   );
 
   const scroll = (direction: "left" | "right") => {
@@ -31,7 +31,7 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
       {" "}
       <button
         onClick={() => scroll("left")}
-        className="absolute left-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-800 p-2 rounded-full transition-all duration-200 disabled:opacity-30"
+        className="absolute left-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-800 p-2 rounded-full transition-all duration-200 disabled:opacity-30 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
         <FaChevronLeft size={16} />
       </button>
@@ -49,7 +49,9 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
              transition-transform duration-300 
              hover:scale-105 text-neutral-600 
              hover:text-neutral-800 px-2 py-1
-             ${catName === item.name && "text-rose-400 bg-sky-50"}
+             dark:text-neutral-400 
+             dark:hover:text-neutral-200
+             ${catName === item.name && "text-sky-400 bg-sky-50 dark:bg-gray-700 dark:text-sky-300"}
              `}
             onClick={() => setCatName(item.name)}
           >
@@ -61,7 +63,7 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
       </div>
       <button
         onClick={() => scroll("right")}
-        className="absolute right-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-600 p-2 rounded-full transition-all duration-200"
+        className="absolute right-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-600 p-2 rounded-full transition-all duration-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
         <FaChevronRight size={16} />
       </button>

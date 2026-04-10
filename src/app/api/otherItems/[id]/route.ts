@@ -5,6 +5,11 @@ import { requireActiveUser } from "../../utils/authHelper";
 import { Errors } from "../../lib/errors/errors";
 import { normEnum, toNumber } from "../../utils/utils";
 import { handleApiError } from "../../lib/errors/errorHandler";
+import {
+  parseManualRentalPeriods,
+  syncManualRentalStatus,
+} from "../../utils/manualRentalStatus";
+import { Availability, TransactionType, type RentType } from "@prisma/client";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -70,6 +75,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       country: formData.get("country")?.toString(),
     };
 
+    const manualRentalPeriods = parseManualRentalPeriods(
+      formData.get("manualRentalPeriods"),
+    );
+
     // 🧪 Validation
     const parsed = updateOtherItemSchema.safeParse(rawData);
     if (!parsed.success) {
@@ -80,44 +89,73 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const { latitude, longitude, city, address, state, country, ...itemData } =
       parsed.data;
 
-    const updatedItem = await prisma.$transaction(async (tx) => {
-      // 🧾 تحديث العنصر
-      const updated = await tx.otherItem.update({
-        where: { id },
-        data: itemData,
-      });
+    const { updatedItem, manualRentalEndsAt } = await prisma.$transaction(
+      async (tx) => {
+        const nextStatus = (itemData.status ?? item.status) as Availability;
+        const nextSellOrRent = (itemData.sellOrRent ??
+          item.sellOrRent) as TransactionType;
+        const nextRentType = (
+          itemData.rentType !== undefined ? itemData.rentType : item.rentType
+        ) as RentType | null;
 
-      // 📍 تحديث الموقع (إن تم إرسال أي قيمة)
-      const hasLocationUpdate = [
-        latitude,
-        longitude,
-        city,
-        address,
-        state,
-        country,
-      ].some((v) => v !== undefined);
-
-      if (hasLocationUpdate) {
-        await tx.location.update({
-          where: { otherItemId: id },
-          data: {
-            latitude,
-            longitude,
-            city,
-            address,
-            state,
-            country,
-          },
+        // 🧾 تحديث العنصر
+        const updated = await tx.otherItem.update({
+          where: { id },
+          data: itemData,
         });
-      }
 
-      return updated;
-    });
+        // 📍 تحديث الموقع (إن تم إرسال أي قيمة)
+        const hasLocationUpdate = [
+          latitude,
+          longitude,
+          city,
+          address,
+          state,
+          country,
+        ].some((v) => v !== undefined);
+
+        if (hasLocationUpdate) {
+          await tx.location.update({
+            where: { otherItemId: id },
+            data: {
+              latitude,
+              longitude,
+              city,
+              address,
+              state,
+              country,
+            },
+          });
+        }
+
+        const manualRentalState = await syncManualRentalStatus({
+          tx,
+          itemId: id,
+          itemType: "OTHER",
+          ownerId: owner.id,
+          nextStatus,
+          nextSellOrRent,
+          nextRentType,
+          manualRentalPeriods,
+        });
+
+        return {
+          updatedItem: updated,
+          manualRentalEndsAt: manualRentalState.manualRentalEndsAt,
+        };
+      },
+    );
 
     return NextResponse.json(
       {
         success: true,
         item: updatedItem,
+        listingState: {
+          status: updatedItem.status,
+          sellOrRent: updatedItem.sellOrRent,
+          rentType: updatedItem.rentType,
+          manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
+        },
       },
       { status: 200 },
     );

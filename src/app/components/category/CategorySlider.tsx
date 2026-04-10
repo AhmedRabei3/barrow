@@ -80,14 +80,27 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <p>لا توجد فئات لهذا النوع</p>
+        <p className="dark:text-slate-400">
+          {isArabic
+            ? "لا توجد فئات لهذا النوع"
+            : "No categories available for this type"}
+        </p>
         <button
           type="button"
           onClick={() => setRefreshSeed((prev) => prev + 1)}
-          className="px-4 py-2 rounded-md border border-neutral-300 hover:bg-neutral-100 text-neutral-700 inline-flex items-center gap-2"
+          className="px-4 py-2 
+          rounded-md border 
+          border-neutral-300 
+          hover:bg-neutral-100 
+          text-neutral-700 
+          inline-flex items-center gap-2
+          dark:border-neutral-600
+          dark:hover:bg-neutral-700
+          dark:text-neutral-300
+          "
         >
           <MdOutlineRefresh className="text-lg" />
-          إعادة المحاولة
+          {isArabic ? "إعادة المحاولة" : "Retry"}
         </button>
       </motion.div>
     );

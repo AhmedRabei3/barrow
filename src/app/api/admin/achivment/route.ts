@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAbminUser } from "../../utils/authHelper";
+import { requireAdminUser } from "../../utils/authHelper";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { prisma } from "@/lib/prisma";
 import { NotificationType, SupportSenderRole } from "@prisma/client";
@@ -7,6 +7,7 @@ import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 
 /**
  * @description مسار تصفير رصيد المستخدم بعد قيام الأدمن بتحويل الرصيد له
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
-  const admin = await requireAbminUser();
+  const admin = await requireAdminUser();
   const { userId, amount, ticketId } = (await req.json()) as {
     userId?: string;
     amount?: number;
@@ -119,6 +120,16 @@ export async function POST(req: NextRequest) {
           amount: -Math.abs(settleAmount),
         },
       });
+
+      await recordPlatformProfitLedgerEntries(tx, [
+        {
+          type: "USER_WITHDRAWAL_LIABILITY_RELEASE",
+          amount: settleAmount,
+          userId,
+          referenceId: ticketId || userId,
+          note: "Manual admin withdrawal settlement reduced ready user liability",
+        },
+      ]);
 
       if (ticketId) {
         await tx.supportTicketMessage.create({

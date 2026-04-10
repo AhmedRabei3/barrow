@@ -10,7 +10,13 @@ type FavoriteItem = {
 };
 
 export type ProfileData = {
-  user: User;
+  user: User & {
+    referralStats?: {
+      invitedCount: number;
+      activeInvitedCount: number;
+      inactiveInvitedCount: number;
+    };
+  };
   items: RawProfileItem[];
   purchaseRequests: PurchaseRequest[];
   favorites: FavoriteItem[];
@@ -19,6 +25,11 @@ export type ProfileData = {
 type ApiProfileResponse =
   | ProfileData
   | (User & {
+      referralStats?: {
+        invitedCount: number;
+        activeInvitedCount: number;
+        inactiveInvitedCount: number;
+      };
       items?: RawProfileItem[];
       purchaseRequests?: PurchaseRequest[];
       favorites?: FavoriteItem[];
@@ -47,6 +58,11 @@ const normalizeProfileResponse = (json: ApiProfileResponse): ProfileData => {
   }
 
   const directUser = json as User & {
+    referralStats?: {
+      invitedCount: number;
+      activeInvitedCount: number;
+      inactiveInvitedCount: number;
+    };
     items?: RawProfileItem[];
     purchaseRequests?: PurchaseRequest[];
     favorites?: FavoriteItem[];
@@ -65,13 +81,18 @@ export function useProfile() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsUnauthorized(false);
       const res = await fetch("/api/profile");
       if (!res.ok) {
+        if (res.status === 401) {
+          setIsUnauthorized(true);
+          throw new Error(localizeErrorMessage("Unauthorized", isArabic));
+        }
         throw new Error(
           localizeErrorMessage("Failed to load profile", isArabic),
         );
@@ -109,6 +130,7 @@ export function useProfile() {
     totalItems,
     loading,
     error,
+    isUnauthorized,
     refetch: fetchProfile,
   };
 }

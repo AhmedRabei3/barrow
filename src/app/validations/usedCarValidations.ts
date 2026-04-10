@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { locationSchema } from "./locationValidations";
+import { updateLocationSchema } from "./locationValidations";
 
 export const createUsedCarSchema = z
   .object({
@@ -27,7 +27,14 @@ export const createUsedCarSchema = z
       .optional()
       .nullable(),
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .default("AVAILABLE"),
   })
   .refine(
@@ -64,10 +71,17 @@ export const updateUsedCarSchema = z
       .optional()
       .nullable(),
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .optional(),
     description: z.string().max(500).optional(),
-    location: locationSchema.optional(),
+    location: updateLocationSchema.optional(),
   })
   .refine((data) => {
     if (!data.sellOrRent) return true;

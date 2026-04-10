@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NotificationType, SupportSenderRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAbminUser } from "@/app/api/utils/authHelper";
+import { requireAdminUser } from "@/app/api/utils/authHelper";
 import { sendMail } from "@/lib/mailer";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    const admin = await requireAbminUser();
+    const admin = await requireAdminUser();
 
     const { recipientUserId, ticketId, balance } = (await req.json()) as {
       recipientUserId?: string;

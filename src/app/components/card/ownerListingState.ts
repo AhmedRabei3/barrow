@@ -1,0 +1,156 @@
+import {
+  TransactionStatus,
+  TransactionType,
+  type ItemType,
+} from "@prisma/client";
+
+export const OWNER_ACTION_OPTIONS = [
+  { key: "SELL", labelAr: "للبيع", labelEn: "For sale" },
+  { key: "RENT", labelAr: "للإيجار", labelEn: "For rent" },
+  { key: "RENTED", labelAr: "مؤجر", labelEn: "Rented" },
+  { key: "SOLD", labelAr: "مباع", labelEn: "Sold" },
+  { key: "UNAVAILABLE", labelAr: "غير متاح", labelEn: "Unavailable" },
+] as const;
+
+export const RENT_TYPE_OPTIONS = [
+  { key: "DAILY", labelAr: "يومي", labelEn: "Daily" },
+  { key: "WEEKLY", labelAr: "أسبوعي", labelEn: "Weekly" },
+  { key: "MONTHLY", labelAr: "شهري", labelEn: "Monthly" },
+  { key: "YEARLY", labelAr: "سنوي", labelEn: "Yearly" },
+] as const;
+
+export type OwnerActionKey = (typeof OWNER_ACTION_OPTIONS)[number]["key"];
+export type RentTypeKey = (typeof RENT_TYPE_OPTIONS)[number]["key"];
+
+export const endpointByType: Record<ItemType, string> = {
+  NEW_CAR: "/api/cars/new_car",
+  USED_CAR: "/api/cars/used_car",
+  PROPERTY: "/api/realestate",
+  OTHER: "/api/otherItems",
+};
+
+export const addPeriodsToDate = (
+  date: Date,
+  rentType: RentTypeKey,
+  periods: number,
+) => {
+  const endDate = new Date(date);
+
+  switch (rentType) {
+    case "DAILY":
+      endDate.setDate(endDate.getDate() + periods);
+      return endDate;
+    case "WEEKLY":
+      endDate.setDate(endDate.getDate() + periods * 7);
+      return endDate;
+    case "MONTHLY":
+      endDate.setMonth(endDate.getMonth() + periods);
+      return endDate;
+    case "YEARLY":
+      endDate.setFullYear(endDate.getFullYear() + periods);
+      return endDate;
+  }
+};
+
+export const deriveOwnerAction = (
+  sellOrRent?: string | null,
+  status?: string | null,
+): OwnerActionKey => {
+  if (status === "RENTED") return "RENTED";
+  if (status === "SOLD") return "SOLD";
+  if (status === "MAINTENANCE") return "UNAVAILABLE";
+  return sellOrRent === "RENT" ? "RENT" : "SELL";
+};
+
+export const getStatusLabel = (
+  isArabic: boolean,
+  sellOrRent?: string | null,
+  status?: string | null,
+) => {
+  if (status === "RENTED") {
+    return isArabic ? "مؤجر" : "Rented";
+  }
+  if (status === "SOLD") {
+    return isArabic ? "مباع" : "Sold";
+  }
+  if (status === "MAINTENANCE") {
+    return isArabic ? "غير متاح" : "Unavailable";
+  }
+  return sellOrRent === "RENT"
+    ? isArabic
+      ? "للإيجار"
+      : "For rent"
+    : isArabic
+      ? "للبيع"
+      : "For sale";
+};
+
+export const getStatusBadgeClass = (
+  sellOrRent?: string | null,
+  status?: string | null,
+) => {
+  if (status === "RENTED") {
+    return "border border-amber-500 dark:border-amber-500/30 bg-amber-500/10 dark:text-amber-300 text-amber-500";
+  }
+  if (status === "SOLD") {
+    return "border border-rose-500 dark:border-rose-500/30 bg-rose-500/10 dark:text-rose-300 text-rose-500";
+  }
+  if (status === "MAINTENANCE") {
+    return "border border-slate-500 dark:border-slate-500/30 bg-slate-500/10 dark:text-slate-300 text-slate-500";
+  }
+  return sellOrRent === "RENT"
+    ? "border border-sky-500 dark:border-sky-500/30 bg-sky-500/10 dark:text-sky-300 text-sky-500"
+    : "border border-emerald-500 dark:border-emerald-500/30 bg-emerald-500/10 dark:text-emerald-300 text-emerald-500";
+};
+
+export const normalizeManualRentalEndsAt = (value?: string | Date | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+type TransactionLike = {
+  ownerId?: string | null;
+  clientId?: string | null;
+  type?: string | null;
+  status?: string | null;
+  payment?: unknown;
+  endDate?: string | Date | null;
+  createdAt?: string | Date | null;
+};
+
+const MANUAL_RENTAL_STATUSES = new Set<string>([
+  TransactionStatus.PENDING,
+  TransactionStatus.APPROVED,
+  TransactionStatus.COMPLETED,
+]);
+
+export const getManualRentalEndsAtFromTransactions = (
+  transactions: TransactionLike[] | null | undefined,
+  ownerId?: string | null,
+) => {
+  if (!transactions?.length || !ownerId) {
+    return null;
+  }
+
+  const manualRental = [...transactions]
+    .filter(
+      (transaction) =>
+        transaction.ownerId === ownerId &&
+        transaction.clientId === ownerId &&
+        transaction.type === TransactionType.RENT &&
+        transaction.payment == null &&
+        Boolean(transaction.endDate) &&
+        MANUAL_RENTAL_STATUSES.has(transaction.status ?? ""),
+    )
+    .sort((left, right) => {
+      const leftTime = new Date(left.createdAt ?? 0).getTime();
+      const rightTime = new Date(right.createdAt ?? 0).getTime();
+      return rightTime - leftTime;
+    })[0];
+
+  return normalizeManualRentalEndsAt(manualRental?.endDate ?? null);
+};

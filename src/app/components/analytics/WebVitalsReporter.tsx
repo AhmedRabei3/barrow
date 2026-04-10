@@ -1,4 +1,4 @@
-"use client";
+/* "use client";
 
 import { useReportWebVitals } from "next/web-vitals";
 
@@ -43,3 +43,4 @@ const WebVitalsReporter = () => {
 };
 
 export default WebVitalsReporter;
+ */

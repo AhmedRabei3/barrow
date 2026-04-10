@@ -40,7 +40,7 @@ export default function SearchBar({
           transition={{ duration: 0.28 }}
           dir={isArabic ? "rtl" : "ltr"}
           className="
-            hidden md:flex w-full max-w-195 mx-auto overflow-hidden
+            hidden md:flex w-full mx-auto overflow-hidden
             rounded-full border border-slate-200 bg-white
             shadow-[0_2px_12px_rgba(0,0,0,0.09)]
             transition-shadow duration-200 hover:shadow-[0_4px_18px_rgba(0,0,0,0.14)]
@@ -123,9 +123,12 @@ export default function SearchBar({
           <motion.button
             type="button"
             whileTap={{ scale: 0.95 }}
-            className="m-1 h-10 w-10 shrink-0 rounded-full bg-linear-to-r from-sky-500 to-indigo-500 text-white shadow-[0_6px_12px_rgba(59,130,246,0.35)] flex items-center justify-center"
+            className="m-1.5 h-11 w-11 shrink-0 
+            rounded-full bg-linear-to-r from-sky-500
+             to-indigo-500 text-white 
+             shadow-[0_6px_12px_rgba(59,130,246,0.35)] flex items-center justify-center"
           >
-            <BiSearch size={18} />
+            <BiSearch size={19} className="translate-x-px" />
           </motion.button>
         </motion.div>
       </AnimatePresence>

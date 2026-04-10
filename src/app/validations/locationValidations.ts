@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const locationSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.coerce.number().min(-90).max(90),
+  longitude: z.coerce.number().min(-180).max(180),
   address: z.string().min(3),
   city: z.string().min(2),
   state: z.string().optional(),
@@ -10,8 +10,8 @@ export const locationSchema = z.object({
 });
 
 export const updateLocationSchema = z.object({
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),

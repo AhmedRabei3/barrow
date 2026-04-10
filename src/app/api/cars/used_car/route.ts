@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
             sellOrRent: carData.sellOrRent ?? "RENT",
             fuelType: carData.fuelType ?? "GASOLINE",
             gearType: carData.gearType ?? "AUTOMATIC",
-            status: carData.status ?? "AVAILABLE",
+            status: "AVAILABLE",
             rentType: carData.rentType ?? null,
             color: carData.color ?? "",
             mileage: carData.mileage ?? 0,
@@ -82,7 +82,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, car }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        car,
+        message: "تم نشر السيارة بنجاح",
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("❌ Create Used Car Error:", error);
     return handleApiError(error, req);

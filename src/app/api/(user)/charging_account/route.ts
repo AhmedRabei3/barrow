@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 import { authHelper } from "../../utils/authHelper";
 import { Errors } from "../../lib/errors/errors";
 import { handleApiError } from "../../lib/errors/errorHandler";
@@ -39,6 +40,12 @@ export async function PUT(req: NextRequest) {
           referenceId: validCode.id,
         },
       });
+
+      await tx.activationCode.update({
+        where: { id: validCode.id },
+        data: { used: true },
+      });
+
       // Payment record
       await tx.payment.create({
         data: {
@@ -48,6 +55,17 @@ export async function PUT(req: NextRequest) {
           status: "COMPLETED",
         },
       });
+
+      await recordPlatformProfitLedgerEntries(tx, [
+        {
+          type: "ACTIVATION_CODE_LIABILITY",
+          amount: -Number(validCode.balance ?? 0),
+          userId: user.id,
+          referenceId: validCode.id,
+          note: "Activation code redemption increased ready user liability",
+        },
+      ]);
+
       return updateUserBalance.balance;
     });
 

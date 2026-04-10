@@ -7,14 +7,14 @@ interface BadgesProps {
 
 const Badges = ({ isNew, isFeatured }: BadgesProps) => {
   return (
-    <div className="absolute top-3 left-3 flex flex-col gap-1 z-30">
+    <div className="absolute left-3 top-3 z-30 flex flex-col gap-1.5">
       {isNew && (
-        <span className="bg-white/95 text-slate-900 px-2 py-0.5 rounded-full text-[11px] font-semibold shadow-sm">
+        <span className="rounded-md border border-white/10 bg-slate-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm backdrop-blur-md">
           جديد
         </span>
       )}
       {isFeatured && (
-        <span className="bg-[#ff385c] text-white px-2 py-0.5 rounded-full text-[11px] font-semibold shadow-sm">
+        <span className="rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_10px_20px_rgba(37,99,235,0.28)]">
           مميز
         </span>
       )}

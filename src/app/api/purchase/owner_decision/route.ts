@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const item = await findItemByType(request.itemType, request.itemId);
 
-    if (!item || item.status === Availability.SOLD) {
+    if (!item || item.status !== Availability.AVAILABLE) {
       throw Errors.NOT_FOUND("العنصر مباع أو غير متوفر");
     }
 

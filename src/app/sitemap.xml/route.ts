@@ -1,6 +1,5 @@
 import { getSitemapShardMeta, getTotalSitemapShards } from "@/lib/sitemap";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+import { SITE_URL } from "@/lib/seo";
 
 export async function GET() {
   const shardMeta = await getSitemapShardMeta();

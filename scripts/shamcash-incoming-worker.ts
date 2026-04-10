@@ -30,6 +30,7 @@ const MAX_ATTEMPTS = parsePositiveInt(
   process.env.SHAMCASH_INCOMING_MAX_ATTEMPTS,
   8,
 );
+const queueEnabled = Boolean(String(process.env.REDIS_URL || "").trim());
 
 const processOneJob = async () => {
   const job = await claimNextShamCashIncomingPaymentJob();
@@ -231,20 +232,15 @@ const processOneJob = async () => {
 };
 
 const runWorker = async () => {
-  if (!String(process.env.REDIS_URL || "").trim()) {
-    throw new Error(
-      "REDIS_URL is required for the ShamCash incoming payment queue worker.",
-    );
-  }
-
   console.log("ShamCash incoming payment worker started");
   console.log(`Poll interval: ${POLL_INTERVAL_MS}ms`);
   console.log(`Max attempts: ${MAX_ATTEMPTS}`);
+  console.log(`Incoming queue enabled: ${queueEnabled ? "yes" : "no"}`);
 
   while (true) {
     try {
-      const handled = await processOneJob();
-      if (!handled) {
+      const paymentHandled = queueEnabled ? await processOneJob() : false;
+      if (!paymentHandled) {
         await sleep(POLL_INTERVAL_MS);
       }
     } catch (error) {

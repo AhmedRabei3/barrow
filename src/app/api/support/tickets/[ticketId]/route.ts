@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import {
-  localizeErrorMessage,
-  resolveIsArabicFromRequest,
-} from "@/app/i18n/errorMessages";
+import { handleApiError } from "@/app/api/lib/errors/errorHandler";
+import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
+import { supportTicketService } from "@/server/services/support-ticket.service";
 
 export async function GET(
   req: NextRequest,
@@ -24,53 +22,12 @@ export async function GET(
 
     const { ticketId } = await context.params;
 
-    const ticket = await prisma.supportTicket.findFirst({
-      where: {
-        id: ticketId,
-        userId: session.user.id,
-      },
-      select: {
-        id: true,
-        subject: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        messages: {
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            senderRole: true,
-            body: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
-
-    if (!ticket) {
-      return NextResponse.json(
-        { message: localizeErrorMessage("Support ticket not found", isArabic) },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      ticket: {
-        ...ticket,
-        createdAt: ticket.createdAt.toISOString(),
-        updatedAt: ticket.updatedAt.toISOString(),
-        messages: ticket.messages.map((message) => ({
-          ...message,
-          createdAt: message.createdAt.toISOString(),
-        })),
-      },
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to load support ticket";
-    return NextResponse.json(
-      { message: localizeErrorMessage(message, isArabic) },
-      { status: 500 },
+    const ticket = await supportTicketService.getUserTicketDetail(
+      session.user.id,
+      ticketId,
     );
+    return NextResponse.json({ ticket });
+  } catch (error) {
+    return handleApiError(error, req);
   }
 }

@@ -1,31 +1,37 @@
+import "./globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
-import "./globals.css";
 import ClientOnly from "./components/ClientOnly";
 import "leaflet/dist/leaflet.css";
 
-import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
 import LoginModal from "./components/modals/LoginModal";
 import RegisterModal from "./components/modals/RegisterModal";
 import ReferralHandler from "./components/modals/referalCatcher/ReferralHandler";
-import ActivationModal from "./components/modals/ActivationModal";
+import LoginParamHandler from "./components/modals/LoginParamHandler";
+import ActivationModal from "./components/modals/(activationModal)/ActivationModal";
 import Countdown from "./components/countdown/Countdown";
 import InviteModal from "./components/modals/inviteModal/InviteModal";
 import SearchModal from "./components/modals/searchModal/SearchModal";
 import FloatingChatButton from "./components/FloatingChatButton";
 import ScrollToTopButton from "./components/ScrollToTopButton";
 import ChunkErrorRecovery from "./components/ChunkErrorRecovery";
-import AppPreferencesProvider from "./components/providers/AppPreferencesProvider";
-import WebVitalsReporter from "./components/analytics/WebVitalsReporter";
+
 import {
-  SITE_NAME,
+  SITE_DESCRIPTION,
+  SITE_TAGLINE,
   SITE_URL,
+  SITE_NAME,
   DEFAULT_OG_IMAGE,
+  DEFAULT_TWITTER_IMAGE,
+  SITE_ICON,
   organizationJsonLd,
   websiteJsonLd,
 } from "@/lib/seo";
+import AppPreferencesProvider from "./components/providers/AppPreferencesProvider";
+import AppToaster from "./components/providers/AppToaster";
+//import WebVitalsReporter from "./components/analytics/WebVitalsReporter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,12 +51,11 @@ const notoKufiArabic = Noto_Kufi_Arabic({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | Marketplace for Renting, Buying, and Selling`,
+    default: `${SITE_NAME} | ${SITE_TAGLINE}`,
     template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Rent Anything is a marketplace to discover, rent, buy, and sell properties, cars, and other items with smart search, secure payments, and subscription benefits.",
-  applicationName: "Rent Anything",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   keywords: [
     "rent anything",
     "marketplace",
@@ -84,8 +89,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_URL,
-    siteName: "Rent Anything",
-    title: "Rent Anything | Marketplace for Renting, Buying, and Selling",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
     description:
       "Discover and list properties, cars, and more with secure checkout, smart search, and referral-powered growth.",
     locale: "en_US",
@@ -101,14 +106,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rent Anything | Marketplace for Renting, Buying, and Selling",
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
     description:
       "Discover and list properties, cars, and more with secure checkout and smart search.",
-    images: [DEFAULT_OG_IMAGE],
+    images: [DEFAULT_TWITTER_IMAGE],
   },
   icons: {
-    icon: DEFAULT_OG_IMAGE,
-    apple: DEFAULT_OG_IMAGE,
+    icon: SITE_ICON,
+    apple: SITE_ICON,
   },
 };
 
@@ -135,9 +140,10 @@ export default async function RootLayout({
           <SessionProvider refetchOnWindowFocus={false}>
             <ClientOnly>
               <ChunkErrorRecovery />
-              <WebVitalsReporter />
+              {/* <WebVitalsReporter /> */}
               <ReferralHandler />
-              <Toaster />
+              <LoginParamHandler />
+              <AppToaster />
               <LoginModal />
               <InviteModal />
               <RegisterModal />

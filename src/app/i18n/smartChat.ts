@@ -10,8 +10,8 @@ export const SMART_CHAT_TEXT = {
     en: "Create a listing through guided questions based on item type",
   },
   greeting: {
-    ar: "مرحباُ ... ، أنا أمين  أتشرف بخدمتك هل تبحث عن شيء معين ؟ أم ترغب بالاشتراك في موقعنا كي تكسب الكثير من الميزات الرائعة ؟ ",
-    en: "Hey superstar 👋 I'm happy to help! What would you like to list today? Choose: new cars, used cars, real estate, or other items.",
+    ar: `مرحبًا، أنا ${ASSISTANT_NAME_AR}. أساعدك في النشر والتفعيل والدعوات بخطوات واضحة وسريعة.`,
+    en: `Hello, I'm ${ASSISTANT_NAME_EN}. I help with listing creation, activation, and referrals through clear guided steps.`,
   },
   newVisitorPitch: {
     ar: "أهلاً بك ✨ الاشتراك يمنحك أفضلية حقيقية: ظهور أقوى لإعلاناتك، ثقة أعلى من المشترين، وأدوات أفضل لإدارة عروضك بسرعة واحترافية.\n\n💳 التفعيل متاح عبر PayPal، وكذلك عبر أكواد التفعيل الرسمية — خصوصًا للدول التي لا تدعم بوابات الدفع مثل سوريا.\n\n💸 كيف تزيد أرباحك؟\n1) فعّل حسابك.\n2) شارك رابط الدعوة الخاص بك.\n3) عند تسجيل وتفعيل المدعو عبر رابطك، تُحتسب أرباح الإحالة في حسابك وفق النظام.\n\n🏦 وعند جاهزية الأرباح، يمكنك طلب السحب بسهولة من قسم الرصيد.\n\n🚀 ابدأ الآن: انشر عبر المساعد، فعّل اشتراكك، وحوّل كل دعوة إلى فرصة دخل إضافي.",

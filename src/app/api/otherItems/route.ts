@@ -48,12 +48,18 @@ export async function POST(req: NextRequest) {
         tx.otherItem.create({
           data: {
             ...parsedData.data,
+            status: "AVAILABLE",
             ownerId: owner.id,
           },
         }),
     });
     return NextResponse.json(
-      { message: t("تم الإنشاء بنجاح", "Created successfully") },
+      {
+        message: t(
+          "تم نشر العنصر بنجاح",
+          "Item published successfully",
+        ),
+      },
       { status: 201 },
     );
   } catch (err) {

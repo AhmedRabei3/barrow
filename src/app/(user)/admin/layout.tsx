@@ -1,4 +1,3 @@
-import { SessionProvider } from "next-auth/react";
 import React from "react";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
@@ -28,11 +27,7 @@ async function layout({
     redirect("/");
   }
 
-  return (
-    <div>
-      <SessionProvider>{children}</SessionProvider>
-    </div>
-  );
+  return <div>{children}</div>;
 }
 
 export default layout;

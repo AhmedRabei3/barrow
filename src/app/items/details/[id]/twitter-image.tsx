@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_NAME } from "@/lib/seo";
 
 export const runtime = "nodejs";
 export const alt = "Listing preview";
@@ -17,7 +18,7 @@ export default async function TwitterImage({
 }) {
   const { id } = await params;
 
-  let title = "Listing on Rent Anything";
+  let title = `Listing on ${SITE_NAME}`;
 
   try {
     const response = await fetch(`${SITE_URL}/api/items/details/${id}`, {
@@ -60,7 +61,7 @@ export default async function TwitterImage({
         textAlign: "center",
       }}
     >
-      <div style={{ fontSize: 28, opacity: 0.9 }}>Rent Anything</div>
+      <div style={{ fontSize: 28, opacity: 0.9 }}>{SITE_NAME}</div>
       <div
         style={{
           fontSize: 56,

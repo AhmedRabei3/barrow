@@ -9,8 +9,8 @@ const GoBackBtn = () => {
     <button
       id="go-back"
       className="
-       bg-white/72 dark:bg-slate-900/72
-       text-rose-600 dark:text-rose-300
+       bg-rose-500/72 dark:bg-slate-900/72
+       text-white dark:text-rose-500
        border border-white/70 dark:border-slate-700/70
        shadow-md hover:shadow-lg
        hover:bg-white/85 dark:hover:bg-slate-900/85

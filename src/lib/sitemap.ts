@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Availability } from "@prisma/client";
 
 export type SitemapModelKey = "property" | "newCar" | "oldCar" | "otherItem";
 
@@ -16,10 +17,10 @@ export const getSitemapShardMeta = async (): Promise<
 > => {
   const [propertyCount, newCarCount, oldCarCount, otherItemCount] =
     await Promise.all([
-      prisma.property.count({ where: { isDeleted: false } }),
-      prisma.newCar.count({ where: { isDeleted: false } }),
-      prisma.oldCar.count({ where: { isDeleted: false } }),
-      prisma.otherItem.count({ where: { isDeleted: false } }),
+      prisma.property.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.newCar.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.oldCar.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.otherItem.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
     ]);
 
   const counts: Record<SitemapModelKey, number> = {

@@ -76,6 +76,16 @@ export async function PUT(req: NextRequest) {
 
       newActiveUntil = result.newActiveUntil;
 
+      await tx.payment.create({
+        data: {
+          payerId: user.id,
+          amount: Number(code.balance),
+          currency: "USD",
+          method: "BANK_TRANSFER",
+          status: "COMPLETED",
+        },
+      });
+
       await tx.activationCode.update({
         where: { code: activationCode },
         data: { used: true },
@@ -86,6 +96,7 @@ export async function PUT(req: NextRequest) {
       success: true,
       activeUntil: newActiveUntil!.toISOString(),
     });
+    
   } catch (error) {
     console.error("Activation error:", error);
     return handleApiError(error, req);

@@ -62,6 +62,154 @@
 				"$env:CI='1'; npm run build"
 			],
 			"isBackground": false
+		},
+		{
+			"label": "Check localhost 3000",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$ok=(Test-NetConnection -ComputerName localhost -Port 3000 -WarningAction SilentlyContinue).TcpTestSucceeded; Write-Output \"NEXT_PORT_OPEN=$ok\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe default items API",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"-c",
+				"import urllib.request, urllib.error; req=urllib.request.Request('http://localhost:3000/api/items?page=1&limit=20');\ntry:\n    print(urllib.request.urlopen(req).read().decode())\nexcept urllib.error.HTTPError as e:\n    print('HTTP', e.code)\n    print(e.read().decode())"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items new-car",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"-c",
+				"import urllib.request; print(urllib.request.urlopen('http://localhost:3000/api/items?page=1&limit=20&type=NEW_CAR').read().decode())"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items used-car",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"-c",
+				"import urllib.request; print(urllib.request.urlopen('http://localhost:3000/api/items?page=1&limit=20&type=USED_CAR').read().decode())"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items default",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"-c",
+				"import urllib.request; print(urllib.request.urlopen('http://localhost:3000/api/items?page=1&limit=20').read().decode())"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe default items via script",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?page=1&limit=20"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe new-car items via script",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?page=1&limit=20&type=NEW_CAR"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe default items simple",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?page=1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe new-car items simple",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?type=NEW_CAR"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe used-car items simple",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?type=USED_CAR"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items with geolocation",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items?page=1&lat=36.2&lng=37.16"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items geolocation branch",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items",
+				"page=1",
+				"lat=36.2",
+				"lng=37.16"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items action branch",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items",
+				"page=1",
+				"action=SELL"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Probe items category branch",
+			"type": "shell",
+			"command": "py",
+			"args": [
+				"tmp/probe_items.py",
+				"http://localhost:3000/api/items",
+				"page=1",
+				"catName=All"
+			],
+			"isBackground": false
 		}
 	]
 }

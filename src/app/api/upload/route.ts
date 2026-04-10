@@ -1,31 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import cloudinary from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import { ItemType } from "@prisma/client";
 
-type CloudinaryUploadResult = {
-  secure_url?: string;
-  public_id?: string;
-};
+
 
 const isItemType = (value: string): value is ItemType =>
   Object.values(ItemType).includes(value as ItemType);
 
-async function uploadToCloudinary(file: File) {
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  return new Promise<CloudinaryUploadResult>((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream({ folder: "barrow/items" }, (err, result) => {
-        if (err) reject(err);
-        resolve({
-          secure_url: result?.secure_url,
-          public_id: result?.public_id,
-        });
-      })
-      .end(buffer);
-  });
-}
+import { uploadToCloudinary } from "@/app/api/utils/cloudinary";
 
 export async function POST(req: NextRequest) {
   try {

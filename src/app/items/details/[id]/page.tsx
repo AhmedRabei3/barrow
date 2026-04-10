@@ -41,7 +41,7 @@ export async function generateMetadata({
     ? `${item.location.city}, ${item.location.country}`
     : "";
 
-  const description = `${title}${priceText}${locationText ? ` | ${locationText}` : ""} - Rent Anything marketplace listing details.`;
+  const description = `${title}${priceText}${locationText ? ` | ${locationText}` : ""} - ${SITE_NAME} marketplace listing details.`;
   const ogDynamicImageUrl = `${SITE_URL}/items/details/${id}/opengraph-image`;
   const twitterDynamicImageUrl = `${SITE_URL}/items/details/${id}/twitter-image`;
 
@@ -221,8 +221,14 @@ async function itemDetailsPage({ params }: PageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema) }}
         />
       )}
-      <div className="w-full gap-6 mx-auto flex px-6 my-2">
-        {item ? <ItemDetails item={item} /> : <h2>غير موجود!!</h2>}
+      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
+        {item ? (
+          <ItemDetails item={item} />
+        ) : (
+          <div className="market-panel rounded-[28px] px-6 py-12 text-center text-slate-200">
+            <h2 className="text-xl font-bold">غير موجود!!</h2>
+          </div>
+        )}
       </div>
     </>
   );

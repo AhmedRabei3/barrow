@@ -31,8 +31,9 @@ const ImageUpload = ({
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const fileArray = Array.from(files);
-    setSelectedImages((prev) => [...prev, ...fileArray]);
+    // اجعلها صورة واحدة فقط (استبدال)
+    const fileArray = Array.from(files).slice(0, 1);
+    setSelectedImages(fileArray);
   };
 
   const handleRemove = (index: number) => {

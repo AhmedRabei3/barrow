@@ -1,4 +1,3 @@
-import { SessionProvider } from "next-auth/react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const layout = ({ children }: { children: React.ReactNode }) => {
-  return <SessionProvider>{children}</SessionProvider>;
+  return children;
 };
 
 export default layout;

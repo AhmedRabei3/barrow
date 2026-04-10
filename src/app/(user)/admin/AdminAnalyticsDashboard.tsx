@@ -1,1278 +1,774 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import type {
+  AdminDashboardResponse as DashboardResponse,
+  DashboardUser,
+} from "@/features/admin/dashboard/types";
 
-type DashboardUser = {
-  id: string;
-  name: string;
-  email: string;
-  isActive: boolean;
-  isDeleted: boolean;
-  createdAt: string;
-  activeUntil: string | null;
-  activatedSince: string | null;
-  activeForDays: number;
-  balance: number;
-  pendingReferralEarnings: number;
-  totalCharged: number;
-  rechargeCount: number;
-  repeatedSubscription: boolean;
-  invitedCount: number;
-  activeInvitedCount: number;
-  daysToExpiry: number | null;
-  monthlyProfitPotential: boolean;
-  renewalIncentiveCandidate: boolean;
-  lowEarningsCandidate: boolean;
-};
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "BLOCKED";
 
-type DashboardResponse = {
-  overview: {
-    totalSubscribers: number;
-    activeSubscribers: number;
-    repeatedSubscribers: number;
-    totalPendingReferralEarnings: number;
-    totalUserBalances: number;
-    monthlyProfitPotentialUsers: number;
-    renewalIncentiveCandidates: number;
-    lowEarningCandidates: number;
-    lowEarningsThreshold: number;
-    platformEarningsTotal: number;
-    platformEarningsToday: number;
-    platformEarningsMonth: number;
-    programEarningsTotal: number;
-    programEarningsToday: number;
-    programEarningsMonth: number;
-    receivedAmountTotal: number;
-    receivedAmountToday: number;
-    receivedAmountMonth: number;
-    paidOutAmountTotal: number;
-    paidOutAmountToday: number;
-    paidOutAmountMonth: number;
-    netProfitAmount: number;
-    receivedViaPaypal: number;
-    receivedViaShamCash: number;
-    paidOutViaPaypal: number;
-    paidOutViaShamCash: number;
-    paidOutManualSettlements: number;
-    paypalWalletEstimatedBalance: number;
-    shamCashWalletEstimatedBalance: number;
-  };
-  users: DashboardUser[];
-};
-
-type RewardSettings = {
-  lowEarningsThreshold: number;
-  candidateCount: number;
-  minReward: number;
-  maxReward: number;
-};
-
-const REWARD_SETTINGS_STORAGE_KEY = "admin-random-reward-settings-v1";
-
-type SortKey =
-  | "name"
-  | "status"
-  | "balance"
-  | "activeInvitedCount"
-  | "rechargeCount"
-  | "activeForDays";
-type SortDirection = "asc" | "desc";
+const COLORS = ["#10b981", "#f59e0b", "#f43f5e"];
 
 const AdminAnalyticsDashboard = () => {
   const { isArabic } = useAppPreferences();
+  const { data: session } = useSession();
+  const isOwnerViewer = Boolean(session?.user?.isOwner);
   const t = useCallback(
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],
   );
 
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "ACTIVE" | "INACTIVE" | "BLOCKED"
-  >("ALL");
-  const [repeatFilter, setRepeatFilter] = useState<"ALL" | "YES" | "NO">("ALL");
-  const [sortBy, setSortBy] = useState<SortKey>("name");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [overview, setOverview] = useState<DashboardResponse["overview"]>({
-    totalSubscribers: 0,
-    activeSubscribers: 0,
-    repeatedSubscribers: 0,
-    totalPendingReferralEarnings: 0,
-    totalUserBalances: 0,
-    monthlyProfitPotentialUsers: 0,
-    renewalIncentiveCandidates: 0,
-    lowEarningCandidates: 0,
-    lowEarningsThreshold: 20,
-    platformEarningsTotal: 0,
-    platformEarningsToday: 0,
-    platformEarningsMonth: 0,
-    programEarningsTotal: 0,
-    programEarningsToday: 0,
-    programEarningsMonth: 0,
-    receivedAmountTotal: 0,
-    receivedAmountToday: 0,
-    receivedAmountMonth: 0,
-    paidOutAmountTotal: 0,
-    paidOutAmountToday: 0,
-    paidOutAmountMonth: 0,
-    netProfitAmount: 0,
-    receivedViaPaypal: 0,
-    receivedViaShamCash: 0,
-    paidOutViaPaypal: 0,
-    paidOutViaShamCash: 0,
-    paidOutManualSettlements: 0,
-    paypalWalletEstimatedBalance: 0,
-    shamCashWalletEstimatedBalance: 0,
-  });
-  const [rewardSettings, setRewardSettings] = useState<RewardSettings>({
-    lowEarningsThreshold: 20,
-    candidateCount: 12,
-    minReward: 2,
-    maxReward: 8,
-  });
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(REWARD_SETTINGS_STORAGE_KEY);
-    if (!raw) return;
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<RewardSettings>;
-      setRewardSettings((prev) => ({
-        lowEarningsThreshold:
-          typeof parsed.lowEarningsThreshold === "number" &&
-          parsed.lowEarningsThreshold >= 0
-            ? parsed.lowEarningsThreshold
-            : prev.lowEarningsThreshold,
-        candidateCount:
-          typeof parsed.candidateCount === "number" &&
-          parsed.candidateCount >= 1
-            ? parsed.candidateCount
-            : prev.candidateCount,
-        minReward:
-          typeof parsed.minReward === "number" && parsed.minReward > 0
-            ? parsed.minReward
-            : prev.minReward,
-        maxReward:
-          typeof parsed.maxReward === "number" &&
-          parsed.maxReward >= (parsed.minReward ?? prev.minReward)
-            ? parsed.maxReward
-            : prev.maxReward,
-      }));
-    } catch {
-      // ignore malformed storage
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-      REWARD_SETTINGS_STORAGE_KEY,
-      JSON.stringify(rewardSettings),
-    );
-  }, [rewardSettings]);
-
-  const loadDashboard = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        lowEarningsThreshold: String(rewardSettings.lowEarningsThreshold),
-      });
-      const res = await fetch(`/api/admin/dashboard?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error(
-          t("فشل تحميل لوحة الإدارة", "Failed to load admin dashboard"),
-        );
-      }
-
-      const data = (await res.json()) as DashboardResponse;
-      setOverview(data.overview);
-      setUsers(data.users);
-    } catch {
-      toast.error(
-        t("فشل تحميل لوحة الإدارة", "Failed to load admin dashboard"),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [rewardSettings.lowEarningsThreshold, t]);
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  const totalRewardsEstimate = useMemo(
-    () => users.reduce((sum, user) => sum + user.balance, 0),
-    [users],
-  );
-
-  const renewalCandidates = useMemo(
-    () => users.filter((user) => user.renewalIncentiveCandidate),
-    [users],
-  );
-
-  const earningsChartData = useMemo(
-    () => [
-      {
-        name: t("اليوم", "Today"),
-        platform: overview.platformEarningsToday,
-        program: overview.programEarningsToday,
+  const [status, setStatus] = useState<StatusFilter>("ALL");
+  const [page, setPage] = useState(1);
+  const [actionLoadingId, setActionLoadingId] = useState("");
+  const [data, setData] = useState<DashboardResponse>({
+    overview: {
+      totalUsers: 0,
+      totalSubscribers: 0,
+      paidSubscribers: 0,
+      activeSubscribers: 0,
+      repeatedSubscribers: 0,
+      totalPendingReferralEarnings: 0,
+      totalUserBalances: 0,
+      totalLiveUserLiabilities: 0,
+      operatingReserveAmount: 0,
+      previousOwnerWithdrawalsTotal: 0,
+      availableToWithdraw: 0,
+      monthlyProfitPotentialUsers: 0,
+      renewalIncentiveCandidates: 0,
+      lowEarningCandidates: 0,
+      lowEarningsThreshold: 0,
+      platformEarningsTotal: 0,
+      platformEarningsToday: 0,
+      platformEarningsMonth: 0,
+      programEarningsTotal: 0,
+      programEarningsToday: 0,
+      programEarningsMonth: 0,
+      receivedAmountTotal: 0,
+      receivedAmountToday: 0,
+      receivedAmountMonth: 0,
+      paidOutAmountTotal: 0,
+      paidOutAmountToday: 0,
+      paidOutAmountMonth: 0,
+      netProfitAmount: 0,
+      receivedViaPaypal: 0,
+      receivedViaShamCash: 0,
+      paidOutViaPaypal: 0,
+      paidOutViaShamCash: 0,
+      paidOutManualSettlements: 0,
+      paypalWalletEstimatedBalance: 0,
+      shamCashWalletEstimatedBalance: 0,
+      statusDistribution: {
+        active: 0,
+        inactive: 0,
+        blocked: 0,
       },
-      {
-        name: t("هذا الشهر", "This month"),
-        platform: overview.platformEarningsMonth,
-        program: overview.programEarningsMonth,
-      },
-      {
-        name: t("الإجمالي", "Total"),
-        platform: overview.platformEarningsTotal,
-        program: overview.programEarningsTotal,
-      },
-    ],
-    [
-      overview.platformEarningsMonth,
-      overview.platformEarningsToday,
-      overview.platformEarningsTotal,
-      overview.programEarningsMonth,
-      overview.programEarningsToday,
-      overview.programEarningsTotal,
-      t,
-    ],
-  );
-
-  const usersStatusChartData = useMemo(
-    () => [
-      {
-        name: t("مفعل", "Active"),
-        value: overview.activeSubscribers,
-        color: "#10b981",
-      },
-      {
-        name: t("غير مفعل", "Inactive"),
-        value: Math.max(
-          overview.totalSubscribers - overview.activeSubscribers,
-          0,
-        ),
-        color: "#f59e0b",
-      },
-      {
-        name: t("محظور", "Blocked"),
-        value: Math.max(users.filter((user) => user.isDeleted).length, 0),
-        color: "#ef4444",
-      },
-    ],
-    [overview.activeSubscribers, overview.totalSubscribers, t, users],
-  );
-
-  const filteredUsers = useMemo(() => {
-    const searchTerm = search.trim().toLowerCase();
-
-    return users.filter((user) => {
-      const matchesSearch =
-        !searchTerm ||
-        user.name.toLowerCase().includes(searchTerm) ||
-        user.email.toLowerCase().includes(searchTerm);
-
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ACTIVE" && user.isActive && !user.isDeleted) ||
-        (statusFilter === "INACTIVE" && !user.isActive && !user.isDeleted) ||
-        (statusFilter === "BLOCKED" && user.isDeleted);
-
-      const matchesRepeat =
-        repeatFilter === "ALL" ||
-        (repeatFilter === "YES" && user.repeatedSubscription) ||
-        (repeatFilter === "NO" && !user.repeatedSubscription);
-
-      return matchesSearch && matchesStatus && matchesRepeat;
-    });
-  }, [users, search, statusFilter, repeatFilter]);
-
-  const exportCsv = useCallback(() => {
-    if (filteredUsers.length === 0) {
-      toast.error(t("لا توجد بيانات للتصدير", "No data to export"));
-      return;
-    }
-
-    const headers = [
-      "name",
-      "email",
-      "status",
-      "balance",
-      "pendingReferralEarnings",
-      "monthlyProfitPotential",
-      "renewalIncentiveCandidate",
-      "daysToExpiry",
-      "totalCharged",
-      "invitedCount",
-      "activeInvitedCount",
-      "rechargeCount",
-      "repeatedSubscription",
-      "activeForDays",
-      "activeUntil",
-    ];
-
-    const rows = filteredUsers.map((user) => [
-      user.name,
-      user.email,
-      user.isDeleted ? "BLOCKED" : user.isActive ? "ACTIVE" : "INACTIVE",
-      user.balance.toFixed(2),
-      user.pendingReferralEarnings.toFixed(2),
-      user.monthlyProfitPotential ? "YES" : "NO",
-      user.renewalIncentiveCandidate ? "YES" : "NO",
-      user.daysToExpiry === null ? "" : String(user.daysToExpiry),
-      user.totalCharged.toFixed(2),
-      String(user.invitedCount),
-      String(user.activeInvitedCount),
-      String(user.rechargeCount),
-      user.repeatedSubscription ? "YES" : "NO",
-      String(user.activeForDays),
-      user.activeUntil ?? "",
-    ]);
-
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `admin-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [filteredUsers, t]);
-
-  const sortedUsers = useMemo(() => {
-    const list = [...filteredUsers];
-
-    list.sort((a, b) => {
-      const statusRank = (user: DashboardUser) => {
-        if (user.isDeleted) return 0;
-        if (user.isActive) return 2;
-        return 1;
-      };
-
-      let aValue: string | number;
-      let bValue: string | number;
-
-      switch (sortBy) {
-        case "status":
-          aValue = statusRank(a);
-          bValue = statusRank(b);
-          break;
-        case "balance":
-          aValue = a.balance;
-          bValue = b.balance;
-          break;
-        case "activeInvitedCount":
-          aValue = a.activeInvitedCount;
-          bValue = b.activeInvitedCount;
-          break;
-        case "rechargeCount":
-          aValue = a.rechargeCount;
-          bValue = b.rechargeCount;
-          break;
-        case "activeForDays":
-          aValue = a.activeForDays;
-          bValue = b.activeForDays;
-          break;
-        case "name":
-        default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return list;
-  }, [filteredUsers, sortBy, sortDirection]);
-
-  const handleSort = useCallback(
-    (key: SortKey) => {
-      if (sortBy === key) {
-        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-        return;
-      }
-
-      setSortBy(key);
-      setSortDirection("asc");
     },
-    [sortBy],
-  );
+    pagination: {
+      page: 1,
+      pageSize: 12,
+      totalItems: 0,
+      totalPages: 1,
+    },
+    users: [],
+    filters: {
+      search: "",
+      status: "ALL",
+      repeat: "ALL",
+      sortBy: "name",
+      sortDirection: "asc",
+    },
+  });
 
-  const callAction = useCallback(
-    async (
-      action: "BLOCK" | "NOTIFY" | "REWARD" | "RANDOM_LOW_REWARD",
-      payload?: {
-        userId?: string;
-        message?: string;
-        amount?: number;
-        candidateCount?: number;
-        maxBalance?: number;
-        minReward?: number;
-        maxReward?: number;
-      },
-    ) => {
+  const loadDashboard = useCallback(
+    async (nextPage = page) => {
       try {
-        setActionLoadingId(payload?.userId ?? "__batch__");
-        const res = await fetch("/api/admin/dashboard/actions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, ...payload }),
+        setLoading(true);
+        const params = new URLSearchParams({
+          page: String(nextPage),
+          pageSize: "12",
+          search,
+          status,
         });
 
-        if (!res.ok) {
-          const data = (await res.json()) as { message?: string };
+        const response = await fetch(
+          `/api/admin/dashboard?${params.toString()}`,
+        );
+        const body = (await response.json()) as DashboardResponse & {
+          message?: string;
+        };
+
+        if (!response.ok) {
           throw new Error(
-            data.message || t("فشل تنفيذ الإجراء", "Action failed"),
+            body.message ||
+              t("تعذر تحميل بيانات المستخدمين", "Failed to load users data"),
           );
         }
 
-        if (action === "RANDOM_LOW_REWARD") {
-          const data = (await res.json()) as {
-            rewardedUserName?: string;
-            amount?: number;
-          };
-          toast.success(
-            data.rewardedUserName
-              ? isArabic
-                ? `🎉 تمت مكافأة ${data.rewardedUserName} بمبلغ $${Number(data.amount ?? 0).toFixed(2)}`
-                : `🎉 ${data.rewardedUserName} was rewarded $${Number(data.amount ?? 0).toFixed(2)}`
-              : t(
-                  "تم تنفيذ المكافأة العشوائية بنجاح",
-                  "Random reward completed successfully",
-                ),
-          );
-        } else {
-          toast.success(
-            t("تم تنفيذ الإجراء بنجاح", "Action completed successfully"),
-          );
-        }
-
-        await loadDashboard();
+        setData((current) => ({
+          ...current,
+          ...body,
+        }));
+        setPage(body.pagination.page);
       } catch (error) {
         toast.error(
           error instanceof Error
             ? error.message
-            : t("فشل تنفيذ الإجراء", "Action failed"),
+            : t("حدث خطأ غير متوقع", "Unexpected error"),
         );
       } finally {
-        setActionLoadingId(null);
+        setLoading(false);
       }
     },
-    [isArabic, loadDashboard, t],
+    [page, search, status, t],
   );
 
-  const handleNotify = async (userId: string) => {
-    const message = window.prompt(
-      t("اكتب رسالة التنبيه للمستخدم:", "Write the notification message:"),
-    );
-    if (!message) return;
-    await callAction("NOTIFY", { userId, message });
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      loadDashboard(1);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [loadDashboard]);
+
+  const chartData = useMemo(
+    () => [
+      {
+        name: t("مفعل", "Active"),
+        value: data.overview.statusDistribution.active,
+      },
+      {
+        name: t("غير مفعل", "Inactive"),
+        value: data.overview.statusDistribution.inactive,
+      },
+      {
+        name: t("محظور", "Blocked"),
+        value: data.overview.statusDistribution.blocked,
+      },
+    ],
+    [data.overview.statusDistribution, t],
+  );
+
+  const formatCurrency = (value: number) => `$${Number(value || 0).toFixed(2)}`;
+
+  const paymentMethodLabel = useCallback(
+    (method: string | null, hasActiveSubscription: boolean) => {
+      if (method === "PAYPAL") return "PayPal";
+      if (method === "SHAMCASH") return "ShamCash";
+      if (method === "CARD") return t("بطاقة", "Card");
+      if (method === "BANK_TRANSFER")
+        return t("تحويل/كود تفعيل", "Transfer / activation code");
+      if (method === "CRYPTO") return t("عملة رقمية", "Crypto");
+      if (method === "BALANCE") return t("الرصيد", "Balance");
+      if (hasActiveSubscription) {
+        return t("قديم أو غير موثق", "Legacy or untracked");
+      }
+      return t("لا يوجد", "None");
+    },
+    [t],
+  );
+
+  const formatDate = (value: string | null) => {
+    if (!value) return t("غير متاح", "N/A");
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t("غير متاح", "N/A");
+    return date.toLocaleDateString(isArabic ? "ar" : "en-US");
   };
 
-  const handleReward = async (userId: string) => {
-    const amountRaw = window.prompt(
-      t("قيمة المكافأة بالدولار:", "Reward amount in USD:"),
+  const handleAdminAction = useCallback(
+    async (
+      action:
+        | "BLOCK"
+        | "UNBLOCK"
+        | "NOTIFY"
+        | "REWARD"
+        | "MAKE_ADMIN"
+        | "REMOVE_ADMIN",
+      user: DashboardUser,
+      payload?: { message?: string; amount?: number },
+    ) => {
+      try {
+        setActionLoadingId(user.id);
+
+        const response = await fetch("/api/admin/dashboard/actions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-lang": isArabic ? "ar" : "en",
+          },
+          body: JSON.stringify({
+            action,
+            userId: user.id,
+            ...payload,
+          }),
+        });
+
+        const body = (await response.json()) as { message?: string };
+        if (!response.ok) {
+          throw new Error(
+            body.message ||
+              t("تعذر تنفيذ الإجراء", "Failed to complete action"),
+          );
+        }
+
+        toast.success(
+          body.message ||
+            (action === "NOTIFY"
+              ? t("تم إرسال الإشعار", "Notification sent")
+              : action === "REWARD"
+                ? t("تمت إضافة المكافأة", "Reward added")
+                : action === "UNBLOCK"
+                  ? t("تم رفع الحظر", "User unblocked")
+                  : t("تم حظر المستخدم", "User blocked")),
+        );
+
+        await loadDashboard(page);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("حدث خطأ غير متوقع", "Unexpected error"),
+        );
+      } finally {
+        setActionLoadingId("");
+      }
+    },
+    [isArabic, loadDashboard, page, t],
+  );
+
+  const handleUserAction = async (user: DashboardUser) => {
+    const isBlocked = user.isDeleted;
+    const action = isBlocked ? "UNBLOCK" : "BLOCK";
+    const confirmMessage = isBlocked
+      ? t("تأكيد رفع الحظر عن هذا المستخدم؟", "Confirm unblocking this user?")
+      : t("تأكيد حظر هذا المستخدم؟", "Confirm blocking this user?");
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const message = isBlocked
+      ? undefined
+      : window.prompt(t("سبب الحظر اختياري", "Optional block reason")) ||
+        undefined;
+    await handleAdminAction(action, user, { message });
+  };
+
+  const handleNotifyUser = async (user: DashboardUser) => {
+    const message = window.prompt(
+      t("اكتب نص الإشعار", "Write the notification message"),
     );
-    if (!amountRaw) return;
+
+    if (!message || !message.trim()) {
+      return;
+    }
+
+    await handleAdminAction("NOTIFY", user, { message: message.trim() });
+  };
+
+  const handleRewardUser = async (user: DashboardUser) => {
+    const amountRaw = window.prompt(
+      t("قيمة المكافأة بالدولار", "Reward amount in USD"),
+      "5",
+    );
+
+    if (amountRaw === null) {
+      return;
+    }
+
     const amount = Number(amountRaw);
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error(t("قيمة المكافأة غير صحيحة", "Invalid reward amount"));
-      return;
-    }
-    const message = window.prompt(
-      t("رسالة المكافأة (اختياري)", "Reward message (optional)"),
-      t(
-        "تهانينا، تمت مكافأتك من الإدارة تقديراً لتميزك.",
-        "Congratulations, you received an admin reward for your performance.",
-      ),
-    );
-    await callAction("REWARD", {
-      userId,
-      amount,
-      message: message || undefined,
-    });
-  };
-
-  const handleRenewalReward = async (userId: string) => {
-    const amountRaw = window.prompt(
-      t("قيمة مكافأة التجديد بالدولار:", "Renewal reward amount in USD:"),
-      "3",
-    );
-    if (!amountRaw) return;
-    const amount = Number(amountRaw);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error(t("قيمة المكافأة غير صحيحة", "Invalid reward amount"));
+      toast.error(t("قيمة غير صالحة", "Invalid amount"));
       return;
     }
 
-    await callAction("REWARD", {
-      userId,
-      amount,
-      message: t(
-        "🎯 مكافأة تحفيزية للتجديد: يسعدنا استمرارك معنا، وجدد اشتراكك للاستفادة الكاملة من مزايا الحساب.",
-        "🎯 Renewal incentive reward: we’re glad to have you with us—renew to enjoy all account benefits.",
-      ),
-    });
+    const message =
+      window.prompt(t("رسالة المكافأة اختيارية", "Optional reward message")) ||
+      undefined;
+
+    await handleAdminAction("REWARD", user, { amount, message });
   };
 
-  const handleRandomLowReward = async () => {
-    if (
-      !Number.isFinite(rewardSettings.lowEarningsThreshold) ||
-      rewardSettings.lowEarningsThreshold < 0
-    ) {
-      toast.error(
-        t("حد الأقل ربحًا غير صالح", "Invalid low-earnings threshold"),
-      );
+  const handleAdminRoleToggle = async (user: DashboardUser) => {
+    const nextAction = user.isAdmin ? "REMOVE_ADMIN" : "MAKE_ADMIN";
+    const confirmed = window.confirm(
+      user.isAdmin
+        ? t("تأكيد سحب صفة المشرف؟", "Confirm revoking admin access?")
+        : t("تأكيد تعيينه كمشرف؟", "Confirm promoting this user to admin?"),
+    );
+
+    if (!confirmed) {
       return;
     }
 
-    if (
-      !Number.isFinite(rewardSettings.minReward) ||
-      !Number.isFinite(rewardSettings.maxReward) ||
-      rewardSettings.minReward <= 0 ||
-      rewardSettings.maxReward < rewardSettings.minReward
-    ) {
-      toast.error(t("نطاق المكافأة غير صالح", "Invalid reward range"));
-      return;
-    }
-
-    await callAction("RANDOM_LOW_REWARD", {
-      maxBalance: rewardSettings.lowEarningsThreshold,
-      candidateCount: Math.max(1, Math.floor(rewardSettings.candidateCount)),
-      minReward: rewardSettings.minReward,
-      maxReward: rewardSettings.maxReward,
-    });
+    await handleAdminAction(nextAction, user);
   };
-
-  const handleBlock = async (userId: string) => {
-    const message = window.prompt(
-      t("سبب الحظر (اختياري)", "Block reason (optional)"),
-      t(
-        "تم تقييد حسابك من قبل الإدارة. يرجى التواصل مع الدعم.",
-        "Your account was restricted by admin. Please contact support.",
-      ),
-    );
-    if (
-      !window.confirm(
-        t(
-          "هل أنت متأكد من حظر هذا المستخدم؟",
-          "Are you sure you want to block this user?",
-        ),
-      )
-    )
-      return;
-    await callAction("BLOCK", { userId, message: message || undefined });
-  };
-
-  if (loading) {
-    return (
-      <p className="text-slate-500 dark:text-slate-300">
-        {t("جاري تحميل لوحة التحكم...", "Loading dashboard...")}
-      </p>
-    );
-  }
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard
-          title={t("إجمالي المشتركين", "Total subscribers")}
-          value={overview.totalSubscribers}
-        />
-        <KpiCard
-          title={t("المشتركون المفعلون", "Active subscribers")}
-          value={overview.activeSubscribers}
-        />
-        <KpiCard
-          title={t("كرروا الاشتراك", "Repeated subscriptions")}
-          value={overview.repeatedSubscribers}
-        />
-        <KpiCard
-          title={t("إجمالي الأرصدة الحالية", "Total current balances")}
-          value={`$${overview.totalUserBalances.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t(
-            "إجمالي أرباح الإحالة المعلقة",
-            "Total pending referral earnings",
-          )}
-          value={`$${overview.totalPendingReferralEarnings.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t(
-            "مرشحون لربح شهري شبه ثابت",
-            "Potential monthly-profit users",
-          )}
-          value={overview.monthlyProfitPotentialUsers}
-        />
-        <KpiCard
-          title={t("مرشحون لمكافأة التجديد", "Renewal incentive candidates")}
-          value={overview.renewalIncentiveCandidates}
-        />
-        <KpiCard
-          title={t("الأقل ربحًا (مرشحون)", "Low-earnings candidates")}
-          value={overview.lowEarningCandidates}
-        />
-        <KpiCard
-          title={t("أرباح المنصة الكلية", "Total platform earnings")}
-          value={`$${overview.platformEarningsTotal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("أرباح المنصة اليوم", "Platform earnings today")}
-          value={`$${overview.platformEarningsToday.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("أرباح المنصة هذا الشهر", "Platform earnings this month")}
-          value={`$${overview.platformEarningsMonth.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("أرباح البرنامج الكلية", "Total program earnings")}
-          value={`$${overview.programEarningsTotal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("أرباح البرنامج اليوم", "Program earnings today")}
-          value={`$${overview.programEarningsToday.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("أرباح البرنامج هذا الشهر", "Program earnings this month")}
-          value={`$${overview.programEarningsMonth.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("إجمالي المستلَم", "Total received")}
-          value={`$${overview.receivedAmountTotal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("إجمالي المدفوع", "Total paid out")}
-          value={`$${overview.paidOutAmountTotal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("الربح الصافي", "Net profit")}
-          value={`$${overview.netProfitAmount.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("رصيد PayPal (تقديري)", "PayPal wallet (estimated)")}
-          value={`$${overview.paypalWalletEstimatedBalance.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("رصيد ShamCash (تقديري)", "ShamCash wallet (estimated)")}
-          value={`$${overview.shamCashWalletEstimatedBalance.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("مستلم عبر PayPal", "Received via PayPal")}
-          value={`$${overview.receivedViaPaypal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("مستلم عبر ShamCash", "Received via ShamCash")}
-          value={`$${overview.receivedViaShamCash.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("مدفوع عبر PayPal", "Paid via PayPal")}
-          value={`$${overview.paidOutViaPaypal.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("مدفوع عبر ShamCash", "Paid via ShamCash")}
-          value={`$${overview.paidOutViaShamCash.toFixed(2)}`}
-        />
-        <KpiCard
-          title={t("مدفوع يدويًا", "Paid manually")}
-          value={`$${overview.paidOutManualSettlements.toFixed(2)}`}
-        />
-      </div>
+    <section className="space-y-6">
+      <div className="admin-card overflow-hidden rounded-[28px] p-5 sm:p-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-2">
+            <span className="admin-kicker">
+              {t("تشغيل المستخدمين", "User operations")}
+            </span>
+            <h2 className="text-xl font-black tracking-tight text-white md:text-2xl">
+              {t("إدارة المستخدمين", "User Management")}
+            </h2>
+            <p className="max-w-2xl text-sm text-zinc-400">
+              {t(
+                "لوحة عملية لإدارة المستخدمين المشتركين وحالاتهم بدون عناصر إضافية غير مهمة.",
+                "A focused user-management panel for subscriber status and account actions.",
+              )}
+            </p>
+          </div>
 
-      <div className="rounded-2xl border border-sky-200 bg-linear-to-r from-sky-50 to-cyan-50 p-4 sm:p-5 dark:border-sky-900 dark:from-sky-950/40 dark:to-slate-900">
-        <h4 className="text-sm font-semibold text-sky-900 dark:text-sky-200">
-          {t("ملخص التدفق المالي", "Financial flow summary")}
-        </h4>
-        <p className="mt-1 text-xs text-sky-800 dark:text-sky-300">
-          {t(
-            "المستلم = مدفوعات مكتملة داخل النظام. المدفوع = سحوبات PayPal + ShamCash + التسويات اليدوية. أرصدة المحافظ تقديرية (الوارد - الصادر) بحسب العمليات المسجلة.",
-            "Received = completed payments tracked in-system. Paid out = PayPal + ShamCash withdrawals + manual settlements. Wallet balances are estimated as inflow minus outflow based on recorded operations.",
-          )}
-        </p>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-          <div className="rounded-xl bg-white/80 dark:bg-slate-900/70 border border-sky-200 dark:border-slate-700 p-3">
-            <p className="text-slate-500 dark:text-slate-400">
-              {t("المستلم اليوم", "Received today")}
-            </p>
-            <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-              ${overview.receivedAmountToday.toFixed(2)}
-            </p>
-          </div>
-          <div className="rounded-xl bg-white/80 dark:bg-slate-900/70 border border-sky-200 dark:border-slate-700 p-3">
-            <p className="text-slate-500 dark:text-slate-400">
-              {t("المدفوع اليوم", "Paid out today")}
-            </p>
-            <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-              ${overview.paidOutAmountToday.toFixed(2)}
-            </p>
-          </div>
-          <div className="rounded-xl bg-white/80 dark:bg-slate-900/70 border border-sky-200 dark:border-slate-700 p-3">
-            <p className="text-slate-500 dark:text-slate-400">
-              {t("الصافي هذا الشهر", "Net this month")}
-            </p>
-            <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-              $
-              {(
-                overview.receivedAmountMonth - overview.paidOutAmountMonth
-              ).toFixed(2)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            {t("اتجاه الأرباح", "Earnings Trend")}
-          </h3>
-          <p className="text-xs text-slate-500 mt-1 dark:text-slate-400">
-            {t(
-              "مقارنة أرباح المنصة وأرباح البرنامج عبر اليوم، هذا الشهر، والإجمالي.",
-              "Compare platform and program earnings across today, this month, and total.",
-            )}
-          </p>
-          <div className="h-72 mt-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={earningsChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#475569", fontSize: 12 }}
-                />
-                <YAxis tick={{ fill: "#475569", fontSize: 12 }} />
-                <Tooltip />
-                <Bar
-                  dataKey="platform"
-                  radius={[6, 6, 0, 0]}
-                  fill="#0ea5e9"
-                  name={t("أرباح المنصة", "Platform")}
-                />
-                <Bar
-                  dataKey="program"
-                  radius={[6, 6, 0, 0]}
-                  fill="#6366f1"
-                  name={t("أرباح البرنامج", "Program")}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="admin-card-soft rounded-2xl px-4 py-3 text-sm text-zinc-300">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              {t("مراجعة سريعة", "Quick review")}
+            </div>
+            <div className="mt-2 text-zinc-100">
+              {t(
+                "الإحصاءات التالية هي فقط ما يحتاجه المشغل اليومي: عدد المستخدمين، المشتركون المدفوعون، وتوزيع الحالة.",
+                "The metrics below are limited to what an operator actually needs: users, paid subscribers, and status distribution.",
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            {t("توزيع حالة المستخدمين", "Users Status Split")}
-          </h3>
-          <p className="text-xs text-slate-500 mt-1 dark:text-slate-400">
-            {t(
-              "نسبة المفعلين مقابل غير المفعلين والمحظورين.",
-              "Active vs inactive vs blocked users distribution.",
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title={t("عدد المستخدمين الكلي", "Total users")}
+            value={String(data.overview.totalUsers)}
+            hint={t("يشمل جميع الحالات", "Includes all statuses")}
+            accent="sky"
+          />
+          <MetricCard
+            title={t("المشتركون", "Paid subscribers")}
+            value={String(data.overview.paidSubscribers)}
+            hint={t(
+              "المفعلون بالاشتراك المدفوع",
+              "Users with paid active subscriptions",
             )}
-          </p>
-          <div className="h-72 mt-3">
-            <ResponsiveContainer width="100%" height="100%">
+            accent="orange"
+          />
+          <MetricCard
+            title={t("الربح الصافي", "Net profit")}
+            value={formatCurrency(data.overview.netProfitAmount)}
+            hint={t(
+              "محسوب خادمياً = إجمالي المستلم - الالتزامات الحية - 10% تشغيل.",
+              "Server-calculated = total received - live liabilities - 10% reserve.",
+            )}
+            accent="zinc"
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title={t("الالتزامات الحية", "Live liabilities")}
+            value={formatCurrency(data.overview.totalLiveUserLiabilities)}
+            hint={t(
+              "أرصدة المستخدمين الجاهزة + أرباح الإحالة المعلقة.",
+              "Ready user balances + pending referral earnings.",
+            )}
+            accent="zinc"
+          />
+          <MetricCard
+            title={t("المصاريف التشغيلية 10%", "10% operating reserve")}
+            value={formatCurrency(data.overview.operatingReserveAmount)}
+            hint={t(
+              "احتياطي تشغيلي محسوب من إجمالي الدخل المدفوع.",
+              "Operational reserve calculated from gross paid revenue.",
+            )}
+            accent="zinc"
+          />
+          <MetricCard
+            title={t("المتاح لسحب المالك", "Owner withdrawable balance")}
+            value={formatCurrency(data.overview.availableToWithdraw)}
+            hint={t(
+              "بعد خصم سحوبات المالك السابقة من صافي الربح.",
+              "After subtracting previous owner withdrawals from net profit.",
+            )}
+            accent="sky"
+          />
+        </div>
+      </div>
+
+      <div className="w-full grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="admin-card rounded-[28px] p-5 sm:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                {t("حالة المشتركين", "Subscriber status")}
+              </h3>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={t(
+                  "ابحث بالاسم أو البريد",
+                  "Search by name or email",
+                )}
+                className="admin-input rounded-2xl px-4 py-2.5 text-sm outline-none ring-0 transition"
+              />
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as StatusFilter)
+                }
+                className="admin-select rounded-2xl px-4 py-2.5 text-sm outline-none transition"
+              >
+                <option value="ACTIVE">{t("مفعل", "Active")}</option>
+                <option value="INACTIVE">{t("غير مفعل", "Inactive")}</option>
+                <option value="ALL">{t("كل الحالات", "All statuses")}</option>
+                <option value="BLOCKED">{t("محظور", "Blocked")}</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="admin-table-shell mt-5 overflow-x-auto rounded-3xl">
+            <table className="admin-table min-w-225 text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  <th className="px-3 py-3 text-right">
+                    {t("المستخدم", "User")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("الحالة", "Status")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("الاشتراك", "Subscription")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("الأرباح", "Profits")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("الإحالات", "Referrals")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("التفاصيل", "Details")}
+                  </th>
+                  <th className="px-3 py-3 text-right">
+                    {t("الإجراء", "Action")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-1 py-4 text-center dark:text-slate-100 text-slate-500"
+                    >
+                      {t("جاري تحميل المستخدمين...", "Loading users...")}
+                    </td>
+                  </tr>
+                ) : data.users.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-1 py-4 text-center text-slate-500"
+                    >
+                      {t("لا توجد نتائج مطابقة", "No matching users found")}
+                    </td>
+                  </tr>
+                ) : (
+                  data.users.map((user) => {
+                    const statusLabel = user.isDeleted
+                      ? t("محظور", "Blocked")
+                      : user.isActive
+                        ? t("مفعل", "Active")
+                        : t("غير مفعل", "Inactive");
+
+                    const statusClassName = user.isDeleted
+                      ? "bg-rose-500/15 text-rose-600 border border-rose-500/20"
+                      : user.isActive
+                        ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
+                        : "bg-amber-500/15 text-amber-600 border border-amber-500/20";
+
+                    return (
+                      <tr key={user.id} className="align-top">
+                        <td className="px-3 py-4">
+                          <div className="font-semibold text-slate-100">
+                            {user.name}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {user.email}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {user.isOwner ? (
+                              <span className="rounded-full border border-fuchsia-500/25 bg-fuchsia-500/15 px-2.5 py-1 text-[11px] font-semibold text-fuchsia-300">
+                                {t("مالك التطبيق", "Application owner")}
+                              </span>
+                            ) : null}
+                            {user.isAdmin && !user.isOwner ? (
+                              <span className="rounded-full border border-sky-500/25 bg-sky-500/15 px-2.5 py-1 text-[11px] font-semibold text-sky-300">
+                                {t("مشرف", "Admin")}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">
+                            {t("تاريخ الانضمام", "Joined")}:{" "}
+                            {formatDate(user.createdAt)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClassName}`}
+                          >
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-4 text-slate-500">
+                          <div>
+                            {t("ينتهي في", "Expires")}:{" "}
+                            {formatDate(user.activeUntil)}
+                          </div>
+                          <div className="mt-1">
+                            {t("طريقة الدفع", "Payment method")}:{" "}
+                            <span className="font-semibold text-sky-500">
+                              {paymentMethodLabel(
+                                user.subscriptionPaymentMethod,
+                                Boolean(user.activeUntil),
+                              )}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {t("مرات الدفع", "Recharge count")}:{" "}
+                            {user.rechargeCount}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {t("آخر دفعة", "Last payment")}:{" "}
+                            {user.latestPaymentAmount !== null
+                              ? `${formatCurrency(user.latestPaymentAmount)} - ${formatDate(user.latestPaymentCreatedAt)}`
+                              : t("غير موثقة", "Untracked")}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {user.repeatedSubscription
+                              ? t("مشترك متكرر", "Repeated subscriber")
+                              : t(
+                                  "أول اشتراك أو غير متكرر",
+                                  "Single or first subscription",
+                                )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4">
+                          <div className="font-semibold dark:text-slate-100 text-emerald-500">
+                            {t("الجاهز", "Ready")}:{" "}
+                            {formatCurrency(user.balance)}
+                          </div>
+                          <div className="mt-1 dark:text-slate-100 text-amber-500">
+                            {t("المعلّق", "Pending")}:{" "}
+                            {formatCurrency(user.pendingReferralEarnings)}
+                          </div>
+                          <div className="mt-1 text-xs dark:text-slate-100 text-sky-600">
+                            {t("الإجمالي", "Total")}:{" "}
+                            {formatCurrency(user.totalPotentialBalance)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4 dark:text-slate-100 text-slate-500">
+                          <div>
+                            {t("المدعوون", "Invited")}: {user.invitedCount}
+                          </div>
+                          <div className="mt-1 text-xs dark:text-slate-100 text-emerald-500">
+                            {t("المفعلون", "Active")}: {user.activeInvitedCount}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4 dark:text-slate-100 text-sky-400">
+                          <div>
+                            {t("إجمالي المدفوع", "Total charged")}:{" "}
+                            {formatCurrency(user.totalCharged)}
+                          </div>
+                          <div className="mt-1 break-all text-xs dark:text-slate-100 text-zinc-500">
+                            {user.id}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4">
+                          <div className="flex min-w-40 flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleNotifyUser(user)}
+                              disabled={actionLoadingId === user.id}
+                              className="admin-btn-secondary rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {t("إشعار", "Notify")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRewardUser(user)}
+                              disabled={actionLoadingId === user.id}
+                              className="admin-btn-success rounded-xl px-3 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {t("مكافأة", "Reward")}
+                            </button>
+                            {isOwnerViewer && !user.isOwner ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAdminRoleToggle(user)}
+                                disabled={actionLoadingId === user.id}
+                                className="rounded-xl border border-sky-500/25 bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300 transition disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {user.isAdmin
+                                  ? t("سحب الإشراف", "Revoke admin")
+                                  : t("تعيين مشرف", "Make admin")}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => handleUserAction(user)}
+                              disabled={
+                                actionLoadingId === user.id || user.isOwner
+                              }
+                              className={`rounded-xl px-3 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                user.isDeleted
+                                  ? "admin-btn-success"
+                                  : "admin-btn-danger"
+                              }`}
+                            >
+                              {actionLoadingId === user.id
+                                ? t("جارٍ التنفيذ...", "Processing...")
+                                : user.isDeleted
+                                  ? t("رفع الحظر", "Unblock")
+                                  : t("حظر", "Block")}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-zinc-500">
+              {t("عدد النتائج", "Results")}: {data.pagination.totalItems}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => loadDashboard(page - 1)}
+                className="admin-btn-secondary rounded-lg px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t("السابق", "Previous")}
+              </button>
+              <span className="text-sm text-zinc-400">
+                {page} / {data.pagination.totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= data.pagination.totalPages || loading}
+                onClick={() => loadDashboard(page + 1)}
+                className="admin-btn-secondary rounded-lg px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t("التالي", "Next")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-card rounded-[28px] p-5 sm:p-6">
+          <h3 className="text-lg font-bold text-white">
+            {t("توزيع حالة المستخدمين", "User status distribution")}
+          </h3>
+
+          <div className="mt-5 h-72 min-w-0">
+            <ResponsiveContainer width="100%" height={288} minWidth={0}>
               <PieChart>
                 <Pie
-                  data={usersStatusChartData}
+                  data={chartData}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={52}
-                  outerRadius={84}
-                  paddingAngle={3}
+                  innerRadius={58}
+                  outerRadius={90}
+                  paddingAngle={4}
                 >
-                  {usersStatusChartData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
+                  {chartData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index] || COLORS[0]} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-1 gap-1 text-xs text-slate-600 dark:text-slate-300">
-            {usersStatusChartData.map((entry) => (
+
+          <div className="space-y-2">
+            {chartData.map((entry, index) => (
               <div
-                key={`legend-${entry.name}`}
-                className="flex items-center justify-between"
+                key={entry.name}
+                className="admin-card-soft flex items-center justify-between rounded-xl px-3 py-2"
               >
-                <span className="inline-flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm dark:text-slate-100 text-slate-500">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: entry.color }}
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: COLORS[index] || COLORS[0] }}
                   />
                   {entry.name}
-                </span>
-                <span className="font-semibold">{entry.value}</span>
+                </div>
+                <div className="text-sm font-semibold dark:text-slate-100 text-slate-500">
+                  {entry.value}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      <div className="rounded-2xl border border-emerald-200 bg-linear-to-r from-emerald-50 to-cyan-50 p-4 sm:p-5 dark:border-emerald-900 dark:from-emerald-950/40 dark:to-slate-900">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-              {t(
-                "مؤشرات الربح الشهري والتحفيز",
-                "Monthly profit & incentive indicators",
-              )}
-            </h4>
-            <p className="text-xs text-emerald-800 mt-1 dark:text-emerald-300">
-              {t(
-                'المستخدمون المصنفون كـ "ربح شهري شبه ثابت" لديهم نمط اشتراك متكرر + دعوات مفعلة، ويمكن تحفيز المرشحين القريبين من انتهاء الاشتراك بمكافآت بسيطة لرفع معدل التجديد.',
-                "Users marked as monthly-profit potential usually have repeated subscriptions + active invites. Near-expiry users can be encouraged with small rewards to improve renewal rate.",
-              )}
-            </p>
-          </div>
-          <span className="text-xs rounded-full bg-white border border-emerald-300 px-2 py-1 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-700 dark:text-emerald-200">
-            {t("إجمالي الأرصدة", "Total balances")}: $
-            {totalRewardsEstimate.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="mt-3 text-xs text-emerald-900 dark:text-emerald-200">
-          {t("مرشحو التحفيز الحاليون", "Current incentive candidates")}:{" "}
-          {renewalCandidates.length}
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
-          <label className="text-xs text-emerald-900 dark:text-emerald-200">
-            {t("حد الأقل ربحًا", "Low-earnings threshold")}
-            <input
-              type="number"
-              min={0}
-              value={rewardSettings.lowEarningsThreshold}
-              onChange={(event) =>
-                setRewardSettings((prev) => ({
-                  ...prev,
-                  lowEarningsThreshold: Number(event.target.value || 0),
-                }))
-              }
-              className="mt-1 w-full border border-emerald-300 rounded px-2 py-1 bg-white dark:bg-slate-900 dark:border-emerald-700 dark:text-slate-100"
-            />
-          </label>
-
-          <label className="text-xs text-emerald-900 dark:text-emerald-200">
-            {t("عدد المرشحين", "Candidate count")}
-            <input
-              type="number"
-              min={1}
-              value={rewardSettings.candidateCount}
-              onChange={(event) =>
-                setRewardSettings((prev) => ({
-                  ...prev,
-                  candidateCount: Number(event.target.value || 1),
-                }))
-              }
-              className="mt-1 w-full border border-emerald-300 rounded px-2 py-1 bg-white dark:bg-slate-900 dark:border-emerald-700 dark:text-slate-100"
-            />
-          </label>
-
-          <label className="text-xs text-emerald-900 dark:text-emerald-200">
-            {t("أقل مكافأة", "Min reward")}
-            <input
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={rewardSettings.minReward}
-              onChange={(event) =>
-                setRewardSettings((prev) => ({
-                  ...prev,
-                  minReward: Number(event.target.value || 0),
-                }))
-              }
-              className="mt-1 w-full border border-emerald-300 rounded px-2 py-1 bg-white dark:bg-slate-900 dark:border-emerald-700 dark:text-slate-100"
-            />
-          </label>
-
-          <label className="text-xs text-emerald-900 dark:text-emerald-200">
-            {t("أعلى مكافأة", "Max reward")}
-            <input
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={rewardSettings.maxReward}
-              onChange={(event) =>
-                setRewardSettings((prev) => ({
-                  ...prev,
-                  maxReward: Number(event.target.value || 0),
-                }))
-              }
-              className="mt-1 w-full border border-emerald-300 rounded px-2 py-1 bg-white dark:bg-slate-900 dark:border-emerald-700 dark:text-slate-100"
-            />
-          </label>
-        </div>
-
-        <div className="mt-2 text-[11px] text-emerald-800 dark:text-emerald-300">
-          {t("الحد الفعلي المطبق حاليًا", "Current applied threshold")}: $
-          {overview.lowEarningsThreshold.toFixed(2)}
-        </div>
-
-        <button
-          onClick={handleRandomLowReward}
-          disabled={actionLoadingId === "__batch__"}
-          className="mt-3 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-white text-xs px-4 py-2.5 disabled:opacity-50 hover:from-emerald-700 hover:to-teal-700 shadow-sm"
-        >
-          {t("مكافأة عشوائية للأقل ربحًا", "Random reward for low earners")}
-        </button>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("بحث بالاسم أو البريد", "Search by name or email")}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          />
-
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(
-                event.target.value as "ALL" | "ACTIVE" | "INACTIVE" | "BLOCKED",
-              )
-            }
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          >
-            <option value="ALL">{t("كل الحالات", "All statuses")}</option>
-            <option value="ACTIVE">{t("مفعل", "Active")}</option>
-            <option value="INACTIVE">{t("غير مفعل", "Inactive")}</option>
-            <option value="BLOCKED">{t("محظور", "Blocked")}</option>
-          </select>
-
-          <select
-            value={repeatFilter}
-            onChange={(event) =>
-              setRepeatFilter(event.target.value as "ALL" | "YES" | "NO")
-            }
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          >
-            <option value="ALL">
-              {t("الكل (تكرار الاشتراك)", "All (subscription repeat)")}
-            </option>
-            <option value="YES">{t("كرر الاشتراك", "Repeated")}</option>
-            <option value="NO">{t("لم يكرر الاشتراك", "Not repeated")}</option>
-          </select>
-
-          <button
-            onClick={exportCsv}
-            className="rounded-xl bg-linear-to-r from-slate-800 to-indigo-700 text-white text-sm px-3 py-2.5 dark:from-slate-700 dark:to-indigo-600"
-          >
-            {t("تصدير CSV", "Export CSV")}
-          </button>
-        </div>
-
-        <p className="text-xs text-slate-500 mt-2 dark:text-slate-400">
-          {t("النتائج المعروضة", "Displayed results")}: {filteredUsers.length}
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <table className="w-full min-w-275 text-sm">
-          <thead className="bg-linear-to-r from-slate-50 to-indigo-50 text-slate-700 dark:from-slate-800 dark:to-slate-800 dark:text-slate-200">
-            <tr>
-              <ThSortable
-                sortable
-                sortKey="name"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("المستخدم", "User")}
-              </ThSortable>
-              <ThSortable
-                sortable
-                sortKey="status"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("الحالة", "Status")}
-              </ThSortable>
-              <ThSortable
-                sortable
-                sortKey="balance"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("الأرباح/الرصيد", "Earnings/Balance")}
-              </ThSortable>
-              <ThSortable
-                sortable
-                sortKey="activeInvitedCount"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("دعوات مفعلة", "Active invites")}
-              </ThSortable>
-              <ThSortable
-                sortable
-                sortKey="rechargeCount"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("كرر الاشتراك", "Repeated subscription")}
-              </ThSortable>
-              <ThSortable
-                sortable
-                sortKey="activeForDays"
-                activeSort={sortBy}
-                direction={sortDirection}
-                onSort={handleSort}
-              >
-                {t("مفعل منذ", "Active since")}
-              </ThSortable>
-              <Th>{t("الإجراءات", "Actions")}</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedUsers.map((user) => {
-              const activeSince = user.activatedSince
-                ? new Date(user.activatedSince).toLocaleDateString(
-                    isArabic ? "ar" : "en-US",
-                  )
-                : "—";
-
-              return (
-                <tr
-                  key={user.id}
-                  className="border-t border-slate-100 align-top dark:border-slate-800"
-                >
-                  <Td>
-                    <div className="font-semibold text-slate-800 dark:text-slate-100">
-                      {user.name}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {user.email}
-                    </div>
-                  </Td>
-                  <Td>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        user.isDeleted
-                          ? "bg-red-100 text-red-700"
-                          : user.isActive
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {user.isDeleted
-                        ? t("محظور", "Blocked")
-                        : user.isActive
-                          ? t("مفعل", "Active")
-                          : t("غير مفعل", "Inactive")}
-                    </span>
-                  </Td>
-                  <Td>
-                    <div>
-                      {t("الرصيد", "Balance")}: ${user.balance.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {t("أرباح إحالة معلقة", "Pending referral earnings")}: $
-                      {user.pendingReferralEarnings.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {t("إجمالي الشحن", "Total recharged")}: $
-                      {user.totalCharged.toFixed(2)}
-                    </div>
-                    {user.monthlyProfitPotential && (
-                      <div className="text-[11px] mt-1 inline-block px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                        {t("ربح شهري شبه ثابت", "Monthly-profit potential")}
-                      </div>
-                    )}
-                    {user.renewalIncentiveCandidate && (
-                      <div className="text-[11px] mt-1 inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                        {t("يحتاج تحفيز تجديد", "Needs renewal incentive")}
-                      </div>
-                    )}
-                    {user.lowEarningsCandidate && (
-                      <div className="text-[11px] mt-1 inline-block px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                        {t("من الأقل ربحًا", "Low-earner candidate")}
-                      </div>
-                    )}
-                  </Td>
-                  <Td>
-                    <div>
-                      {user.activeInvitedCount} {t("مفعل", "active")}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {t("من أصل", "Out of")} {user.invitedCount}
-                    </div>
-                  </Td>
-                  <Td>
-                    {user.repeatedSubscription ? (
-                      <span className="text-emerald-700 font-semibold">
-                        {t("نعم", "Yes")}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 dark:text-slate-400">
-                        {t("لا", "No")}
-                      </span>
-                    )}
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {user.rechargeCount} {t("مرة", "times")}
-                    </div>
-                  </Td>
-                  <Td>
-                    <div>{activeSince}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {user.activeForDays} {t("يوم", "days")}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {t("متبقي", "Remaining")}:{" "}
-                      {user.daysToExpiry === null
-                        ? "—"
-                        : `${user.daysToExpiry} ${t("يوم", "days")}`}
-                    </div>
-                  </Td>
-                  <Td>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => handleNotify(user.id)}
-                        disabled={actionLoadingId === user.id}
-                        className="px-2.5 py-1.5 rounded-lg bg-sky-600 text-white text-xs disabled:opacity-50"
-                      >
-                        {t("تنبيه", "Notify")}
-                      </button>
-                      <button
-                        onClick={() => handleReward(user.id)}
-                        disabled={actionLoadingId === user.id || user.isDeleted}
-                        className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs disabled:opacity-50"
-                      >
-                        {t("مكافأة", "Reward")}
-                      </button>
-                      <button
-                        onClick={() => handleRenewalReward(user.id)}
-                        disabled={
-                          actionLoadingId === user.id ||
-                          user.isDeleted ||
-                          !user.renewalIncentiveCandidate
-                        }
-                        className="px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs disabled:opacity-50"
-                      >
-                        {t("مكافأة تجديد", "Renewal reward")}
-                      </button>
-                      <button
-                        onClick={() => handleBlock(user.id)}
-                        disabled={actionLoadingId === user.id || user.isDeleted}
-                        className="px-2.5 py-1.5 rounded-lg bg-rose-600 text-white text-xs disabled:opacity-50"
-                      >
-                        {t("حظر", "Block")}
-                      </button>
-                    </div>
-                  </Td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </section>
   );
 };
 
-const KpiCard = ({
+const MetricCard = ({
   title,
   value,
+  hint,
+  accent,
 }: {
   title: string;
-  value: string | number;
+  value: string;
+  hint: string;
+  accent: "sky" | "orange" | "zinc";
 }) => (
-  <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:to-slate-900">
-    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+  <div
+    className={`rounded-[26px] p-4 sm:p-5 ${
+      accent === "orange"
+        ? "bg-linear-to-br from-orange-600 to-orange-800 text-white shadow-[0_18px_36px_rgba(249,115,22,0.25)]"
+        : accent === "sky"
+          ? "admin-stat-card"
+          : "admin-card-soft"
+    }`}
+  >
+    <p
+      className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
+        accent === "orange" ? "text-orange-100/70" : "text-zinc-500"
+      }`}
+    >
       {title}
     </p>
-    <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+    <p
+      className={`mt-3 text-3xl font-black tracking-tight ${
+        accent === "zinc" ? "text-zinc-100" : "text-white"
+      }`}
+    >
       {value}
     </p>
+    <p
+      className={`mt-3 text-xs leading-5 ${
+        accent === "orange" ? "text-orange-100/80" : "text-zinc-400"
+      }`}
+    >
+      {hint}
+    </p>
   </div>
-);
-
-const Th = ({ children }: { children: React.ReactNode }) => (
-  <th className="text-right px-3 py-3 font-semibold">{children}</th>
-);
-
-const SortIcon = ({
-  isActive,
-  direction,
-}: {
-  isActive: boolean;
-  direction: SortDirection;
-}) => {
-  if (!isActive)
-    return <span className="text-slate-300 dark:text-slate-500">↕</span>;
-  return (
-    <span className="text-slate-600 dark:text-slate-300">
-      {direction === "asc" ? "↑" : "↓"}
-    </span>
-  );
-};
-
-const ThSortable = ({
-  children,
-  sortable,
-  sortKey,
-  activeSort,
-  direction,
-  onSort,
-}: {
-  children: React.ReactNode;
-  sortable?: boolean;
-  sortKey?: SortKey;
-  activeSort?: SortKey;
-  direction?: SortDirection;
-  onSort?: (key: SortKey) => void;
-}) => {
-  if (!sortable || !sortKey || !onSort || !activeSort || !direction) {
-    return <th className="text-right px-3 py-3 font-semibold">{children}</th>;
-  }
-
-  const isActive = activeSort === sortKey;
-
-  return (
-    <th className="text-right px-3 py-3 font-semibold">
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 hover:text-slate-900"
-        onClick={() => onSort(sortKey)}
-      >
-        {children}
-        <SortIcon isActive={isActive} direction={direction} />
-      </button>
-    </th>
-  );
-};
-
-const Td = ({ children }: { children: React.ReactNode }) => (
-  <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{children}</td>
 );
 
 export default AdminAnalyticsDashboard;

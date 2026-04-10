@@ -1,4 +1,4 @@
-export const APP_NAME_AR = "دليلك الآمن";
-export const APP_NAME_EN = "Your Safe Guide";
-export const ASSISTANT_NAME_AR = "أمين";
-export const ASSISTANT_NAME_EN = "Ameen";
+export const APP_NAME_AR = "مشهور";
+export const APP_NAME_EN = "Mashhoor";
+export const ASSISTANT_NAME_AR = "شاهر";
+export const ASSISTANT_NAME_EN = "Shaher";

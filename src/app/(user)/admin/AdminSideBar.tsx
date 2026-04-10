@@ -1,20 +1,24 @@
 "use client";
 
 import { Dispatch, SetStateAction } from "react";
-import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import SideBarBtn from "./SideBarBtn";
-import { MdOutlineMenu, MdClose } from "react-icons/md";
+import {
+  MdClose,
+  MdKeyboardDoubleArrowLeft,
+  MdKeyboardDoubleArrowRight,
+} from "react-icons/md";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 export type AdminPageKey =
   | "analytics"
+  | "image-moderation"
   | "financial-report"
-  | "shamcash-payout-jobs"
+  | "shamcash"
   | "add-category"
   | "activation-codes"
   | "payment-settings"
-  | "support-messages"
-  | "block-user";
+  | "purchase-requests"
+  | "support-messages";
 
 interface AdminSideBarProps {
   setPage: Dispatch<SetStateAction<AdminPageKey>>;
@@ -23,6 +27,8 @@ interface AdminSideBarProps {
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   isCollapsed: boolean;
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
+  onPaymentSettingsClick?: () => void;
+  canAccessPaymentSettings?: boolean;
 }
 
 const AdminSideBar = ({
@@ -32,42 +38,49 @@ const AdminSideBar = ({
   setIsOpen,
   isCollapsed,
   setIsCollapsed,
+  onPaymentSettingsClick,
+  canAccessPaymentSettings = false,
 }: AdminSideBarProps) => {
-  const { isArabic } = useAppPreferences();
+  const { isArabic, theme } = useAppPreferences();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const toggleSidebar = () => setIsOpen((prev) => !prev);
   const toggleDesktopCollapse = () => setIsCollapsed((prev) => !prev);
+  const isLight = theme === "light";
 
   return (
     <>
-      {/* زر القائمة للجوال */}
+      {/* زر إغلاق الشريط الجانبي على الجوال */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed top-4 left-4 z-50 bg-linear-to-r from-indigo-600 to-cyan-600 text-white p-2.5 rounded-xl shadow-lg"
+        className={`fixed top-4 left-4 z-50 rounded-2xl border p-2.5 shadow-2xl backdrop-blur md:hidden ${
+          isOpen ? "block" : "hidden"
+        } ${
+          isLight
+            ? "border-slate-200 bg-white/90 text-slate-900"
+            : "border-zinc-700 bg-zinc-950/90 text-zinc-100"
+        }`}
       >
-        {isOpen ? <MdClose size={22} /> : <MdOutlineMenu size={22} />}
+        <MdClose size={22} />
       </button>
 
       {/* الشريط الجانبي */}
       <aside
-        className={`fixed top-0 left-0 h-screen bg-linear-to-b from-indigo-700 via-indigo-800 to-cyan-800 text-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 dark:border-r dark:border-slate-800 flex flex-col items-center overflow-y-auto transition-all duration-300 shadow-xl z-40 w-64 ${
-          isCollapsed ? "md:w-20" : "md:w-64"
-        }
-        ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        className={`fixed right-0 top-0 z-40 flex h-screen w-72 flex-col overflow-y-auto border-l backdrop-blur-xl transition-all duration-300 ${
+          isLight
+            ? "border-slate-200/90 bg-white/96 text-slate-900 shadow-[0_20px_60px_rgba(148,163,184,0.24)]"
+            : "border-zinc-800/90 bg-zinc-950/96 text-white shadow-[0_20px_60px_rgba(0,0,0,0.55)]"
+        } ${isCollapsed ? "md:w-24" : "md:w-72"}
+        ${isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}
       `}
       >
-        {/* شعار اللوحة */}
-        <div className="w-full bg-white text-indigo-700 dark:bg-slate-800 dark:text-cyan-300 font-bold flex items-center justify-center gap-3 py-4 text-lg shadow-sm px-3">
-          <DynamicIcon iconName="MdOutlineDashboard" size={20} />
-          <span className={`${isCollapsed ? "md:hidden" : "hidden md:inline"}`}>
-            {t("لوحة التحكم", "Admin Dashboard")}
-          </span>
-        </div>
-
         <button
           type="button"
           onClick={toggleDesktopCollapse}
-          className="hidden md:inline-flex mt-3 h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className={`mx-auto mt-3 hidden h-9 w-9 items-center justify-center rounded-xl border transition-colors md:inline-flex ${
+            isLight
+              ? "border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+          }`}
           title={
             isCollapsed
               ? t("توسيع القائمة", "Expand sidebar")
@@ -79,19 +92,44 @@ const AdminSideBar = ({
               : t("طي القائمة", "Collapse sidebar")
           }
         >
-          <span className="text-base leading-none">
-            {isCollapsed ? ">>" : "<<"}
-          </span>
+          {isCollapsed ? (
+            <MdKeyboardDoubleArrowLeft size={18} />
+          ) : (
+            <MdKeyboardDoubleArrowRight size={18} />
+          )}
         </button>
 
         {/* الروابط */}
-        <nav className="flex flex-col mt-6 gap-2 px-3 overflow-hidden transition-all duration-300 w-full">
+        <div className={`w-full px-4 pt-6 ${isCollapsed ? "md:px-3" : ""}`}>
+          <p
+            className={`${isCollapsed ? "hidden" : "block"} px-3 text-[11px] font-bold uppercase tracking-[0.22em] ${
+              isLight ? "text-slate-500" : "text-zinc-500"
+            }`}
+          >
+            {t("أقسام التشغيل", "Operations")}
+          </p>
+        </div>
+
+        <nav
+          className={`mt-3 flex w-full flex-col gap-2 overflow-hidden px-3 transition-all duration-300 ${
+            isCollapsed ? "md:items-center" : ""
+          }`}
+        >
           <SideBarBtn
             setPage={setPage}
             page={page}
             pageKey="analytics"
-            label={t("لوحة الإحصاءات", "Analytics")}
-            iconName="MdOutlineInsights"
+            label={t("إدارة المستخدمين", "User Management")}
+            iconName="MdManageAccounts"
+            setIsOpen={setIsOpen}
+            collapsed={isCollapsed}
+          />
+          <SideBarBtn
+            setPage={setPage}
+            page={page}
+            pageKey="image-moderation"
+            label={t("مراجعة الصور", "Image Moderation")}
+            iconName="MdOutlinePhotoLibrary"
             setIsOpen={setIsOpen}
             collapsed={isCollapsed}
           />
@@ -107,9 +145,9 @@ const AdminSideBar = ({
           <SideBarBtn
             setPage={setPage}
             page={page}
-            pageKey="shamcash-payout-jobs"
-            label={t("متابعة سحوبات شام كاش", "ShamCash Payout Queue")}
-            iconName="MdOutlinePendingActions"
+            pageKey="shamcash"
+            label={t("شام كاش", "ShamCash")}
+            iconName="MdQrCodeScanner"
             setIsOpen={setIsOpen}
             collapsed={isCollapsed}
           />
@@ -140,41 +178,28 @@ const AdminSideBar = ({
             setIsOpen={setIsOpen}
             collapsed={isCollapsed}
           />
+          {canAccessPaymentSettings ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="payment-settings"
+              label={t("إعدادات الدفع", "Payment Settings")}
+              iconName="MdOutlinePayments"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+              onClick={onPaymentSettingsClick}
+            />
+          ) : null}
           <SideBarBtn
             setPage={setPage}
             page={page}
-            pageKey="payment-settings"
-            label={t("إعدادات الدفع", "Payment Settings")}
-            iconName="MdOutlinePayments"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          {/* <SideBarBtn
-            setPage={setPage}
-            page={page}
-            title="طلبات الشراء"
+            pageKey="purchase-requests"
+            label={t("طلبات الشراء", "Purchase Requests")}
             iconName="BiPurchaseTagAlt"
-            setIsOpen={setIsOpen}
-          /> */}
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="block-user"
-            label={t("حظر مستخدم", "Block User")}
-            iconName="FaUserAltSlash"
             setIsOpen={setIsOpen}
             collapsed={isCollapsed}
           />
         </nav>
-
-        {/* تذييل الشريط */}
-        <div className="mt-auto mb-4 text-xs text-center text-gray-200 dark:text-slate-400 transition-opacity duration-300 px-2">
-          <p>
-            {isCollapsed
-              ? `© ${new Date().getFullYear()}`
-              : `© ${new Date().getFullYear()} ${t("لوحة التحكم", "Admin Panel")}`}
-          </p>
-        </div>
       </aside>
 
       {/* التراك الخلفي للجوال فقط */}

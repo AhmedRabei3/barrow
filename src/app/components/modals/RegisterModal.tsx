@@ -67,6 +67,7 @@ const RegisterModal = () => {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       referredBy: registerModal.referredBy || undefined,
     },
   });
@@ -83,6 +84,7 @@ const RegisterModal = () => {
         name: "",
         email: "",
         password: "",
+        confirmPassword: "",
         referredBy: resolvedReferrer,
       });
       return;
@@ -96,6 +98,15 @@ const RegisterModal = () => {
       setIsLoading(true);
 
       const cleanData = { ...data };
+      if (cleanData.password !== cleanData.confirmPassword) {
+        toast.error(
+          isArabic ? "تأكيد كلمة المرور غير مطابق" : "Passwords do not match",
+        );
+        return;
+      }
+
+      delete cleanData.confirmPassword;
+
       if (!isReferralId(cleanData.referredBy)) {
         delete cleanData.referredBy;
         persistReferrer(undefined);
@@ -149,6 +160,9 @@ const RegisterModal = () => {
         register={register}
         errors={errors}
         required
+        iconName="FaRegUser"
+        inputDir={isArabic ? "rtl" : "ltr"}
+        textAlign={isArabic ? "right" : "left"}
       />
       <Input
         id="email"
@@ -157,6 +171,10 @@ const RegisterModal = () => {
         register={register}
         errors={errors}
         required
+        type="email"
+        iconName="MdOutlineAlternateEmail"
+        inputDir="ltr"
+        textAlign="left"
       />
       <Input
         id="password"
@@ -166,6 +184,30 @@ const RegisterModal = () => {
         register={register}
         errors={errors}
         required
+        iconName="MdOutlineLock"
+        inputDir="ltr"
+        textAlign="left"
+        allowPasswordToggle
+      />
+      <Input
+        id="confirmPassword"
+        label={isArabic ? "تأكيد كلمة المرور" : "Confirm password"}
+        type="password"
+        disabled={isLoading}
+        register={register}
+        errors={errors}
+        required
+        iconName="MdOutlineVerifiedUser"
+        inputDir="ltr"
+        textAlign="left"
+        allowPasswordToggle
+        registerOptions={{
+          validate: (value, formValues) =>
+            value === formValues.password ||
+            (isArabic
+              ? "تأكيد كلمة المرور غير مطابق"
+              : "Passwords do not match"),
+        }}
       />
       <input type="hidden" {...register("referredBy")} />
     </div>
@@ -175,7 +217,7 @@ const RegisterModal = () => {
     <div className="flex flex-col gap-2 mt-3 ">
       <hr />
 
-      <div className="text-slate-600 dark:text-slate-300 text-center mt-1 font-light">
+      <div className="text-slate-600 dark:text-slate-200 text-center mt-1 font-light">
         <div className="justify-center flex flex-row -items-center gap-2">
           {isArabic ? "لديك حساب بالفعل؟" : "Already have an account?"}{" "}
           <div

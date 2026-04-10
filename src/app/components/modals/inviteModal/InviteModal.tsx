@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import useInviteModal from "@/app/hooks/useInviteHook";
 import "./InviteModal.css";
@@ -14,18 +14,96 @@ const InviteModal = () => {
   const { isArabic } = useAppPreferences();
 
   const { isOpen, onClose } = useInviteModal();
-  const inviteLink = `${window.location.origin}?ref=${user?.id}`;
+  const [origin, setOrigin] = useState("");
+  const [isMobileShare, setIsMobileShare] = useState(false);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    const checkMobileShare = () => {
+      const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
+      setIsMobileShare(Boolean(isMobileViewport && navigator.share));
+    };
+
+    checkMobileShare();
+    window.addEventListener("resize", checkMobileShare);
+
+    return () => {
+      window.removeEventListener("resize", checkMobileShare);
+    };
+  }, []);
+
+  const inviteLink = useMemo(() => {
+    if (!origin || !user?.id) {
+      return "";
+    }
+
+    return `${origin}?ref=${user.id}`;
+  }, [origin, user?.id]);
 
   const [message, setMessage] = useState(
     isArabic
-      ? "اشتر , بع , استأجر , أجر عبر هذا الموقع الرائع ولا تدع أحداً يستغلك بالعمولة المرتفعة , استخدم رابط الدعوة للحصول على خصم خاص!"
-      : "Buy, sell, rent, and list items on this great platform. Use my invite link to get a special discount!",
+      ? "أعلن عن منتجاتك وخدماتك واكسب المال أيضاً عبر هذا الموقع ، إعلانك يصل إلى الكثير من الأشخاص حول العالم ، باستخدامك رابط الدعوة الخاص بي ستحصل على حسم 10% من قيمة الاشتراك "
+      : "Promote your products and services and earn money through this platform, your advertisement reaches people around the world and by using my invite link you will get a 10% discount on the subscription price",
   );
 
+  // لجعل textarea يتمدد تلقائياً مع النص
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
+    }
+  }, [message]);
+
+  const shareText = useMemo(() => {
+    if (!inviteLink) {
+      return message;
+    }
+
+    return `${message}\n\n${inviteLink}`;
+  }, [inviteLink, message]);
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(`${message}\n${inviteLink}`);
+    if (!inviteLink) {
+      toast.error(
+        isArabic ? "رابط الدعوة غير جاهز بعد" : "Invite link is not ready yet",
+      );
+      return;
+    }
+
+    await navigator.clipboard.writeText(inviteLink);
     toast.success(
       isArabic ? "تم نسخ رابط الدعوة بنجاح" : "Invite link copied successfully",
+    );
+  };
+
+  const handleSendInvitation = async () => {
+    if (!inviteLink) {
+      toast.error(
+        isArabic ? "رابط الدعوة غير جاهز بعد" : "Invite link is not ready yet",
+      );
+      return;
+    }
+
+    if (isMobileShare && navigator.share) {
+      try {
+        await navigator.share({
+          title: isArabic ? "دعوة للانضمام" : "Invitation to join",
+          text: message,
+          url: inviteLink,
+        });
+      } catch {
+        // ignore user-cancelled native share
+      }
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    toast.success(
+      isArabic
+        ? "تم نسخ رسالة الدعوة مع الرابط"
+        : "Invitation message and link copied",
     );
   };
 
@@ -39,7 +117,7 @@ const InviteModal = () => {
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="invite-modal"
+            className="invite-modal dark:bg-gray-800 dark:text-slate-200"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
@@ -49,36 +127,49 @@ const InviteModal = () => {
               <FaTimes />
             </button>
             <h2 className="invite-title">
-              {isArabic ? "🎁 دعوة الأصدقاء" : "🎁 Invite Friends"}
+              {isArabic ? " دعوة الآخرين" : "Invite new person"}
             </h2>
             <p className="invite-subtitle">
               {isArabic
-                ? "شارك رابطك الخاص لدعوة أصدقائك للحصول على مزايا إضافية!"
-                : "Share your personal link to invite friends and earn extra benefits!"}
+                ? "أدع الآخرين للاشتراك وشجعهم على التفعيل ، واكسب مكافآت مالية"
+                : "Invite others to subscribe and encourage them to activate their account, and earn financial rewards"}
             </p>
 
             <textarea
               className="invite-textarea"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              ref={textareaRef}
+              rows={1}
             />
 
-            <div className="invite-link">
-              <span>{inviteLink}</span>
-              <button onClick={handleCopy}>
+            <div
+              className="
+                  invite-link dark:bg-gray-800
+                dark:text-slate-200
+                "
+            >
+              <a
+                href={inviteLink}
+                target="_blank"
+                rel="noreferrer"
+                className="invite-link-anchor"
+              >
+                {inviteLink}
+              </a>
+              <button onClick={handleCopy} type="button">
                 <FaRegCopy />
               </button>
             </div>
 
-            <button
-              className="invite-send-btn"
-              onClick={() =>
-                toast.success(
-                  isArabic ? "تم إرسال الدعوة 💌" : "Invitation sent 💌",
-                )
-              }
-            >
-              {isArabic ? "إرسال الدعوة" : "Send invitation"}
+            <button className="invite-send-btn" onClick={handleSendInvitation}>
+              {isMobileShare
+                ? isArabic
+                  ? "مشاركة الدعوة"
+                  : "Share invitation"
+                : isArabic
+                  ? "نسخ رسالة الدعوة"
+                  : "Copy invitation message"}
             </button>
           </motion.div>
         </motion.div>

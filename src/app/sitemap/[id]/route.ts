@@ -1,16 +1,16 @@
 import { prisma } from "@/lib/prisma";
+import { Availability } from "@prisma/client";
 import {
   getSitemapShardMeta,
   resolveSitemapShard,
   SITEMAP_CHUNK_SIZE,
   type SitemapModelKey,
 } from "@/lib/sitemap";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+import { SITE_URL } from "@/lib/seo";
 
 const getShardItems = async (model: SitemapModelKey, shardIndex: number) => {
   const query = {
-    where: { isDeleted: false },
+    where: { isDeleted: false, status: Availability.AVAILABLE },
     select: { id: true, updatedAt: true },
     orderBy: { updatedAt: "desc" as const },
     skip: shardIndex * SITEMAP_CHUNK_SIZE,

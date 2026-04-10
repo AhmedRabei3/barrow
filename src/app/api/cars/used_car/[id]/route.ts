@@ -3,8 +3,13 @@ import { updateUsedCarSchema } from "@/app/validations/usedCarValidations";
 import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/app/api/utils/authHelper";
 import { Errors } from "@/app/api/lib/errors/errors";
-import { normEnum } from "@/app/api/utils/utils";
+import { normEnum, normString, toBool, toNumber } from "@/app/api/utils/utils";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
+import {
+  parseManualRentalPeriods,
+  syncManualRentalStatus,
+} from "@/app/api/utils/manualRentalStatus";
+import { Availability, TransactionType, type RentType } from "@prisma/client";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -39,13 +44,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       : undefined;
 
     const data = {
-      brand: formData.get("brand"),
-      model: formData.get("model"),
-      year: formData.get("year"),
-      color: formData.get("color"),
-      mileage: formData.get("mileage"),
-      price: formData.get("price"),
-      description: formData.get("description"),
+      brand: normString(formData.get("brand")),
+      model: normString(formData.get("model")),
+      year: toNumber(formData.get("year")),
+      color: normString(formData.get("color")),
+      mileage: toNumber(formData.get("mileage")),
+      price: toNumber(formData.get("price")),
+      description: normString(formData.get("description")),
 
       sellOrRent,
 
@@ -64,8 +69,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ? normEnum(formData.get("gearType"))
         : undefined,
 
-      reAssembled: formData.get("reAssembled"),
-      repainted: formData.get("repainted"),
+      reAssembled: toBool(formData.get("reAssembled")),
+      repainted: toBool(formData.get("repainted")),
 
       status: formData.get("status")
         ? normEnum(formData.get("status"))
@@ -73,14 +78,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
       // 📍 الموقع اختياري
       location: {
-        latitude: formData.get("latitude"),
-        longitude: formData.get("longitude"),
-        city: formData.get("city"),
-        address: formData.get("address"),
-        state: formData.get("state"),
-        country: formData.get("country"),
+        latitude: toNumber(formData.get("latitude")),
+        longitude: toNumber(formData.get("longitude")),
+        city: normString(formData.get("city")),
+        address: normString(formData.get("address")),
+        state: normString(formData.get("state")),
+        country: normString(formData.get("country")),
       },
     };
+
+    const manualRentalPeriods = parseManualRentalPeriods(
+      formData.get("manualRentalPeriods"),
+    );
 
     // 🧪 Validation
     const parsed = updateUsedCarSchema.safeParse(data);
@@ -92,31 +101,63 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // 🧾 فصل location عن بيانات السيارة
     const { location, ...carData } = parsed.data;
 
-    const updatedCar = await prisma.$transaction(async (tx) => {
-      const updated = await tx.oldCar.update({
-        where: { id },
-        data: carData,
-      });
+    const { updatedCar, manualRentalEndsAt } = await prisma.$transaction(
+      async (tx) => {
+        const nextStatus = (carData.status ?? car.status) as Availability;
+        const nextSellOrRent = (carData.sellOrRent ??
+          car.sellOrRent) as TransactionType;
+        const nextRentType = (
+          carData.rentType !== undefined ? carData.rentType : car.rentType
+        ) as RentType | null;
 
-      if (location) {
-        await tx.location.update({
-          where: { oldCarId: id },
-          data: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            state: location.state,
-            city: location.city,
-            country: location.country,
-            address: location.address,
-          },
+        const updated = await tx.oldCar.update({
+          where: { id },
+          data: carData,
         });
-      }
 
-      return updated;
-    });
+        if (location) {
+          await tx.location.update({
+            where: { oldCarId: id },
+            data: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              state: location.state,
+              city: location.city,
+              country: location.country,
+              address: location.address,
+            },
+          });
+        }
+
+        const manualRentalState = await syncManualRentalStatus({
+          tx,
+          itemId: id,
+          itemType: "USED_CAR",
+          ownerId: owner.id,
+          nextStatus,
+          nextSellOrRent,
+          nextRentType,
+          manualRentalPeriods,
+        });
+
+        return {
+          updatedCar: updated,
+          manualRentalEndsAt: manualRentalState.manualRentalEndsAt,
+        };
+      },
+    );
 
     return NextResponse.json(
-      { success: true, car: updatedCar },
+      {
+        success: true,
+        car: updatedCar,
+        listingState: {
+          status: updatedCar.status,
+          sellOrRent: updatedCar.sellOrRent,
+          rentType: updatedCar.rentType,
+          manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
+        },
+      },
       { status: 200 },
     );
   } catch (error) {

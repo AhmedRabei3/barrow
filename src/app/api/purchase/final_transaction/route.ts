@@ -85,8 +85,8 @@ export async function POST(req: NextRequest) {
       throw Errors.NOT_FOUND("العنصر غير موجود");
     }
 
-    if (item.status === Availability.SOLD) {
-      throw Errors.VALIDATION("العنصر مباع مسبقًا");
+    if (item.status !== Availability.AVAILABLE) {
+      throw Errors.VALIDATION("العنصر غير متاح لإتمام المعاملة");
     }
 
     /* =========================

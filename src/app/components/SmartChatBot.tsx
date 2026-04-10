@@ -72,12 +72,17 @@ const SMART_CHAT_EDIT_PAYLOAD_KEY = "smart-chat-edit-payload";
 const SMART_CHAT_ACTION_ADD_ITEM = "ACTION_ADD_ITEM";
 const SMART_CHAT_ACTION_SUBSCRIPTION = "ACTION_SUBSCRIPTION";
 
-type SmartChatEditPayload = {
-  mode: "edit";
-  itemType: ItemType;
-  itemId?: string;
-  data?: FieldValues;
-};
+type SmartChatEditPayload =
+  | {
+      mode: "edit";
+      itemType: ItemType;
+      itemId?: string;
+      data?: FieldValues;
+    }
+  | {
+      mode: "create";
+      action: typeof SMART_CHAT_ACTION_ADD_ITEM;
+    };
 
 type SubscriptionFaqOption = {
   labelAr: string;
@@ -209,20 +214,8 @@ const SCHEMA_BY_TYPE = {
 } as const;
 
 const FRIENDLY_WELCOME_PREFIXES = {
-  ar: [
-    `🌟 أهلاً بك مع ${ASSISTANT_NAME_AR}! جاهز نبدأ بخطوات واضحة وسريعة.`,
-    `🤍 نورت! أنا ${ASSISTANT_NAME_AR} وسأساعدك تنشر باحتراف وتستفيد أكثر.`,
-    "✨ حيّاك الله! معًا نختصر الطريق من الفكرة إلى إعلان فعّال.",
-    "🚀 أهلاً وسهلاً! لننطلق الآن ونرفع فرص ظهور إعلانك.",
-    "😊 مرحبًا بك! تجربة بسيطة ونتيجة أفضل بإذن الله.",
-  ],
-  en: [
-    `🌟 Welcome! I'm ${ASSISTANT_NAME_EN}, really happy you're here.`,
-    `🤍 Hey there! ${ASSISTANT_NAME_EN} helps you get more value from every listing.`,
-    "✨ Great to see you! I'll guide you step by step to the best result.",
-    "🚀 Awesome! Let's launch your listing quickly and confidently.",
-    "😊 Hi friend! We'll make this smooth, easy, and rewarding together.",
-  ],
+  ar: [`🌟 أهلاً بك مع ${ASSISTANT_NAME_AR}.`],
+  en: [`🌟 Welcome to ${ASSISTANT_NAME_EN}.`],
 } as const;
 
 const locationQuestions: Question[] = [
@@ -753,30 +746,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   const [editItemId, setEditItemId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (assistantMode !== "home") return;
-
-    const prompt = t(
-      "كيف تحب أن أساعدك اليوم؟ اختر الخيار المناسب:",
-      "How can I help you today? Choose what fits you:",
-    );
-
-    setMessages((prev) => {
-      if (prev.some((m) => m.role === "assistant" && m.content === prompt)) {
-        return prev;
-      }
-
-      return [
-        ...prev,
-        {
-          id: "home-prompt",
-          role: "assistant",
-          content: prompt,
-        },
-      ];
-    });
-  }, [assistantMode, t]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const raw = window.localStorage.getItem(SMART_CHAT_EDIT_PAYLOAD_KEY);
@@ -784,6 +753,37 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
     try {
       const payload = JSON.parse(raw) as SmartChatEditPayload;
+
+      if (payload.mode === "create") {
+        if (payload.action !== SMART_CHAT_ACTION_ADD_ITEM) {
+          window.localStorage.removeItem(SMART_CHAT_EDIT_PAYLOAD_KEY);
+          return;
+        }
+
+        setAssistantMode("add-item");
+        setItemType(null);
+        setEditItemId(null);
+        setAnswers({});
+        setSelectedImages([]);
+        setSelectedLocation(null);
+        setMapInitialCenter(DEFAULT_MAP_CENTER);
+        setTextInput("");
+        setSubscriptionQuestion("");
+        setIsReadyToSubmit(false);
+        setActiveIndex(0);
+        setMessages([
+          {
+            id: "create-init-1",
+            role: "assistant",
+            content: t(
+              "ممتاز 👌 تم فتح المساعد في وضع الإضافة. اختر نوع العنصر الذي تريد نشره الآن:",
+              "Great 👌 the assistant is now in add mode. Choose the item type you want to publish now:",
+            ),
+          },
+        ]);
+        return;
+      }
+
       if (payload.mode !== "edit" || !payload.itemType || !payload.itemId) {
         window.localStorage.removeItem(SMART_CHAT_EDIT_PAYLOAD_KEY);
         return;
@@ -1413,9 +1413,14 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     },
   };
 
+  const assistantMessageWrapClass = isArabic ? "justify-end" : "justify-start";
+  const userMessageWrapClass = isArabic ? "justify-start" : "justify-end";
+  const assistantBubbleClass = isArabic ? "ml-auto" : "mr-auto";
+  const userBubbleClass = isArabic ? "mr-auto" : "ml-auto";
+
   return (
     <div
-      className="w-90 sm:w-97.5 h-140 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+      className="w-full max-w-104 h-[min(100dvh-2rem,44rem)] max-h-176 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
       dir={isArabic ? "rtl" : "ltr"}
     >
       <div className="px-4 py-3 border-b border-emerald-100/70 dark:border-slate-700 bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white">
@@ -1459,7 +1464,14 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               initial={{
                 opacity: 0,
                 y: 8,
-                x: message.role === "assistant" ? -10 : 10,
+                x:
+                  message.role === "assistant"
+                    ? isArabic
+                      ? 10
+                      : -10
+                    : isArabic
+                      ? -10
+                      : 10,
                 scale: 0.98,
               }}
               animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
@@ -1470,14 +1482,16 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
             >
               <div
                 className={`flex ${
-                  message.role === "assistant" ? "justify-start" : "justify-end"
+                  message.role === "assistant"
+                    ? assistantMessageWrapClass
+                    : userMessageWrapClass
                 }`}
               >
                 <div
                   className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed ${
                     message.role === "assistant"
-                      ? "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 mr-auto shadow-sm"
-                      : "bg-linear-to-r from-emerald-600 to-teal-600 text-white ml-auto shadow-md"
+                      ? `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 ${assistantBubbleClass} shadow-sm`
+                      : `bg-linear-to-r from-emerald-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
                   }`}
                 >
                   {message.content}

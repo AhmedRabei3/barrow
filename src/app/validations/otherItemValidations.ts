@@ -24,7 +24,14 @@ export const createOtherItemSchema = z
       .nullable(),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .default("AVAILABLE"),
   })
   .refine(
@@ -35,7 +42,7 @@ export const createOtherItemSchema = z
     {
       message: "rentType مطلوب فقط عند الإيجار",
       path: ["rentType"],
-    }
+    },
   );
 
 export const updateOtherItemSchema = z
@@ -53,7 +60,14 @@ export const updateOtherItemSchema = z
       .nullable(),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .optional(),
 
     // 📍 تحديث الموقع (اختياري)
@@ -73,7 +87,7 @@ export const updateOtherItemSchema = z
     {
       message: "rentType غير متوافق مع نوع العملية",
       path: ["rentType"],
-    }
+    },
   );
 
 export const deleteOtherItemSchema = z.object({

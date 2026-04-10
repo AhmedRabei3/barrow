@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@prisma/client";
-import { requireAbminUser } from "../../../utils/authHelper";
+import { prisma } from "@/lib/prisma";
+import { requireAdminUser } from "../../../utils/authHelper";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 
-type AdminAction = "BLOCK" | "NOTIFY" | "REWARD" | "RANDOM_LOW_REWARD";
+type AdminAction =
+  | "BLOCK"
+  | "UNBLOCK"
+  | "MAKE_ADMIN"
+  | "REMOVE_ADMIN"
+  | "NOTIFY"
+  | "REWARD"
+  | "RANDOM_LOW_REWARD";
 
 export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAbminUser();
+    const actingAdmin = await requireAdminUser();
 
     const body = (await req.json()) as {
       action?: AdminAction;
@@ -92,8 +100,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const randomIndex = Math.floor(Math.random() * candidates.length);
-      const winner = candidates[randomIndex];
+      const winner = candidates[Math.floor(Math.random() * candidates.length)];
       const randomReward = Number(
         (Math.random() * (maxReward - minReward) + minReward).toFixed(2),
       );
@@ -114,11 +121,21 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        await recordPlatformProfitLedgerEntries(tx, [
+          {
+            type: "RANDOM_LOW_REWARD_LIABILITY",
+            amount: -randomReward,
+            userId: winner.id,
+            referenceId: winner.id,
+            note: "Random low-earning reward increased ready user liability",
+          },
+        ]);
+
         await tx.notification.create({
           data: {
             userId: winner.id,
             title: "🎁 مكافأة عشوائية للأقل ربحًا",
-            message: `مبروك! حصلت على مكافأة قدرها ${randomReward}$ ضمن برنامج دعم المشتركين الأقل ربحًا.`,
+            message: `مبروك! حصلت على مكافأة قدرها ${randomReward}$ وتمت إضافتها إلى رصيدك الجاهز للسحب ضمن برنامج دعم المشتركين الأقل ربحًا.`,
             type: NotificationType.INFO,
           },
         });
@@ -135,8 +152,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const targetUserId = body.userId;
-
+    const targetUserId = String(body.userId || "").trim();
     if (!targetUserId) {
       return NextResponse.json(
         {
@@ -151,7 +167,13 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true, isDeleted: true },
+      select: {
+        id: true,
+        isAdmin: true,
+        isOwner: true,
+        isDeleted: true,
+        deletedAt: true,
+      },
     });
 
     if (!user) {
@@ -161,24 +183,240 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (body.action === "BLOCK") {
+    if (body.action === "MAKE_ADMIN" || body.action === "REMOVE_ADMIN") {
+      if (!actingAdmin.isOwner) {
+        return NextResponse.json(
+          {
+            message: t(
+              "فقط مالك التطبيق يستطيع تعيين المشرفين",
+              "Only the app owner can manage admin assignments",
+            ),
+          },
+          { status: 403 },
+        );
+      }
+
+      if (user.isOwner) {
+        return NextResponse.json(
+          {
+            message: t(
+              "لا يمكن تعديل صلاحيات مالك التطبيق من هنا",
+              "The application owner role cannot be changed from here",
+            ),
+          },
+          { status: 400 },
+        );
+      }
+
+      const nextIsAdmin = body.action === "MAKE_ADMIN";
+
       await prisma.user.update({
         where: { id: targetUserId },
-        data: { isDeleted: true, isActive: false },
+        data: { isAdmin: nextIsAdmin },
       });
 
       await prisma.notification.create({
         data: {
           userId: targetUserId,
-          title: "⚠️ تم تقييد الحساب",
-          message:
-            body.message ||
-            "تم تقييد حسابك من قبل الإدارة. يرجى التواصل مع الدعم للمراجعة.",
-          type: NotificationType.WARNING,
+          title: nextIsAdmin
+            ? t("✅ تمت ترقيتك إلى مشرف", "✅ You were promoted to admin")
+            : t("ℹ️ تم سحب صلاحية الإشراف", "ℹ️ Admin access was revoked"),
+          message: nextIsAdmin
+            ? t(
+                "أصبحت تملك صلاحية دخول لوحة الإدارة وإدارة أجزاء المنصة المسموح بها.",
+                "You can now access the admin dashboard and manage the allowed platform sections.",
+              )
+            : t(
+                "لم يعد حسابك يملك صلاحية دخول لوحة الإدارة.",
+                "Your account no longer has access to the admin dashboard.",
+              ),
+          type: NotificationType.INFO,
         },
       });
 
-      return NextResponse.json({ success: true }, { status: 200 });
+      return NextResponse.json(
+        {
+          success: true,
+          message: nextIsAdmin
+            ? t("تم تعيين المستخدم كمشرف", "User promoted to admin")
+            : t("تم إلغاء صفة المشرف", "Admin role revoked"),
+        },
+        { status: 200 },
+      );
+    }
+
+    if (
+      user.isOwner &&
+      (body.action === "BLOCK" || body.action === "UNBLOCK")
+    ) {
+      return NextResponse.json(
+        {
+          message: t(
+            "لا يمكن حظر مالك التطبيق",
+            "The application owner cannot be blocked",
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
+    if (body.action === "BLOCK") {
+      const blockResult = await prisma.$transaction(async (tx) => {
+        const deletedAt = new Date();
+
+        const [
+          updatedUser,
+          properties,
+          newCars,
+          oldCars,
+          otherItems,
+          notification,
+        ] = await Promise.all([
+          tx.user.update({
+            where: { id: targetUserId },
+            data: {
+              isDeleted: true,
+              isActive: false,
+              deletedAt,
+              activeUntil: null,
+            },
+            select: { id: true },
+          }),
+          tx.property.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
+          tx.newCar.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
+          tx.oldCar.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
+          tx.otherItem.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
+          tx.notification.create({
+            data: {
+              userId: targetUserId,
+              title: "⚠️ تم تقييد الحساب",
+              message:
+                body.message ||
+                "تم تقييد حسابك من قبل الإدارة، وتم إخفاء عناصر حسابك من المنصة. يرجى التواصل مع الدعم للمراجعة.",
+              type: NotificationType.WARNING,
+            },
+            select: { id: true },
+          }),
+        ]);
+
+        return {
+          userId: updatedUser.id,
+          hiddenListings:
+            properties.count + newCars.count + oldCars.count + otherItems.count,
+          notificationId: notification.id,
+        };
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          ...blockResult,
+          message: t(
+            `تم حظر المستخدم وإخفاء ${blockResult.hiddenListings} من عناصره.`,
+            `User blocked and ${blockResult.hiddenListings} listings were hidden.`,
+          ),
+        },
+        { status: 200 },
+      );
+    }
+
+    if (body.action === "UNBLOCK") {
+      const matchingDeletedAt = user.deletedAt ?? null;
+
+      const unblockResult = await prisma.$transaction(async (tx) => {
+        const [
+          updatedUser,
+          properties,
+          newCars,
+          oldCars,
+          otherItems,
+          notification,
+        ] = await Promise.all([
+          tx.user.update({
+            where: { id: targetUserId },
+            data: {
+              isDeleted: false,
+              deletedAt: null,
+              isActive: false,
+            },
+            select: { id: true },
+          }),
+          tx.property.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
+          tx.newCar.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
+          tx.oldCar.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
+          tx.otherItem.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
+          tx.notification.create({
+            data: {
+              userId: targetUserId,
+              title: "✅ تم رفع تقييد الحساب",
+              message:
+                body.message ||
+                "تم رفع تقييد حسابك من قبل الإدارة ويمكنك استخدام المنصة مجدداً.",
+              type: NotificationType.INFO,
+            },
+            select: { id: true },
+          }),
+        ]);
+
+        return {
+          userId: updatedUser.id,
+          restoredListings:
+            properties.count + newCars.count + oldCars.count + otherItems.count,
+          notificationId: notification.id,
+        };
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          ...unblockResult,
+          message: t(
+            `تم رفع الحظر عن المستخدم واستعادة ${unblockResult.restoredListings} من عناصره.`,
+            `User unblocked and ${unblockResult.restoredListings} listings were restored.`,
+          ),
+        },
+        { status: 200 },
+      );
     }
 
     if (body.action === "NOTIFY") {
@@ -225,13 +463,23 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        await recordPlatformProfitLedgerEntries(tx, [
+          {
+            type: "MANUAL_REWARD_LIABILITY",
+            amount: -amount,
+            userId: targetUserId,
+            referenceId: targetUserId,
+            note: "Admin reward increased ready user liability",
+          },
+        ]);
+
         await tx.notification.create({
           data: {
             userId: targetUserId,
             title: "🎉 مكافأة مميزة",
             message:
               body.message ||
-              `تمت إضافة مكافأة بقيمة ${amount}$ إلى رصيدك تقديراً لنشاطك.`,
+              `تمت إضافة مكافأة بقيمة ${amount}$ إلى رصيدك الجاهز للسحب تقديراً لنشاطك.`,
             type: NotificationType.INFO,
           },
         });

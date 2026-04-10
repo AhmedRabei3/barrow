@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createPaypalPayout } from "@/lib/paypal";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 
 export async function POST(req: NextRequest) {
   const requestedLang =
@@ -120,6 +121,16 @@ export async function POST(req: NextRequest) {
           amount: -Math.abs(amount),
         },
       });
+
+      await recordPlatformProfitLedgerEntries(tx, [
+        {
+          type: "USER_WITHDRAWAL_LIABILITY_RELEASE",
+          amount,
+          userId: user.id,
+          referenceId: user.id,
+          note: "PayPal withdrawal reduced ready user liability",
+        },
+      ]);
 
       await tx.notification.create({
         data: {

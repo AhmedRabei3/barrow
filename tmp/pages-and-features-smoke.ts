@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.PAGES_SMOKE_BASE_URL || "http://localhost:3000";
 const REQUEST_TIMEOUT_MS = Number(process.env.PAGES_SMOKE_TIMEOUT_MS || 60000);
 
 const ADMIN = { email: "ahmed@mail.com", password: "12345678" };

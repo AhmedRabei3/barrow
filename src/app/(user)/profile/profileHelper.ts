@@ -10,6 +10,10 @@ type RawProfileItem = {
   price?: number;
   sellOrRent?: string;
   rentType?: string | null;
+  status?: string | null;
+  moderationAction?: string | null;
+  moderationNote?: string | null;
+  moderatedAt?: string | Date | null;
   location?: unknown;
   isNew?: boolean;
   isFeatured?: boolean;
@@ -56,6 +60,13 @@ export const toGrandItem = (it: RawProfileItem | null | undefined) => {
       price: it?.price ?? 0,
       sellOrRent: it?.sellOrRent ?? "SELL",
       rentType: it?.rentType,
+      status: it?.status ?? null,
+      moderationAction: it?.moderationAction ?? null,
+      moderationNote: it?.moderationNote ?? null,
+      moderatedAt:
+        it?.moderatedAt instanceof Date
+          ? it.moderatedAt.toISOString()
+          : (it?.moderatedAt ?? null),
       location: it?.location ?? null,
       isNew: it?.isNew ?? false,
       isFeatured: it?.isFeatured ?? false,

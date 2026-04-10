@@ -20,7 +20,14 @@ export const createPropertySchema = z
     guests: z.coerce.number().int().nonnegative().default(1),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .default("AVAILABLE"),
 
     livingrooms: z.coerce.number().int().nonnegative(),
@@ -69,7 +76,14 @@ export const updatePropertySchema = z
     price: z.coerce.number().positive().optional(),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .optional(),
 
     guests: z.coerce.number().int().nonnegative().optional(),

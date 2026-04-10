@@ -17,6 +17,36 @@
   max-width: 500px;
   position: relative;
   text-align: center;
+  color: #222;
+}
+
+@media (prefers-color-scheme: dark) {
+  .invite-modal {
+    background: #0f172a !important;
+    color: #f3f4f6 !important;
+  }
+  .invite-title,
+  .invite-subtitle,
+  .invite-link,
+  .invite-textarea {
+    color: #f3f4f6 !important;
+  }
+  .invite-link {
+    background: #23232b !important;
+    border-color: #333 !important;
+  }
+  .invite-textarea {
+    background: #23232b !important;
+    border-color: #333 !important;
+  }
+  .invite-send-btn,
+  .invite-link button {
+    background: linear-gradient(90deg, #63b6f1, #4f30a3) !important;
+    color: #fff !important;
+  }
+  .close-btn {
+    color: #bbb !important;
+  }
 }
 
 .close-btn {
@@ -40,6 +70,7 @@
   margin-bottom: 1rem;
 }
 
+
 .invite-textarea {
   width: 100%;
   min-height: 100px;
@@ -47,9 +78,15 @@
   border-radius: 1rem;
   padding: 1rem;
   font-size: 0.95rem;
-  resize: none;
+  flex-wrap: wrap;
   outline: none;
   transition: border 0.2s;
+  background: #fff;
+  color: #222;
+  height: auto;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .invite-textarea:focus {
@@ -62,10 +99,20 @@
   padding: 0.75rem;
   margin-top: 1rem;
   display: flex;
+  gap: 0.75rem;
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
   border: 1px solid #eee;
+  color: #222;
+}
+
+.invite-link-anchor {
+  min-width: 0;
+  flex: 1;
+  color: inherit;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
 }
 
 .invite-link button {

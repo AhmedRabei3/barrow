@@ -1,20 +1,33 @@
 import React, { memo } from "react";
-import { AiFillStar } from "react-icons/ai";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { $Enums } from "@prisma/client";
+import { useState } from "react";
+import OwnerListingStateControl from "./OwnerListingStateControl";
 
 type DetailCardItem = {
   item: {
     id?: string;
+    name?: string | null;
+    type?: string | null;
     brand?: string | null;
     model?: string | null;
     year?: number | null;
     price?: number | null;
     sellOrRent?: string | null;
     rentType?: string | null;
+    status?: string | null;
+    manualRentalEndsAt?: string | Date | null;
+    bedrooms?: number | null;
+    bathrooms?: number | null;
+    guests?: number | null;
+    area?: number | null;
+    color?: string | null;
+    fuelType?: string | null;
+    gearType?: string | null;
+    mileage?: number | null;
   };
   averageRating: number | null;
-  totalReviews?: number;
   itemLocation: Array<
     | {
         state?: string | null;
@@ -28,34 +41,55 @@ type DetailCardItem = {
 
 interface DetailCardProps {
   grandItem: DetailCardItem;
+  itemType?: $Enums.ItemType;
+  isOwnerCard?: boolean;
+  onStatusChanged?: () => Promise<void> | void;
+  onMenuOpenChange?: (isOpen: boolean) => void;
 }
 
-const getArabicReviewWord = (count: number) => {
-  if (count === 2) return "تقييمان";
-  if (count >= 3 && count <= 10) return "تقييمات";
-  return "تقييم";
+const typeLabelMap: Record<string, { ar: string; en: string }> = {
+  NEW_CAR: { ar: "سيارة جديدة", en: "New car" },
+  USED_CAR: { ar: "سيارة مستعملة", en: "Used car" },
+  PROPERTY: { ar: "عقار", en: "Property" },
+  OTHER: { ar: "عنصر", en: "Item" },
 };
 
-const DetailCard = ({ grandItem }: DetailCardProps) => {
+const rentTypeLabelMap: Record<string, { ar: string; en: string }> = {
+  DAILY: { ar: "يوم", en: "day" },
+  WEEKLY: { ar: "أسبوع", en: "week" },
+  MONTHLY: { ar: "شهر", en: "month" },
+  YEARLY: { ar: "سنة", en: "year" },
+};
+
+const DetailCard = ({
+  grandItem,
+  itemType,
+  isOwnerCard = false,
+  onStatusChanged,
+  onMenuOpenChange,
+}: DetailCardProps) => {
   const { isArabic } = useAppPreferences();
-  const { item, averageRating, totalReviews = 0, itemLocation } = grandItem;
+  const { item, averageRating, itemLocation } = grandItem;
+  const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
   const locationLabel =
-    itemLocation[0]?.state ?? itemLocation[0]?.city ?? itemLocation[0]?.address;
+    itemLocation[0]?.city ??
+    itemLocation[0]?.state ??
+    itemLocation[0]?.address ??
+    "";
 
-  const { brand, model, year } = item;
+  const titleLabel =
+    item.name ||
+    [item.brand, item.model].filter(Boolean).join(" ") ||
+    (item.type
+      ? isArabic
+        ? typeLabelMap[item.type]?.ar
+        : typeLabelMap[item.type]?.en
+      : "") ||
+    (isArabic ? "عنصر" : "Listing");
+
+  const formattedPrice = Number(item.price ?? 0).toLocaleString("en-US");
   const averageRatingText =
-    averageRating !== null ? averageRating.toFixed(1) : isArabic ? "-" : "-";
-
-  const formattedPrice = Number(item.price ?? 0).toLocaleString(
-    isArabic ? "ar-SA" : "en-US",
-  );
-
-  const rentTypeLabelMap: Record<string, { ar: string; en: string }> = {
-    DAILY: { ar: "يوم", en: "day" },
-    WEEKLY: { ar: "أسبوع", en: "week" },
-    MONTHLY: { ar: "شهر", en: "month" },
-    YEARLY: { ar: "سنة", en: "year" },
-  };
+    averageRating !== null ? averageRating.toFixed(1) : null;
 
   const pricingSuffix =
     item.sellOrRent === "RENT"
@@ -67,63 +101,75 @@ const DetailCard = ({ grandItem }: DetailCardProps) => {
         : "total";
 
   return (
-    <div className="px-0.5 pt-2.5 pb-1 flex flex-col gap-0.5 min-h-28">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate text-sm sm:text-[15px]">
-          {locationLabel || brand || (isArabic ? "عنصر" : "Listing")}
-        </h3>
-        <div className="shrink-0 inline-flex items-center gap-0.5 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium">
-          <AiFillStar className="text-slate-900 dark:text-slate-100" />
-          <span>{averageRatingText}</span>
+    <div
+      className={`relative rounded-[18px] dark:border-b
+     border-slate-800
+      dark:bg-slate-950/70
+      px-4 py-4 ${isStateMenuOpen ? "z-[90]" : "z-20"}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3
+            className="line-clamp-1 text-sm
+          font-bold dark:text-white text-neutral-800 sm:text-[15px]"
+          >
+            {titleLabel}
+          </h3>
+          <div
+            className="mt-1 flex items-center
+           gap-2 text-[11px] dark:text-slate-500 text-neutral-800
+           sm:text-xs"
+          >
+            <span className="inline-flex items-center gap-1 truncate">
+              <DynamicIcon
+                iconName="MdLocationPin"
+                size={14}
+                className="dark:text-sky-300 text-sky-500"
+              />
+              <span className="truncate">
+                {locationLabel || (isArabic ? "بدون موقع" : "No location")}
+              </span>
+            </span>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-bold text-primary sm:text-[15px]">
+            ${formattedPrice}
+          </p>
+          <p className="mt-0.5 text-[11px] dark:text-slate-500 text-neutral-800 sm:text-xs">
+            {pricingSuffix}
+          </p>
         </div>
       </div>
 
-      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
-        {[brand, model].filter(Boolean).join(" ") ||
-          (isArabic ? "بدون اسم" : "Unnamed listing")}
-      </p>
-
-      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
-        {year ? (isArabic ? `سنة ${year}` : `Year ${year}`) : ""}
-        {year && item.sellOrRent ? " • " : ""}
-        {item.sellOrRent === "RENT"
-          ? isArabic
-            ? "للإيجار"
-            : "For rent"
-          : isArabic
-            ? "للبيع"
-            : "For sale"}
-      </p>
-
-      <div className="mt-1 flex items-center justify-between">
-        <p className="text-sm sm:text-[15px] text-slate-900 dark:text-slate-100">
-          <span className="font-semibold">${formattedPrice}</span>{" "}
-          <span className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm">
-            {pricingSuffix}
+      <div className="mt-3 flex items-start justify-between gap-3 z-index-999">
+        <OwnerListingStateControl
+          itemId={item.id}
+          itemType={itemType}
+          sellOrRent={item.sellOrRent}
+          status={item.status}
+          rentType={item.rentType}
+          initialManualRentalEndsAt={item.manualRentalEndsAt}
+          isOwner={isOwnerCard}
+          onSaved={onStatusChanged}
+          onMenuOpenChange={(isOpen) => {
+            setIsStateMenuOpen(isOpen);
+            onMenuOpenChange?.(isOpen);
+          }}
+        />
+        {averageRatingText ? (
+          <span
+            className="inline-flex
+          items-center rounded-md border
+           dark:border-slate-700 dark:bg-slate-900
+           px-2.5 py-1 text-[10px] font-bold
+           uppercase tracking-[0.16em] text-emerald-800
+          border-emerald-500/30 bg-emerald-500/10"
+          >
+            {isArabic ? "تقييم" : "Rating"} {averageRatingText}
           </span>
-        </p>
-
-        <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-          {isArabic ? "التفاصيل" : "Details"}
-        </span>
+        ) : null}
       </div>
-
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">
-        {isArabic
-          ? `${totalReviews} ${getArabicReviewWord(totalReviews)}`
-          : `${totalReviews} reviews`}
-      </p>
-
-      {!!locationLabel && (
-        <p className="text-[11px] sm:text-xs flex items-center text-slate-500 dark:text-slate-400 truncate">
-          <DynamicIcon
-            iconName="MdLocationPin"
-            size={13}
-            className="text-slate-500 dark:text-slate-400"
-          />
-          {locationLabel}
-        </p>
-      )}
     </div>
   );
 };

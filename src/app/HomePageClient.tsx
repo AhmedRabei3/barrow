@@ -20,7 +20,7 @@ const HomePageClient = () => {
   const { filters } = useSearchFilters();
   const [currentPage, setCurrentPage] = useState(1);
   const [featuredItems, setFeaturedItems] = useState<FormattedItem[]>([]);
-  const limit = 52;
+  const limit = 50;
   const { items, totalItems, loading, refetch } = useItems({
     page: currentPage,
     limit,

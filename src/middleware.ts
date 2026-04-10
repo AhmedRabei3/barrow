@@ -15,7 +15,6 @@ export async function middleware(req: NextRequest) {
   });
 
   const isLoggedIn = Boolean(token?.sub);
-  const isAdmin = Boolean(token?.isAdmin);
 
   if (!isLoggedIn && pathname.startsWith("/profile")) {
     const redirect = new URL("/", origin);
@@ -28,10 +27,6 @@ export async function middleware(req: NextRequest) {
       const redirect = new URL("/", origin);
       redirect.searchParams.set("login", "true");
       return NextResponse.redirect(redirect);
-    }
-
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL("/", origin));
     }
   }
 

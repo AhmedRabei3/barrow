@@ -34,7 +34,14 @@ export const createNewCarSchema = z
     gearType: z.enum(["AUTOMATIC", "MANUAL"]),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .default("AVAILABLE"),
   })
   .refine(
@@ -79,7 +86,14 @@ export const updateNewCarSchema = z
     gearType: z.enum(["AUTOMATIC", "MANUAL"]).optional(),
 
     status: z
-      .enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD", "MAINTENANCE"])
+      .enum([
+        "PENDING_REVIEW",
+        "AVAILABLE",
+        "RESERVED",
+        "RENTED",
+        "SOLD",
+        "MAINTENANCE",
+      ])
       .default("AVAILABLE")
       .optional(),
     location: updateLocationSchema,

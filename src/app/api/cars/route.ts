@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
         tx.newCar.create({
           data: {
             ...parsed.data,
+            status: "AVAILABLE",
             ownerId: owner.id,
           },
         }),
@@ -66,8 +67,8 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         message: t(
-          "تمت إضافة السيارة بنجاح",
-          "Car has been added successfully",
+          "تم نشر السيارة بنجاح",
+          "Car published successfully",
         ),
       },
       { status: 201 },

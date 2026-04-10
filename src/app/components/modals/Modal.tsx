@@ -16,6 +16,10 @@ const ACTION_TITLES = new Set([
   "Add Car",
   "إضافة سيارة جديدة",
   "تعديل السيارة",
+  "Payment Settings Password",
+  "كلمة مرور إعدادات الدفع",
+  "Create Payment Settings Password",
+  "إنشاء كلمة مرور إعدادات الدفع",
 ]);
 
 const shouldRenderActions = (title?: string) =>

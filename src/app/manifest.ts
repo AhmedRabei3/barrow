@@ -1,11 +1,16 @@
 import type { MetadataRoute } from "next";
+import {
+  SITE_DESCRIPTION,
+  SITE_ICON,
+  SITE_NAME,
+  SITE_SHORT_NAME,
+} from "@/lib/seo";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Rent Anything",
-    short_name: "RentAnything",
-    description:
-      "Marketplace to rent, buy, and sell properties, cars, and other items.",
+    name: SITE_NAME,
+    short_name: SITE_SHORT_NAME,
+    description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
@@ -13,12 +18,12 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en",
     icons: [
       {
-        src: "/images/logo.png",
+        src: SITE_ICON,
         sizes: "192x192",
         type: "image/png",
       },
       {
-        src: "/images/logo.png",
+        src: SITE_ICON,
         sizes: "512x512",
         type: "image/png",
       },

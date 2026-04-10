@@ -30,16 +30,22 @@ export async function activeUser() {
   const user = await authHelper();
   const active = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, isActive: true, isDeleted: true, isAdmin: true },
+    select: {
+      id: true,
+      isActive: true,
+      isDeleted: true,
+      isAdmin: true,
+      isOwner: true,
+    },
   });
   return active;
 }
 
-export async function requireAbminUser() {
+export async function requireAdminUser() {
   const user = await authHelper();
   const admin = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, isAdmin: true, isDeleted: true },
+    select: { id: true, isAdmin: true, isOwner: true, isDeleted: true },
   });
 
   if (!admin || admin.isDeleted || !admin.isAdmin) {
@@ -47,4 +53,18 @@ export async function requireAbminUser() {
   }
 
   return admin;
+}
+
+export async function requireOwnerUser() {
+  const user = await authHelper();
+  const owner = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, isAdmin: true, isOwner: true, isDeleted: true },
+  });
+
+  if (!owner || owner.isDeleted || !owner.isOwner) {
+    throw Errors.FORBIDDEN("Owner access required");
+  }
+
+  return owner;
 }

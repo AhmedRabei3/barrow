@@ -33,6 +33,7 @@ export default (<NextAuthConfig>{
           balance: Number(user.balance),
           isActive: user.isActive,
           isAdmin: user.isAdmin,
+          isOwner: user.isOwner,
           activeUntil: user.activeUntil,
           pendingReferralEarnings: Number(user.pendingReferralEarnings),
           notifications: [],

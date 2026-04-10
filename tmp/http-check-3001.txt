@@ -1,0 +1,3 @@
+http://localhost:3001/ STATUS=200
+http://localhost:3001/api/items STATUS=200
+http://localhost:3001/api/categories STATUS=200

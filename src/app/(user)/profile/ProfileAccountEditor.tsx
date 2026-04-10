@@ -3,14 +3,12 @@ import toast from "react-hot-toast";
 import { useState } from "react";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { useProfileVerification } from "./useProfileVerification";
-// ...existing code...
 
 type User = {
   id: string;
   name: string;
   email: string;
   profileImage?: string | null;
-  // أضف أي خصائص أخرى حسب الحاجة
 };
 
 type ProfileAccountEditorProps = {
@@ -24,36 +22,17 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
   const [email, setEmail] = useState(user.email || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verifyingCode, setVerifyingCode] = useState(false);
-  const { verificationTicket, codeSent } = useProfileVerification(isArabic);
-  // دالة وهمية للتحقق من الرمز
-  const verifyCode = () => {
-    setVerifyingCode(true);
-    setTimeout(() => {
-      setVerifyingCode(false);
-      toast.success(
-        isArabic ? "تم التحقق من الرمز (وهمي)" : "Code verified (dummy)",
-      );
-      setIsVerified(true);
-    }, 1000);
-  };
-
-  // دالة وهمية لإرسال رمز التحقق
-  const sendVerificationCode = () => {
-    setSendingCode(true);
-    setTimeout(() => {
-      setSendingCode(false);
-      toast.success(
-        isArabic
-          ? "تم إرسال رمز التحقق (وهمي)"
-          : "Verification code sent (dummy)",
-      );
-    }, 1000);
-  };
-  // ...أي state آخر مستخدم في الكود...
+  const {
+    verificationCode,
+    setVerificationCode,
+    codeSent,
+    isVerified,
+    verificationTicket,
+    sendingCode,
+    verifyingCode,
+    sendVerificationCode,
+    verifyCode,
+  } = useProfileVerification(isArabic);
 
   const submit = async () => {
     try {
@@ -118,13 +97,13 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
       // إذا كان هناك دالة update في الأعلى، أبقها، وإلا احذف السطر التالي
       // await update();
       await onSaved();
-      setLoading(false);
       toast.success(
         isArabic ? "تم تحديث الحساب بنجاح" : "Account updated successfully",
       );
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error(isArabic ? "حدث خطأ غير متوقع" : "Unexpected error");
+    } finally {
       setLoading(false);
     }
   };

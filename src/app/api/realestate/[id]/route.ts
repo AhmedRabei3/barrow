@@ -5,6 +5,11 @@ import { Errors } from "../../lib/errors/errors";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { normEnum, toBool, toNumber } from "../../utils/utils";
 import { updatePropertySchema } from "@/app/validations";
+import {
+  parseManualRentalPeriods,
+  syncManualRentalStatus,
+} from "../../utils/manualRentalStatus";
+import { Availability, TransactionType, type RentType } from "@prisma/client";
 
 /**
  * @description Delete property (soft delete) and remove all related data
@@ -160,6 +165,10 @@ export async function PATCH(
       },
     };
 
+    const manualRentalPeriods = parseManualRentalPeriods(
+      formData.get("manualRentalPeriods"),
+    );
+
     // 🧪 Validation
     const parsed = updatePropertySchema.safeParse(rawData);
     if (!parsed.success) {
@@ -169,28 +178,60 @@ export async function PATCH(
 
     const { location, ...propertyData } = parsed.data;
 
-    const updatedProperty = await prisma.$transaction(async (tx) => {
-      // 🏠 تحديث العقار
-      const updated = await tx.property.update({
-        where: { id },
-        data: propertyData,
-      });
+    const { updatedProperty, manualRentalEndsAt } = await prisma.$transaction(
+      async (tx) => {
+        const nextStatus = (propertyData.status ??
+          property.status) as Availability;
+        const nextSellOrRent = (propertyData.sellOrRent ??
+          property.sellOrRent) as TransactionType;
+        const nextRentType = (
+          propertyData.rentType !== undefined
+            ? propertyData.rentType
+            : property.rentType
+        ) as RentType | null;
 
-      // 📍 تحديث الموقع (إن وُجد)
-      if (location && Object.values(location).some((v) => v !== undefined)) {
-        await tx.location.update({
-          where: { propertyId: id },
-          data: location,
+        // 🏠 تحديث العقار
+        const updated = await tx.property.update({
+          where: { id },
+          data: propertyData,
         });
-      }
 
-      return updated;
-    });
+        // 📍 تحديث الموقع (إن وُجد)
+        if (location && Object.values(location).some((v) => v !== undefined)) {
+          await tx.location.update({
+            where: { propertyId: id },
+            data: location,
+          });
+        }
+
+        const manualRentalState = await syncManualRentalStatus({
+          tx,
+          itemId: id,
+          itemType: "PROPERTY",
+          ownerId: owner.id,
+          nextStatus,
+          nextSellOrRent,
+          nextRentType,
+          manualRentalPeriods,
+        });
+
+        return {
+          updatedProperty: updated,
+          manualRentalEndsAt: manualRentalState.manualRentalEndsAt,
+        };
+      },
+    );
 
     return NextResponse.json(
       {
         success: true,
         property: updatedProperty,
+        listingState: {
+          status: updatedProperty.status,
+          sellOrRent: updatedProperty.sellOrRent,
+          rentType: updatedProperty.rentType,
+          manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
+        },
       },
       { status: 200 },
     );

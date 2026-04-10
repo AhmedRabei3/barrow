@@ -15,7 +15,9 @@ const SetReadBtn = ({ notificationId, onMarkAsRead }: Props) => {
       whileTap={{ scale: 0.95 }}
       whileHover={{ opacity: 0.85 }}
       onClick={() => onMarkAsRead(notificationId)}
-      className="text-xs hover:underline"
+      className="text-xs 
+      hover:underline
+      "
     >
       {isArabic ? "تعيين كمقروء" : "Mark as read"}
     </motion.button>

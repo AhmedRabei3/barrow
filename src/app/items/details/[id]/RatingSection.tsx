@@ -103,12 +103,15 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 border border-slate-200">
+    <div className="market-panel rounded-[26px] p-5 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-slate-800">
-          {isArabic ? "تقييم العنصر" : "Item rating"}
-        </h3>
-        <span className="flex items-center bg-green-500 px-1 rounded-md text-white text-xs sm:text-sm">
+        <div>
+          <p className="market-kicker">{isArabic ? "التقييمات" : "Ratings"}</p>
+          <h3 className="mt-2 text-base font-semibold text-white sm:text-lg">
+            {isArabic ? "تقييم العنصر" : "Item rating"}
+          </h3>
+        </div>
+        <span className="inline-flex items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300 sm:text-sm">
           {count > 0
             ? `${average.toFixed(1)} (${count})`
             : isArabic
@@ -118,7 +121,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
         </span>
       </div>
 
-      <div className="mt-3 flex items-center gap-1">
+      <div className="mt-4 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-800/90 bg-slate-950/40 p-3">
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= (myRate || Math.round(average));
           return (
@@ -127,7 +130,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
               type="button"
               onClick={() => submitRate(star)}
               disabled={saving || isSessionLoading}
-              className="p-1 disabled:opacity-60"
+              className="rounded-xl p-2 transition hover:bg-slate-800/70 disabled:opacity-60"
               aria-label={`${isArabic ? "تقييم" : "Rate"} ${star}`}
             >
               <FaStar
@@ -139,18 +142,18 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
         })}
       </div>
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-3 text-xs leading-6 text-slate-400">
         {isSessionLoading
           ? isArabic
             ? "جارٍ التحقق من حالة الحساب..."
             : "Checking account status..."
           : userId
-          ? isArabic
-            ? "يمكنك تعديل تقييمك بالنقر على عدد النجوم مرة أخرى"
-            : "You can update your rating by clicking stars again"
-          : isArabic
-            ? "لإضافة تقييم، سجّل الدخول أولًا"
-            : "Log in first to submit your rating"}
+            ? isArabic
+              ? "يمكنك تعديل تقييمك بالنقر على عدد النجوم مرة أخرى"
+              : "You can update your rating by clicking stars again"
+            : isArabic
+              ? "لإضافة تقييم، سجّل الدخول أولًا"
+              : "Log in first to submit your rating"}
       </p>
     </div>
   );

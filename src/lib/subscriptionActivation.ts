@@ -1,5 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { getEligibleReferrerId } from "@/lib/referralBenefits";
+import {
+  recordPlatformProfitLedgerEntries,
+  type PlatformProfitLedgerEntryInput,
+} from "@/lib/platformProfitLedger";
+import { PLATFORM_OPERATING_RESERVE_RATE } from "@/lib/platformProfitSummary";
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 const SUBS_MS = 30 * MS_DAY;
@@ -51,8 +56,14 @@ type ActivationTransactionClient = {
   platformBalance: {
     create: (args: Prisma.PlatformBalanceCreateArgs) => Promise<unknown>;
   };
+  chargingLog: {
+    create: (args: Prisma.ChargingLogCreateArgs) => Promise<unknown>;
+  };
   notification: {
     create: (args: Prisma.NotificationCreateArgs) => Promise<unknown>;
+  };
+  platformProfitLedger: {
+    create: (args: Prisma.PlatformProfitLedgerCreateArgs) => Promise<unknown>;
   };
 };
 
@@ -146,6 +157,16 @@ export const applySubscriptionActivation = async (
   }
 
   const platformShare = subscriptionAmount - referrerShare;
+  const operatingReserveAmount =
+    subscriptionAmount * PLATFORM_OPERATING_RESERVE_RATE;
+
+  await tx.chargingLog.create({
+    data: {
+      userId: activatedUserId,
+      type: "SUBSCRIPTION_REVENUE",
+      amount: subscriptionAmount,
+    },
+  });
 
   await tx.user.update({
     where: { id: activatedUserId },
@@ -203,6 +224,52 @@ export const applySubscriptionActivation = async (
       },
     });
   }
+
+  const ledgerEntries = [
+    {
+      type: "SUBSCRIPTION_REVENUE",
+      amount: subscriptionAmount,
+      userId: activatedUserId,
+      referenceId: activatedUserId,
+      note: `${sourceLabel} subscription revenue`,
+    },
+    {
+      type: "OPERATING_RESERVE",
+      amount: -operatingReserveAmount,
+      userId: activatedUserId,
+      referenceId: activatedUserId,
+      note: `${sourceLabel} operating reserve`,
+    },
+    referrerId && referrerShare > 0
+      ? {
+          type: "PENDING_REFERRAL_LIABILITY",
+          amount: -referrerShare,
+          userId: referrerId,
+          referenceId: activatedUserId,
+          note: `Pending referral earnings from ${sourceLabel} activation`,
+        }
+      : null,
+    referralDiscountValue > 0
+      ? {
+          type: "READY_BALANCE_BONUS_LIABILITY",
+          amount: -referralDiscountValue,
+          userId: activatedUserId,
+          referenceId: activatedUserId,
+          note: `Referral discount credited on ${sourceLabel} activation`,
+        }
+      : null,
+    losePendingEarnings && pendingEarnings > 0
+      ? {
+          type: "FORFEITED_PENDING_EARNINGS_RELEASE",
+          amount: pendingEarnings,
+          userId: activatedUserId,
+          referenceId: activatedUserId,
+          note: "Expired pending referral earnings returned to platform",
+        }
+      : null,
+  ].filter(Boolean) as PlatformProfitLedgerEntryInput[];
+
+  await recordPlatformProfitLedgerEntries(tx, ledgerEntries);
 
   await tx.notification.create({
     data: {

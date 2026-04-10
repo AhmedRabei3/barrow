@@ -5,6 +5,7 @@ import { Errors } from "../../lib/errors/errors";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { attachExtrasBatch } from "../../items/functions/helpers";
 import { requireProfileEditTicket } from "../../utils/profileEditVerification";
+import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 
 /**
  * @description Get user profile
@@ -16,6 +17,7 @@ import { requireProfileEditTicket } from "../../utils/profileEditVerification";
 export async function GET(req: NextRequest) {
   try {
     const session = await authHelper();
+    const now = new Date();
     const user = await prisma.user.findUnique({
       where: { id: session.id },
       include: {
@@ -41,6 +43,18 @@ export async function GET(req: NextRequest) {
       },
     });
     if (!user) throw Errors.UNAUTHORIZED();
+
+    const invitedUserIds = user.referrals.map((referral) => referral.newUser);
+    const activeInvitedCount = invitedUserIds.length
+      ? await prisma.user.count({
+          where: {
+            id: { in: invitedUserIds },
+            activeUntil: { gt: now },
+            isDeleted: false,
+          },
+        })
+      : 0;
+
     const items = [
       ...user.newCars,
       ...user.oldCars,
@@ -53,6 +67,14 @@ export async function GET(req: NextRequest) {
       ...user,
       password: undefined,
       items: itemsExtra,
+      referralStats: {
+        invitedCount: invitedUserIds.length,
+        activeInvitedCount,
+        inactiveInvitedCount: Math.max(
+          invitedUserIds.length - activeInvitedCount,
+          0,
+        ),
+      },
     };
     return NextResponse.json(safeUser, { status: 200 });
   } catch (error) {
@@ -125,26 +147,37 @@ export async function PUT(req: NextRequest) {
     }
 
     // ✅ تنفيذ جميع العمليات في معاملة واحدة
-    const [updatedUser, transactionLog] = await prisma.$transaction([
-      // 🔹 تحديث رصيد المستخدم (زيادة الرصيد الحالي)
-      prisma.user.update({
-        where: { id },
-        data: { balance: { increment: existingCode.balance } },
-        select: { id: true, balance: true },
-      }),
+    const { updatedUser, transactionLog } = await prisma.$transaction(
+      async (tx) => {
+        const updatedUser = await tx.user.update({
+          where: { id },
+          data: { balance: { increment: existingCode.balance } },
+          select: { id: true, balance: true },
+        });
 
-      // 🔹 حذف كود التفعيل بعد الاستخدام
-      prisma.activationCode.delete({ where: { code: existingCode.code } }),
+        await tx.activationCode.delete({ where: { code: existingCode.code } });
 
-      // 🔹 تسجيل العملية في سجل المعاملات
-      prisma.chargingLog.create({
-        data: {
-          userId: id,
-          type: "CREDIT",
-          amount: existingCode.balance,
-        },
-      }),
-    ]);
+        const transactionLog = await tx.chargingLog.create({
+          data: {
+            userId: id,
+            type: "CREDIT",
+            amount: existingCode.balance,
+          },
+        });
+
+        await recordPlatformProfitLedgerEntries(tx, [
+          {
+            type: "ACTIVATION_CODE_LIABILITY",
+            amount: -Number(existingCode.balance ?? 0),
+            userId: id,
+            referenceId: existingCode.id,
+            note: "Activation code redemption increased ready user liability",
+          },
+        ]);
+
+        return { updatedUser, transactionLog };
+      },
+    );
 
     // ✅ إرجاع الاستجابة النهائية
     return NextResponse.json({

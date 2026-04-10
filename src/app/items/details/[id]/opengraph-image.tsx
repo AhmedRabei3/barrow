@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_NAME } from "@/lib/seo";
 
 export const runtime = "nodejs";
 export const alt = "Listing preview";
@@ -20,7 +21,7 @@ export default async function OpengraphImage({
 }) {
   const { id } = await params;
 
-  let title = "Listing on Rent Anything";
+  let title = `Listing on ${SITE_NAME}`;
   let subtitle = "Rent • Buy • Sell";
   let price = "";
 
@@ -83,7 +84,7 @@ export default async function OpengraphImage({
           letterSpacing: 0.4,
         }}
       >
-        Rent Anything
+        {SITE_NAME}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

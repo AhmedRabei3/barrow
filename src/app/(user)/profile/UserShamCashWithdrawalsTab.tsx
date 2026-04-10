@@ -24,7 +24,7 @@ type WithdrawalRow = {
   transactionId: string;
   lastError: string;
   pendingPosition: number | null;
-  source: "QUEUE_PLAYWRIGHT" | "API" | "PLAYWRIGHT_DIRECT" | "MANUAL_FALLBACK";
+  source: "MANUAL_FALLBACK";
 };
 
 type WithdrawalsResponse = {

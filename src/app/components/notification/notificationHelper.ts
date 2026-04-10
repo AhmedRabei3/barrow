@@ -22,3 +22,16 @@ export function extractShamCashRequestId(
   const fallbackMatch = combined.match(/Request ID:\s*([a-z0-9]{25})/i);
   return fallbackMatch?.[1] || null;
 }
+
+export function extractShamCashActivationRequestId(
+  message: string,
+  title?: string,
+): string | null {
+  const combined = `${title || ""}\n${message || ""}`;
+  const tokenMatch = combined.match(/SCA_REQUEST_ID:([a-z0-9]{25})/i);
+  if (tokenMatch?.[1]) {
+    return tokenMatch[1];
+  }
+
+  return null;
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { MdOutlineTune } from "react-icons/md";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 type FinancialReportRow = {
@@ -28,6 +29,53 @@ type AdminWithdrawalRow = {
   userEmail: string;
 };
 
+type ChannelBreakdownRow = {
+  channel: Exclude<ReportChannel, "ALL">;
+  amount: number;
+  count: number;
+};
+
+type SubscriptionMethodBreakdownRow = {
+  method:
+    | "PAYPAL"
+    | "SHAMCASH"
+    | "CARD"
+    | "BANK_TRANSFER"
+    | "CRYPTO"
+    | "BALANCE"
+    | "OTHER";
+  amount: number;
+  count: number;
+  percentage: number;
+};
+
+type ProfitLedgerBreakdownRow = {
+  type: string;
+  amount: number;
+  count: number;
+};
+
+type ProfitLedgerEntryRow = {
+  id: string;
+  type: string;
+  amount: number;
+  createdAt: string;
+  referenceId: string;
+  note: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+};
+
+type MonthlyTrendRow = {
+  monthKey: string;
+  receivedAmount: number;
+  paidOutAmount: number;
+  netProfitAmount: number;
+  receivedCount: number;
+  paidOutCount: number;
+};
+
 type FinancialReportResponse = {
   range: {
     dateFrom: string;
@@ -51,12 +99,30 @@ type FinancialReportResponse = {
     paidOutViaPaypal: number;
     paidOutViaShamCash: number;
     paidOutManualSettlements: number;
+    readyUserBalances: number;
+    pendingReferralEarnings: number;
+    totalLiveUserLiabilities: number;
+    operatingReserveAmount: number;
+    previousOwnerWithdrawalsTotal: number;
+    availableToWithdraw: number;
+    totalSubscribers: number;
+    activeSubscribers: number;
+    pendingManualWithdrawalAmount: number;
+    pendingManualWithdrawalCount: number;
   };
   walletEstimates: {
     paypal: number;
     shamCash: number;
   };
+  breakdowns: {
+    inflowByChannel: ChannelBreakdownRow[];
+    outflowByChannel: ChannelBreakdownRow[];
+    subscriptionMethodBreakdown: SubscriptionMethodBreakdownRow[];
+    profitLedgerBreakdown: ProfitLedgerBreakdownRow[];
+  };
+  monthlyTrend: MonthlyTrendRow[];
   adminWithdrawals: AdminWithdrawalRow[];
+  recentProfitLedgerEntries: ProfitLedgerEntryRow[];
   rows: FinancialReportRow[];
 };
 
@@ -132,6 +198,86 @@ const FinancialReportPanel = () => {
       return channelValue;
     },
     [t],
+  );
+
+  const subscriptionMethodLabel = useCallback(
+    (method: SubscriptionMethodBreakdownRow["method"]) => {
+      if (method === "PAYPAL") return "PayPal";
+      if (method === "SHAMCASH") return "ShamCash";
+      if (method === "CARD") return t("بطاقة", "Card");
+      if (method === "BANK_TRANSFER")
+        return t("تحويل/كود تفعيل", "Transfer / activation code");
+      if (method === "CRYPTO") return t("عملة رقمية", "Crypto");
+      if (method === "BALANCE") return t("الرصيد", "Balance");
+      return t("أخرى", "Other");
+    },
+    [t],
+  );
+
+  const profitLedgerTypeLabel = useCallback(
+    (type: string) => {
+      if (type === "SUBSCRIPTION_REVENUE") {
+        return t("إيراد اشتراكات", "Subscription revenue");
+      }
+      if (type === "OPERATING_RESERVE") {
+        return t("احتياطي تشغيل", "Operating reserve");
+      }
+      if (type === "PENDING_REFERRAL_LIABILITY") {
+        return t("التزام إحالات معلقة", "Pending referral liability");
+      }
+      if (type === "READY_BALANCE_BONUS_LIABILITY") {
+        return t("رصيد مكافآت جاهز", "Ready bonus balance liability");
+      }
+      if (type === "ACTIVATION_CODE_LIABILITY") {
+        return t("شحن كود تفعيل", "Activation code liability");
+      }
+      if (type === "TRANSACTION_PAYOUT_LIABILITY") {
+        return t("تحرير رصيد مالك", "Owner payout liability");
+      }
+      if (type === "TRANSACTION_REFUND_LIABILITY") {
+        return t("استرداد معاملة", "Transaction refund liability");
+      }
+      if (type === "USER_WITHDRAWAL_LIABILITY_RELEASE") {
+        return t(
+          "تحرير التزام بسحب مستخدم",
+          "User withdrawal liability release",
+        );
+      }
+      if (type === "FORFEITED_PENDING_EARNINGS_RELEASE") {
+        return t("إرجاع إحالات منتهية", "Expired pending earnings release");
+      }
+      if (type === "MANUAL_REWARD_LIABILITY") {
+        return t("مكافأة يدوية", "Manual reward liability");
+      }
+      if (type === "RANDOM_LOW_REWARD_LIABILITY") {
+        return t("مكافأة الأقل ربحاً", "Random low-earning reward liability");
+      }
+      return type;
+    },
+    [t],
+  );
+
+  const profitLedgerEffectLabel = useCallback(
+    (amount: number) =>
+      amount >= 0
+        ? t("يزيد صافي الربح", "Increases net profit")
+        : t("يخفض صافي الربح", "Reduces net profit"),
+    [t],
+  );
+
+  const formatMonthLabel = useCallback(
+    (monthKey: string) => {
+      const date = new Date(`${monthKey}-01T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) {
+        return monthKey;
+      }
+
+      return date.toLocaleDateString(isArabic ? "ar" : "en", {
+        year: "numeric",
+        month: "short",
+      });
+    },
+    [isArabic],
   );
 
   const loadReport = useCallback(async () => {
@@ -224,26 +370,45 @@ const FinancialReportPanel = () => {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-end">
-          <label className="text-sm text-slate-600 dark:text-slate-300">
+      <div className="admin-card rounded-[28px] p-4 sm:p-5">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="admin-kicker">
+              {t("فلاتر التقرير", "Report filters")}
+            </div>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-white">
+              {t("تصفية الحركة المالية", "Filter financial activity")}
+            </h2>
+          </div>
+
+          <div className="admin-card-soft inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-xs text-zinc-300">
+            <MdOutlineTune className="text-orange-300" size={16} />
+            <span>
+              {t("طريقة الدفع الحالية:", "Current payment method:")}{" "}
+              {channelLabel(channel)}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <label className="text-sm text-slate-300">
             {t("من تاريخ", "From")}
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+              className="admin-input mt-1 w-full rounded-xl px-3 py-2 text-sm"
             />
           </label>
 
-          <label className="text-sm text-slate-600 dark:text-slate-300">
-            {t("القناة", "Channel")}
+          <label className="text-sm text-slate-300">
+            {t("طريقة الدفع", "Payment Method")}
             <select
               value={channel}
               onChange={(event) =>
                 setChannel(event.target.value as ReportChannel)
               }
-              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+              className="admin-select mt-1 w-full rounded-xl px-3 py-2 text-sm"
             >
               <option value="ALL">{t("الكل", "All")}</option>
               <option value="PAYPAL">PayPal</option>
@@ -253,20 +418,20 @@ const FinancialReportPanel = () => {
             </select>
           </label>
 
-          <label className="text-sm text-slate-600 dark:text-slate-300">
+          <label className="text-sm text-slate-300">
             {t("إلى تاريخ", "To")}
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+              className="admin-input mt-1 w-full rounded-xl px-3 py-2 text-sm"
             />
           </label>
 
           <button
             type="button"
             onClick={loadReport}
-            className="rounded-lg bg-linear-to-r from-sky-600 to-cyan-600 text-white text-sm px-4 py-2.5 hover:from-sky-700 hover:to-cyan-700"
+            className="admin-btn-primary rounded-xl px-4 py-2.5 text-sm"
           >
             {t("تحديث التقرير", "Refresh report")}
           </button>
@@ -274,7 +439,7 @@ const FinancialReportPanel = () => {
           <button
             type="button"
             onClick={exportCsv}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="admin-btn-secondary rounded-xl px-4 py-2.5 text-sm"
           >
             {t("تصدير CSV", "Export CSV")}
           </button>
@@ -284,14 +449,14 @@ const FinancialReportPanel = () => {
           <button
             type="button"
             onClick={applyThisWeekRange}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="admin-card-soft rounded-xl px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800/80"
           >
             {t("هذا الأسبوع", "This week")}
           </button>
           <button
             type="button"
             onClick={applyThisMonthRange}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="admin-card-soft rounded-xl px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800/80"
           >
             {t("هذا الشهر", "This month")}
           </button>
@@ -310,6 +475,10 @@ const FinancialReportPanel = () => {
         <KpiCard
           title={t("الربح الصافي", "Net profit")}
           value={`$${formatMoney(data?.summary.netProfitAmount || 0)}`}
+        />
+        <KpiCard
+          title={t("المصاريف التشغيلية 10%", "10% operating reserve")}
+          value={`$${formatMoney(data?.summary.operatingReserveAmount || 0)}`}
         />
         <KpiCard
           title={t("رصيد PayPal (تقديري)", "PayPal wallet (estimated)")}
@@ -339,56 +508,405 @@ const FinancialReportPanel = () => {
           title={t("تسويات يدوية", "Manual settlements")}
           value={`$${formatMoney(data?.summary.paidOutManualSettlements || 0)}`}
         />
+        <KpiCard
+          title={t("أرصدة المستخدمين الجاهزة", "Ready user balances")}
+          value={`$${formatMoney(data?.summary.readyUserBalances || 0)}`}
+        />
+        <KpiCard
+          title={t("إحالات معلقة", "Pending referral earnings")}
+          value={`$${formatMoney(data?.summary.pendingReferralEarnings || 0)}`}
+        />
+        <KpiCard
+          title={t("الالتزامات الحية", "Live liabilities")}
+          value={`$${formatMoney(data?.summary.totalLiveUserLiabilities || 0)}`}
+        />
+        <KpiCard
+          title={t("سحوبات المالك السابقة", "Previous owner withdrawals")}
+          value={`$${formatMoney(data?.summary.previousOwnerWithdrawalsTotal || 0)}`}
+        />
+        <KpiCard
+          title={t("المتاح لسحب المالك", "Owner withdrawable balance")}
+          value={`$${formatMoney(data?.summary.availableToWithdraw || 0)}`}
+        />
+        <KpiCard
+          title={t(
+            "طلبات السحب اليدوي المفتوحة",
+            "Open manual withdrawal requests",
+          )}
+          value={`${Number(data?.summary.pendingManualWithdrawalCount || 0)}`}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2">
+        <div className="admin-card-soft rounded-3xl p-4">
+          <h3 className="mb-2 text-sm font-semibold text-zinc-100">
             {t("إجماليات اليوم", "Daily totals")}
           </h3>
-          <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+          <div className="space-y-1 text-sm text-zinc-300">
             <p>
               {t("المستلم", "Received")}: $
               {formatMoney(data?.summary.todayReceivedAmount || 0)}
             </p>
-            <p>
-              {t("المدفوع", "Paid out")}: $
-              {formatMoney(data?.summary.todayPaidOutAmount || 0)}
-            </p>
-            <p className="font-semibold text-slate-800 dark:text-slate-100">
-              {t("الصافي", "Net")}: $
+            <p className="font-semibold text-white">
+              {t("بعد خصم 10% تشغيل", "After 10% reserve")}: $
               {formatMoney(data?.summary.todayNetProfitAmount || 0)}
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2">
+        <div className="admin-card-soft rounded-3xl p-4">
+          <h3 className="mb-2 text-sm font-semibold text-zinc-100">
             {t("إجماليات الأسبوع", "Weekly totals")}
           </h3>
-          <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+          <div className="space-y-1 text-sm text-zinc-300">
             <p>
               {t("المستلم", "Received")}: $
               {formatMoney(data?.summary.weekReceivedAmount || 0)}
             </p>
-            <p>
-              {t("المدفوع", "Paid out")}: $
-              {formatMoney(data?.summary.weekPaidOutAmount || 0)}
-            </p>
-            <p className="font-semibold text-slate-800 dark:text-slate-100">
-              {t("الصافي", "Net")}: $
+            <p className="font-semibold text-white">
+              {t("بعد خصم 10% تشغيل", "After 10% reserve")}: $
               {formatMoney(data?.summary.weekNetProfitAmount || 0)}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="admin-card-soft rounded-3xl p-4">
+          <h3 className="mb-2 text-sm font-semibold text-zinc-100">
+            {t("لقطة تشغيلية حالية", "Current operational snapshot")}
+          </h3>
+          <div className="space-y-1 text-sm text-zinc-300">
+            <p>
+              {t("إجمالي المشتركين", "Total subscribers")}:{" "}
+              {data?.summary.totalSubscribers || 0}
+            </p>
+            <p>
+              {t("المشتركون النشطون", "Active subscribers")}:{" "}
+              {data?.summary.activeSubscribers || 0}
+            </p>
+            <p>
+              {t(
+                "مبلغ طلبات السحب اليدوي المفتوحة",
+                "Open manual withdrawal amount",
+              )}
+              : ${formatMoney(data?.summary.pendingManualWithdrawalAmount || 0)}
+            </p>
+            <p>
+              {t(
+                "صافي الربح = المستلم - الالتزامات - 10% تشغيل",
+                "Net profit = received - live liabilities - 10% reserve",
+              )}
+            </p>
+            <p>
+              {t(
+                "المتاح لسحب المالك = صافي الربح - سحوبات المالك السابقة",
+                "Owner withdrawable = net profit - previous owner withdrawals",
+              )}
+            </p>
+          </div>
+        </div>
+
+        <BreakdownCard
+          title={t("توزيع الوارد حسب طريقة الدفع", "Inflow by payment method")}
+          rows={data?.breakdowns.inflowByChannel || []}
+          channelLabel={channelLabel}
+          formatMoney={formatMoney}
+        />
+
+        <BreakdownCard
+          title={t("توزيع الصادر حسب طريقة الدفع", "Outflow by payment method")}
+          rows={data?.breakdowns.outflowByChannel || []}
+          channelLabel={channelLabel}
+          formatMoney={formatMoney}
+        />
+
+        <SubscriptionMethodCard
+          title={t("توزيع طرق الاشتراك", "Subscription method percentages")}
+          rows={data?.breakdowns.subscriptionMethodBreakdown || []}
+          methodLabel={subscriptionMethodLabel}
+          formatMoney={formatMoney}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
+        <div className="admin-card rounded-[28px] p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-zinc-100">
+              {t("تفصيل دفتر الربح", "Profit ledger breakdown")}
+            </h3>
+            <p className="text-xs text-zinc-500">
+              {t(
+                "القيم الموجبة ترفع الربح والقيم السالبة تمثل احتياطياً أو التزاماً على المنصة",
+                "Positive values raise profit while negative values represent reserve or platform liabilities",
+              )}
+            </p>
+          </div>
+
+          {!data || data.breakdowns.profitLedgerBreakdown.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              {t(
+                "لا توجد حركات ledger ضمن النطاق",
+                "No ledger activity in range",
+              )}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="admin-table w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-2 text-right">
+                      {t("البند", "Entry")}
+                    </th>
+                    <th className="px-2 py-2 text-right">
+                      {t("الأثر", "Effect")}
+                    </th>
+                    <th className="px-2 py-2 text-right">
+                      {t("الصافي", "Net")}
+                    </th>
+                    <th className="px-2 py-2 text-right">
+                      {t("العدد", "Count")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.breakdowns.profitLedgerBreakdown.map((row) => (
+                    <tr key={row.type}>
+                      <td className="px-2 py-2">
+                        {profitLedgerTypeLabel(row.type)}
+                      </td>
+                      <td className="px-2 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs ${
+                            row.amount >= 0
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {profitLedgerEffectLabel(row.amount)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 font-semibold">
+                        ${formatMoney(row.amount)}
+                      </td>
+                      <td className="px-2 py-2">{row.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="admin-card-soft rounded-3xl p-4">
+          <h3 className="mb-3 text-sm font-semibold text-zinc-100">
+            {t("معادلة الصافي الحالية", "Current net formula")}
+          </h3>
+          <div className="space-y-2 text-sm text-zinc-300">
+            <div className="flex items-center justify-between gap-3">
+              <span>{t("الإيراد المستلم", "Received revenue")}</span>
+              <span className="font-semibold text-white">
+                ${formatMoney(data?.summary.receivedAmount || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>{t("الالتزامات الحية", "Live liabilities")}</span>
+              <span className="font-semibold text-amber-300">
+                -${formatMoney(data?.summary.totalLiveUserLiabilities || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>{t("احتياطي التشغيل", "Operating reserve")}</span>
+              <span className="font-semibold text-amber-300">
+                -${formatMoney(data?.summary.operatingReserveAmount || 0)}
+              </span>
+            </div>
+            <div className="h-px bg-white/10" />
+            <div className="flex items-center justify-between gap-3 text-base">
+              <span className="font-semibold text-white">
+                {t("صافي الربح", "Net profit")}
+              </span>
+              <span className="font-black text-white">
+                ${formatMoney(data?.summary.netProfitAmount || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>
+                {t("سحوبات المالك السابقة", "Previous owner withdrawals")}
+              </span>
+              <span className="font-semibold text-rose-300">
+                -$
+                {formatMoney(data?.summary.previousOwnerWithdrawalsTotal || 0)}
+              </span>
+            </div>
+            <div className="h-px bg-white/10" />
+            <div className="flex items-center justify-between gap-3 text-base">
+              <span className="font-semibold text-white">
+                {t("المتاح لسحب المالك", "Owner withdrawable balance")}
+              </span>
+              <span className="font-black text-emerald-300">
+                ${formatMoney(data?.summary.availableToWithdraw || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-card rounded-[28px] p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-zinc-100">
+            {t("آخر قيود ledger", "Recent ledger entries")}
+          </h3>
+          <p className="text-xs text-zinc-500">
+            {t(
+              "آخر 30 حركة دخلت في حساب الربح التاريخي",
+              "Latest 30 entries used in historical profit accounting",
+            )}
+          </p>
+        </div>
+
+        {!data || data.recentProfitLedgerEntries.length === 0 ? (
+          <p className="text-sm text-zinc-500">
+            {t("لا توجد قيود حديثة", "No recent ledger entries")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-right py-2 px-2">{t("النوع", "Type")}</th>
+                  <th className="text-right py-2 px-2">
+                    {t("المبلغ", "Amount")}
+                  </th>
+                  <th className="text-right py-2 px-2">
+                    {t("المستخدم", "User")}
+                  </th>
+                  <th className="text-right py-2 px-2">
+                    {t("ملاحظة", "Note")}
+                  </th>
+                  <th className="text-right py-2 px-2">
+                    {t("التاريخ", "Date")}
+                  </th>
+                  <th className="text-right py-2 px-2">
+                    {t("المرجع", "Reference")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentProfitLedgerEntries.map((row) => (
+                  <tr key={row.id}>
+                    <td className="py-2 px-2">
+                      {profitLedgerTypeLabel(row.type)}
+                    </td>
+                    <td className="py-2 px-2 font-semibold">
+                      <span
+                        className={
+                          row.amount >= 0
+                            ? "text-emerald-300"
+                            : "text-amber-300"
+                        }
+                      >
+                        ${formatMoney(row.amount)}
+                      </span>
+                    </td>
+                    <td className="py-2 px-2">
+                      <div className="leading-5">
+                        <p>{row.userName || "-"}</p>
+                        <p className="text-xs text-zinc-500">
+                          {row.userEmail || row.userId || "-"}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="py-2 px-2 text-zinc-300">
+                      {row.note || "-"}
+                    </td>
+                    <td className="py-2 px-2">
+                      {new Date(row.createdAt).toLocaleString(
+                        isArabic ? "ar" : "en",
+                      )}
+                    </td>
+                    <td className="py-2 px-2 font-mono text-xs">
+                      {row.referenceId || row.id}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="admin-card rounded-[28px] p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-zinc-100">
+            {t("الاتجاه الشهري", "Monthly trend")}
+          </h3>
+          <p className="text-xs text-zinc-500">
+            {t(
+              "يعرض الوارد والصادر والصافي ضمن الفترة المحددة",
+              "Shows inflow, outflow, and net values within the selected range",
+            )}
+          </p>
+        </div>
+
+        {!data || data.monthlyTrend.length === 0 ? (
+          <p className="text-sm text-zinc-500">
+            {t("لا توجد بيانات شهرية ضمن النطاق", "No monthly data in range")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="px-2 py-2 text-right">
+                    {t("الشهر", "Month")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
+                    {t("الوارد", "Inflow")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
+                    {t("الصادر", "Outflow")}
+                  </th>
+                  <th className="px-2 py-2 text-right">{t("الصافي", "Net")}</th>
+                  <th className="px-2 py-2 text-right">
+                    {t("عدد الوارد", "Inflow count")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
+                    {t("عدد الصادر", "Outflow count")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.monthlyTrend.map((row) => (
+                  <tr key={row.monthKey}>
+                    <td className="px-2 py-2">
+                      {formatMonthLabel(row.monthKey)}
+                    </td>
+                    <td className="px-2 py-2">
+                      ${formatMoney(row.receivedAmount)}
+                    </td>
+                    <td className="px-2 py-2">
+                      ${formatMoney(row.paidOutAmount)}
+                    </td>
+                    <td className="px-2 py-2 font-semibold">
+                      ${formatMoney(row.netProfitAmount)}
+                    </td>
+                    <td className="px-2 py-2">{row.receivedCount}</td>
+                    <td className="px-2 py-2">{row.paidOutCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="admin-card rounded-[28px] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <h3 className="text-sm font-semibold text-zinc-100">
             {t("سحوبات الأدمن من الصندوق", "Admin fund withdrawals")}
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-zinc-500">
             {t("إجمالي السحوبات اليدوية", "Total manual withdrawals")}: $
             {formatMoney(
               (data?.adminWithdrawals || []).reduce(
@@ -400,7 +918,7 @@ const FinancialReportPanel = () => {
         </div>
 
         {!data || data.adminWithdrawals.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-zinc-500">
             {t(
               "لا توجد سحوبات يدوية ضمن الفترة المحددة",
               "No manual admin withdrawals in selected range",
@@ -408,9 +926,9 @@ const FinancialReportPanel = () => {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-slate-500 dark:text-slate-400">
-                <tr className="border-b border-slate-200 dark:border-slate-700">
+            <table className="admin-table w-full text-sm">
+              <thead>
+                <tr>
                   <th className="text-right py-2 px-2">
                     {t("المبلغ", "Amount")}
                   </th>
@@ -425,15 +943,12 @@ const FinancialReportPanel = () => {
               </thead>
               <tbody>
                 {data.adminWithdrawals.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200"
-                  >
+                  <tr key={row.id}>
                     <td className="py-2 px-2">${formatMoney(row.amount)}</td>
                     <td className="py-2 px-2">
                       <div className="leading-5">
                         <p>{row.userName || "-"}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-zinc-500">
                           {row.userEmail || "-"}
                         </p>
                       </div>
@@ -452,13 +967,13 @@ const FinancialReportPanel = () => {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">
+      <div className="admin-card rounded-[28px] p-4">
+        <h3 className="mb-3 text-sm font-semibold text-zinc-100">
           {t("حركات التقرير", "Report movements")}
         </h3>
 
         {!data || data.rows.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-zinc-500">
             {t(
               "لا توجد عمليات ضمن الفترة المحددة",
               "No records in selected range",
@@ -466,12 +981,12 @@ const FinancialReportPanel = () => {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-slate-500 dark:text-slate-400">
-                <tr className="border-b border-slate-200 dark:border-slate-700">
+            <table className="admin-table w-full text-sm">
+              <thead>
+                <tr>
                   <th className="text-right py-2 px-2">{t("النوع", "Type")}</th>
                   <th className="text-right py-2 px-2">
-                    {t("القناة", "Channel")}
+                    {t("طريقة الدفع", "Payment Method")}
                   </th>
                   <th className="text-right py-2 px-2">
                     {t("المبلغ", "Amount")}
@@ -489,10 +1004,7 @@ const FinancialReportPanel = () => {
               </thead>
               <tbody>
                 {data.rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200"
-                  >
+                  <tr key={row.id}>
                     <td className="py-2 px-2">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
@@ -511,7 +1023,7 @@ const FinancialReportPanel = () => {
                     <td className="py-2 px-2">
                       <div className="leading-5">
                         <p>{row.userName || "-"}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-zinc-500">
                           {row.userEmail || "-"}
                         </p>
                       </div>
@@ -536,13 +1048,90 @@ const FinancialReportPanel = () => {
 };
 
 const KpiCard = ({ title, value }: { title: string; value: string }) => (
-  <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:to-slate-900">
-    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+  <div className="admin-stat-card rounded-3xl p-4">
+    <p className="text-xs font-medium dark:text-zinc-100 text-slate-600">
       {title}
     </p>
-    <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+    <p className="mt-2 text-2xl font-bold tracking-tight dark:text-white text-slate-900">
       {value}
     </p>
+  </div>
+);
+
+const BreakdownCard = ({
+  title,
+  rows,
+  channelLabel,
+  formatMoney,
+}: {
+  title: string;
+  rows: ChannelBreakdownRow[];
+  channelLabel: (channel: string) => string;
+  formatMoney: (amount: number) => string;
+}) => (
+  <div className="admin-card-soft rounded-3xl p-4">
+    <h3 className="mb-3 text-sm font-semibold text-zinc-500 dark:text-slate-200">
+      {title}
+    </h3>
+    <div className="space-y-2 text-sm text-zinc-300">
+      {rows.map((row) => (
+        <div
+          key={row.channel}
+          className="rounded-2xl border border-zinc-800 dark:bg-zinc-950/65 bg-zinc-100 px-3 py-2"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium dark:text-zinc-100 text-slate-500">
+                {channelLabel(row.channel)}
+              </p>
+              <p className="text-xs dark:text-zinc-200 text-zinc-500">
+                {row.count} عمليات
+              </p>
+            </div>
+            <p className="font-semibold dark:text-white text-slate-500">
+              ${formatMoney(row.amount)}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const SubscriptionMethodCard = ({
+  title,
+  rows,
+  methodLabel,
+  formatMoney,
+}: {
+  title: string;
+  rows: SubscriptionMethodBreakdownRow[];
+  methodLabel: (method: SubscriptionMethodBreakdownRow["method"]) => string;
+  formatMoney: (amount: number) => string;
+}) => (
+  <div className="admin-card-soft rounded-3xl p-4">
+    <h3 className="mb-3 text-sm font-semibold text-zinc-100">{title}</h3>
+    <div className="space-y-2 text-sm text-zinc-300">
+      {rows.map((row) => (
+        <div
+          key={row.method}
+          className="rounded-2xl border border-zinc-800 dark:bg-zinc-950/65 bg-zinc-100 px-3 py-2"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-medium dark:text-zinc-100 text-slate-500">
+              {methodLabel(row.method)}
+            </p>
+            <p className="font-semibold text-orange-300">
+              {row.percentage.toFixed(2)}%
+            </p>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-3 text-xs dark:text-zinc-200 text-zinc-500">
+            <span>{row.count} عمليات</span>
+            <span>${formatMoney(row.amount)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 

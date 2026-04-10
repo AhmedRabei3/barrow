@@ -27,14 +27,14 @@ const ContactModal = ({
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 "
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md"
     >
-      <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-        <h4 className="text-lg font-semibold">
+      <div className="market-panel w-full max-w-md rounded-[26px] p-6 space-y-4">
+        <h4 className="text-lg font-semibold text-white">
           {isArabic ? "التواصل مع المالك" : "Contact owner"}
         </h4>
 
-        <p className="text-sm text-gray-600">
+        <p className="text-sm leading-6 text-slate-400">
           {isArabic
             ? "سيتم إرسال رقم هاتفك مباشرة إلى مالك العنصر ليتواصل معك."
             : "Your phone number will be sent directly to the owner so they can contact you."}
@@ -43,14 +43,14 @@ const ContactModal = ({
         <input
           type="tel"
           placeholder={isArabic ? "رقم الهاتف" : "Phone number"}
-          className="w-full border rounded-md p-2"
+          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
         />
 
         <textarea
           placeholder={isArabic ? "ملاحظة (اختياري)" : "Note (optional)"}
-          className="w-full border rounded-md p-2"
+          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
           rows={3}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -60,7 +60,7 @@ const ContactModal = ({
           <button
             onClick={submitContact}
             disabled={loading}
-            className="flex-1 bg-emerald-600 text-white py-2 rounded-md"
+            className="market-primary-btn flex-1 rounded-2xl py-3 text-sm font-bold disabled:opacity-60"
           >
             {loading
               ? isArabic
@@ -73,7 +73,7 @@ const ContactModal = ({
 
           <button
             onClick={() => setOpen(false)}
-            className="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors"
+            className="market-secondary-btn flex-1 rounded-2xl py-3 text-sm font-bold transition-colors"
           >
             {isArabic ? "إلغاء" : "Cancel"}
           </button>

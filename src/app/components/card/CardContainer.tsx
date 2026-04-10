@@ -4,17 +4,26 @@ import { motion } from "framer-motion";
 interface CardContainerProps {
   setIsPaused: (paused: boolean) => void;
   children: React.ReactNode;
+  isOverlayOpen?: boolean;
 }
 
-const CardContainer = ({ setIsPaused, children }: CardContainerProps) => {
+const CardContainer = ({
+  setIsPaused,
+  children,
+  isOverlayOpen = false,
+}: CardContainerProps) => {
   return (
     <motion.div
-      className="
-      group w-full h-full relative flex flex-col bg-transparent rounded-2xl cursor-pointer
-      transition-all duration-300 hover:-translate-y-0.5
-      hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]
-      hover:ring-1 hover:ring-slate-200/90 dark:hover:ring-slate-700
-      active:scale-[0.995]"
+      className={`
+      group relative flex h-full w-full cursor-pointer 
+      flex-col overflow-visible rounded-[18px]
+      dark:border dark:border-slate-800 dark:bg-slate-950/95
+      bg-slate-200
+      shadow-[0_18px_45px_rgba(2,6,23,0.26)] 
+      transition-all duration-300 hover:-translate-y-1
+      hover:border-sky-400/30 
+      hover:shadow-[0_26px_60px_rgba(2,6,23,0.34)]
+      active:scale-[0.995] ${isOverlayOpen ? "z-[80]" : "z-0"}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       initial={{ opacity: 0, scale: 0.97, y: 14 }}

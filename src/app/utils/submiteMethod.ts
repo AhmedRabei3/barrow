@@ -54,8 +54,7 @@ const submitMethod = async ({
     const formData = new FormData();
 
     for (const [key, value] of Object.entries(data)) {
-      if (value === undefined || value === null) continue;
-      if (key === "images") continue;
+      if (value === undefined || value === null || key === "images") continue;
       if (Array.isArray(value)) {
         formData.append(key, JSON.stringify(value));
         continue;

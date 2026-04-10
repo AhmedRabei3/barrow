@@ -13,15 +13,14 @@ import SearchBar from "./search-box/SearchBar";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import NotificationBell from "../notification/NotificationBell";
-import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
 import { useSearchHelper } from "../../hooks/useSearchHelper";
 
 const TOP_BAR_CLASS =
-  "fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-950/90";
+  "fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-950/90";
 
 const DESKTOP_GRID_CLASS =
-  "hidden lg:grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-1 py-2";
+  "hidden lg:grid grid-cols-[minmax(0,1fr)_minmax(28rem,42rem)_minmax(0,1fr)] items-center gap-4 px-1 py-2";
 
 const MOBILE_GRID_CLASS =
   "lg:hidden grid grid-cols-[4rem_minmax(0,1fr)_4rem] items-center gap-2 px-1 py-2.5";
@@ -57,7 +56,7 @@ const Navbar = ({
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith("/admin");
   const scrollDir = useScrollDirection();
-  const { isArabic } = useAppPreferences();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const helper = useSearchHelper();
 
@@ -97,11 +96,11 @@ const Navbar = ({
     >
       <Container>
         <div dir="ltr" className={DESKTOP_GRID_CLASS}>
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <div className="flex items-center gap-2 min-w-0 shrink-0 justify-self-start">
             <Logo />
           </div>
 
-          <div className="justify-self-center w-full">
+          <div className="justify-self-center w-full min-w-0">
             <SearchBar
               category={catName}
               setQ={setQ}
@@ -115,7 +114,7 @@ const Navbar = ({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 min-w-0">
+          <div className="flex items-center justify-end gap-2 min-w-0 justify-self-end">
             <NotificationBell />
             <LanguageToggle />
             <ThemeToggle />
@@ -125,7 +124,7 @@ const Navbar = ({
           </div>
         </div>
 
-        <div dir={isArabic ? "rtl" : "ltr"} className={MOBILE_GRID_CLASS}>
+        <div dir="ltr" className={MOBILE_GRID_CLASS}>
           <div className="flex items-center justify-center">
             <UserMenu />
           </div>

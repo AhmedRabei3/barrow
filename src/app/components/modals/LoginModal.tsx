@@ -21,6 +21,9 @@ const LoginModal = () => {
   const registerModal = useRegisterModal();
   const loginModal = useLoginModal();
   const [isLoading, setIsLoading] = useState(false);
+  const [activationMessage, setActivationMessage] = useState<string | null>(
+    null,
+  );
   const { update, status } = useSession();
   const { isArabic } = useAppPreferences();
 
@@ -44,7 +47,7 @@ const LoginModal = () => {
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     try {
       setIsLoading(true);
-      const result = await loginAction(data as LoginUserInput , isArabic);
+      const result = await loginAction(data as LoginUserInput, isArabic);
 
       if (result.success) {
         const { email, password } = data;
@@ -58,6 +61,44 @@ const LoginModal = () => {
             isArabic ? "بيانات الاعتماد غير صحيحة" : "Invalid credentials",
           );
           return;
+        }
+
+        // تحقق من وجود pendingEmailToken في localStorage
+        const pendingToken =
+          typeof window !== "undefined"
+            ? localStorage.getItem("pendingEmailToken")
+            : null;
+        if (pendingToken) {
+          try {
+            const res = await fetch("/api/verify-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: pendingToken }),
+            });
+            const result = await res.json();
+            if (result.success) {
+              setActivationMessage(
+                isArabic
+                  ? "تم تفعيل البريد الإلكتروني بنجاح!"
+                  : "Email verified successfully!",
+              );
+            } else {
+              setActivationMessage(
+                result.message ||
+                  (isArabic
+                    ? "فشل تفعيل البريد الإلكتروني."
+                    : "Email verification failed."),
+              );
+            }
+          } catch (e) {
+            console.error("Error during email verification:", e);
+            setActivationMessage(
+              isArabic
+                ? "حدث خطأ أثناء تفعيل البريد الإلكتروني."
+                : "An error occurred during email verification.",
+            );
+          }
+          localStorage.removeItem("pendingEmailToken");
         }
 
         toast.success(
@@ -141,16 +182,33 @@ const LoginModal = () => {
   }
 
   return (
-    <Modal
-      disabled={isLoading}
-      isOpen={loginModal.isOpen}
-      title={isArabic ? "تسجيل الدخول" : "Login"}
-      actionLabel={isArabic ? "متابعة" : "Continue"}
-      onClose={loginModal.onClose}
-      onSubmit={handleSubmit(onSubmit)}
-      body={bodyContent}
-      footer={footerContent}
-    />
+    <>
+      <Modal
+        disabled={isLoading}
+        isOpen={loginModal.isOpen}
+        title={isArabic ? "تسجيل الدخول" : "Login"}
+        actionLabel={isArabic ? "متابعة" : "Continue"}
+        onClose={loginModal.onClose}
+        onSubmit={handleSubmit(onSubmit)}
+        body={bodyContent}
+        footer={footerContent}
+      />
+      {activationMessage && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white border border-emerald-300 rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-lg font-semibold text-emerald-700 mb-2">
+              {activationMessage}
+            </h2>
+            <button
+              className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-md"
+              onClick={() => setActivationMessage(null)}
+            >
+              {isArabic ? "إغلاق" : "Close"}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

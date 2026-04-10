@@ -1,8 +1,11 @@
 "use client";
 
 import { Dispatch, SetStateAction } from "react";
-import { request } from "@/app/utils/axios";
 import { $Enums } from "@prisma/client";
+import type {
+  ItemSearchItemDto,
+  ItemSearchResponseDto,
+} from "@/features/items/types";
 import toast from "react-hot-toast";
 
 interface FetchItemsParams {
@@ -23,30 +26,13 @@ interface FetchItemsParams {
   signal?: AbortSignal;
 }
 
-export type RawItem = {
-  id: string;
-  type?: $Enums.ItemType;
-  category?: { type?: $Enums.ItemType };
-  name?: string;
-  title?: string;
-  brand?: string;
-  model?: string;
-  year?: number;
-  price?: number;
-  sellOrRent?: string;
-  rentType?: string | null;
-  images?: Array<{ url?: string }>;
-  location?: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-    city?: string;
-    country?: string;
-  } | null;
-  ratingCount?: number;
-  averageRating?: number;
-  isFeatured?: boolean;
-};
+export type RawItem = ItemSearchItemDto;
+
+type FetchItemsResponse =
+  | ItemSearchResponseDto
+  | { success?: false; message?: string };
+
+const MAX_ITEMS_LIMIT = 50;
 
 export type FormattedItem = {
   item: {
@@ -60,6 +46,24 @@ export type FormattedItem = {
     sellOrRent: string;
     rentType: string | null;
     isFeatured?: boolean;
+    // Property-specific
+    bedrooms?: number;
+    bathrooms?: number;
+    guests?: number;
+    livingrooms?: number;
+    kitchens?: number;
+    area?: number;
+    floor?: number;
+    furnished?: boolean;
+    petAllowed?: boolean;
+    elvator?: boolean;
+    // Car-specific
+    color?: string;
+    fuelType?: string;
+    gearType?: string;
+    mileage?: number;
+    repainted?: boolean;
+    reAssembled?: boolean;
   };
   itemImages: Array<{ url?: string }>;
   itemLocation: RawItem["location"][];
@@ -81,11 +85,29 @@ export const formatRawItems = (rawItems: RawItem[]): FormattedItem[] =>
       sellOrRent: i.sellOrRent ?? "SELL",
       rentType: i.rentType ?? null,
       isFeatured: Boolean(i.isFeatured),
+      // Property-specific
+      bedrooms: i.bedrooms,
+      bathrooms: i.bathrooms,
+      guests: i.guests,
+      livingrooms: i.livingrooms,
+      kitchens: i.kitchens,
+      area: i.area,
+      floor: i.floor,
+      furnished: i.furnished,
+      petAllowed: i.petAllowed,
+      elvator: i.elvator,
+      // Car-specific
+      color: i.color ?? undefined,
+      fuelType: i.fuelType ?? undefined,
+      gearType: i.gearType ?? undefined,
+      mileage: i.mileage,
+      repainted: i.repainted,
+      reAssembled: i.reAssembled,
     },
     itemImages: i.images ?? [],
     itemLocation: i.location ? [i.location] : [],
-    category: i.category,
-    totalReviews: i.ratingCount ?? 0,
+    category: i.category ?? undefined,
+    totalReviews: i.reviewsCount ?? 0,
     averageRating: i.averageRating ?? 0,
   }));
 
@@ -110,13 +132,18 @@ export const fetchItems = async ({
     typeof window !== "undefined" &&
     ((document?.documentElement?.lang || "").toLowerCase().startsWith("en") ||
       (navigator?.language || "").toLowerCase().startsWith("en"));
+  const locale = isEnglishUi ? "en" : "ar";
+  const normalizedLimit = Math.min(
+    Math.max(Math.floor(limit || 1), 1),
+    MAX_ITEMS_LIMIT,
+  );
 
   try {
     setLoading(true);
     /* إعداد البارامز التي ستضاف لعنوان البحث */
     const params = new URLSearchParams({
       page: String(page),
-      limit: String(limit),
+      limit: String(normalizedLimit),
     });
 
     if (catName && catName !== "All") params.append("catName", catName);
@@ -142,41 +169,54 @@ export const fetchItems = async ({
 
     const url = `/api/items?${params.toString()}`;
 
-    const sleep = (ms: number) =>
-      new Promise((resolve) => setTimeout(resolve, ms));
+    const timeoutController = new AbortController();
+    const timeoutId = window.setTimeout(() => timeoutController.abort(), 45000);
 
-    const fetchWithRetry = async (attempt = 0) => {
-      try {
-        return await request.get(url, {
-          signal: signal ?? undefined,
-          timeout: 45000,
-        });
-      } catch (error) {
-        const err = error as { code?: string; message?: string };
-        const isTimeout =
-          err.code === "ECONNABORTED" ||
-          err.message?.toLowerCase().includes("timeout");
-        const isNetworkError =
-          err.code === "ERR_NETWORK" ||
-          err.message?.toLowerCase().includes("network error");
+    const requestSignal = signal
+      ? AbortSignal.any([signal, timeoutController.signal])
+      : timeoutController.signal;
 
-        if (attempt < 1 && (isTimeout || isNetworkError)) {
-          await sleep(800);
-          return fetchWithRetry(attempt + 1);
-        }
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        signal: requestSignal,
+        headers: {
+          "x-lang": locale,
+          "Accept-Language": locale,
+        },
+        credentials: "include",
+        cache: "no-store",
+      });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
 
-        throw error;
-      }
-    };
+    const data = (await response.json()) as FetchItemsResponse;
+    const responseMessage =
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof data.message === "string"
+        ? data.message
+        : "";
 
-    const { data } = await fetchWithRetry();
+    if (!response.ok) {
+      throw new Error(
+        responseMessage
+          ? responseMessage
+          : isEnglishUi
+            ? "Failed to fetch data from server"
+            : "فشل في جلب البيانات من السيرفر",
+      );
+    }
 
     if (!data?.success) {
       setItems([]);
       setTotal(0);
       return;
     }
-    setTotal(data.totalCount ?? data.totalItems ?? 0);
+    setTotal(data.totalCount ?? 0);
 
     /* توحيد شكل البيانات الواردة من قاعدة البيانات لسهولة التعامل معها */
     const formatted: FormattedItem[] = formatRawItems(
@@ -185,17 +225,25 @@ export const fetchItems = async ({
 
     setItems(formatted);
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      (err.name === "CanceledError" || err.message === "canceled")
-    ) {
+    const message = err instanceof Error ? err.message : "";
+    const isAbortError =
+      (err instanceof Error &&
+        (err.name === "AbortError" ||
+          err.name === "CanceledError" ||
+          err.message === "canceled" ||
+          err.message === "signal is aborted without reason")) ||
+      signal?.aborted === true;
+
+    if (isAbortError) {
       return;
     }
+
     console.error(err);
     toast.error(
-      isEnglishUi
-        ? "Failed to fetch data from server"
-        : "فشل في جلب البيانات من السيرفر",
+      message ||
+        (isEnglishUi
+          ? "Failed to fetch data from server"
+          : "فشل في جلب البيانات من السيرفر"),
     );
     setItems([]);
     setTotal(0);

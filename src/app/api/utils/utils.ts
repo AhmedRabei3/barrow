@@ -4,6 +4,8 @@ import { uploadToCloudinary } from "./cloudinary";
 
 interface locCheckProps {
   formData: FormData;
+  folder?: string;
+  isArabic?: boolean;
 }
 
 /*------------Conver to boolean value---------------------- */
@@ -62,7 +64,7 @@ export const locCheck = ({ formData }: locCheckProps) => {
 };
 
 //---------------ImageUploader-----------------------//
-export const images = async ({ formData }: locCheckProps) => {
+export const images = async ({ formData, folder, isArabic }: locCheckProps) => {
   const files = formData
     .getAll("images")
     .filter(
@@ -72,8 +74,34 @@ export const images = async ({ formData }: locCheckProps) => {
     );
 
   if (!files.length) {
-    throw Errors.VALIDATION("يرجى رفع صورة واحدة على الأقل");
+    throw Errors.VALIDATION(
+      isArabic
+        ? "يرجى رفع صورة واحدة على الأقل"
+        : "Please upload at least one image",
+    );
   }
-  const uploadedImages = await Promise.all(files.map(uploadToCloudinary));
+  const uploadedImages = await Promise.all(
+    files.map((file) => uploadToCloudinary(file, folder)),
+  );
+  return uploadedImages;
+};
+
+/**--------------optional image uploader-------------------- */
+export const imageOptional = async ({ formData, folder }: locCheckProps) => {
+  const files = formData
+    .getAll("images")
+    .filter(
+      (entry): entry is File =>
+        typeof entry !== "string" &&
+        typeof (entry as File).arrayBuffer === "function",
+    );
+
+  if (!files.length) {
+    return [];
+  }
+
+  const uploadedImages = await Promise.all(
+    files.map((file) => uploadToCloudinary(file, folder)),
+  );
   return uploadedImages;
 };
