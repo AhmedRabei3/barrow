@@ -10,7 +10,8 @@ const run = async () => {
     {
       name: "QA Extended",
       email: uniqueEmail,
-      password: "12345678",
+      password: "StrongPass1!",
+      acceptPrivacyPolicy: true,
     },
     isArabic,
   );
@@ -20,7 +21,8 @@ const run = async () => {
     {
       name: "QA Extended Dup",
       email: uniqueEmail,
-      password: "12345678",
+      password: "StrongPass1!",
+      acceptPrivacyPolicy: true,
     },
     false,
   );
@@ -29,7 +31,7 @@ const run = async () => {
   const okLogin = await loginAction(
     {
       email: uniqueEmail,
-      password: "12345678",
+      password: "StrongPass1!",
     },
     isArabic,
   );

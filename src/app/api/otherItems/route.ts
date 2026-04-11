@@ -6,6 +6,10 @@ import { Errors } from "../lib/errors/errors";
 import { handleApiError } from "../lib/errors/errorHandler";
 import { createItemWithLocation } from "../utils/createHelper";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../utils/moderation";
 
 export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
@@ -40,7 +44,7 @@ export async function POST(req: NextRequest) {
     // ----------------- Image Handling -----------------
     const uploadedImages = await images({ formData });
     // ----------------- Database Insert -----------------
-    await createItemWithLocation({
+    const item = await createItemWithLocation({
       location: parsedLocData,
       images: uploadedImages,
       itemType: "OTHER",
@@ -48,16 +52,17 @@ export async function POST(req: NextRequest) {
         tx.otherItem.create({
           data: {
             ...parsedData.data,
-            status: "AVAILABLE",
+            ...pendingReviewData,
             ownerId: owner.id,
           },
         }),
     });
+    await notifyAdminsOfModerationQueue("OTHER", item.id, "CREATED", isArabic);
     return NextResponse.json(
       {
         message: t(
-          "تم نشر العنصر بنجاح",
-          "Item published successfully",
+          "تم إرسال العنصر للمراجعة وسيتم نشره بعد موافقة الأدمن",
+          "The item was submitted for review and will be published after admin approval",
         ),
       },
       { status: 201 },

@@ -35,3 +35,19 @@ export function extractShamCashActivationRequestId(
 
   return null;
 }
+
+export function extractItemModerationTarget(message: string, title?: string) {
+  const combined = `${title || ""}\n${message || ""}`;
+  const tokenMatch = combined.match(
+    /ITEM_MODERATION:(PROPERTY|NEW_CAR|USED_CAR|OTHER):([a-z0-9]{25,})/i,
+  );
+
+  if (!tokenMatch?.[1] || !tokenMatch?.[2]) {
+    return null;
+  }
+
+  return {
+    itemType: tokenMatch[1].toUpperCase(),
+    itemId: tokenMatch[2],
+  };
+}

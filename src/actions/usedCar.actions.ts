@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { pendingReviewData } from "@/app/api/utils/moderation";
 
 export async function addNewCarAction(data: {
   brand: string;
@@ -32,6 +33,7 @@ export async function addNewCarAction(data: {
         sellOrRent: data.sellOrRent,
         fuelType: "GASOLINE",
         gearType: "AUTOMATIC",
+        ...pendingReviewData,
       },
     });
     return { success: true };

@@ -13,6 +13,10 @@ import {
 import { Errors } from "../lib/errors/errors";
 import { translateZodError } from "../lib/errors/zodTranslator";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../utils/moderation";
 
 export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // 🔥 Transaction واحدة
 
-    await createItemWithLocation({
+    const item = await createItemWithLocation({
       location: locParsed,
       images: uploadedImages,
       itemType: "NEW_CAR",
@@ -58,17 +62,23 @@ export async function POST(req: NextRequest) {
         tx.newCar.create({
           data: {
             ...parsed.data,
-            status: "AVAILABLE",
+            ...pendingReviewData,
             ownerId: owner.id,
           },
         }),
     });
+    await notifyAdminsOfModerationQueue(
+      "NEW_CAR",
+      item.id,
+      "CREATED",
+      isArabic,
+    );
     return NextResponse.json(
       {
         success: true,
         message: t(
-          "تم نشر السيارة بنجاح",
-          "Car published successfully",
+          "تم إرسال السيارة للمراجعة وسيتم نشرها بعد موافقة الأدمن",
+          "The car was submitted for review and will be published after admin approval",
         ),
       },
       { status: 201 },

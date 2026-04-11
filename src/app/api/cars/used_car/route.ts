@@ -11,6 +11,10 @@ import {
 } from "../../utils/utils";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { Errors } from "../../lib/errors/errors";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../../utils/moderation";
 
 /**
  * @description API route to create a new used car
@@ -71,7 +75,7 @@ export async function POST(req: NextRequest) {
             sellOrRent: carData.sellOrRent ?? "RENT",
             fuelType: carData.fuelType ?? "GASOLINE",
             gearType: carData.gearType ?? "AUTOMATIC",
-            status: "AVAILABLE",
+            ...pendingReviewData,
             rentType: carData.rentType ?? null,
             color: carData.color ?? "",
             mileage: carData.mileage ?? 0,
@@ -81,12 +85,13 @@ export async function POST(req: NextRequest) {
         });
       },
     });
+    await notifyAdminsOfModerationQueue("USED_CAR", car.id, "CREATED", true);
 
     return NextResponse.json(
       {
         success: true,
         car,
-        message: "تم نشر السيارة بنجاح",
+        message: "تم إرسال السيارة للمراجعة وسيتم نشرها بعد موافقة الأدمن",
       },
       { status: 201 },
     );

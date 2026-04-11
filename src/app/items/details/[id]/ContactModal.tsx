@@ -4,6 +4,8 @@ import React, { Dispatch, SetStateAction } from "react";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 interface Props {
+  fullName: string;
+  setFullName: Dispatch<SetStateAction<string>>;
   phoneNumber: string;
   setPhoneNumber: Dispatch<SetStateAction<string>>;
   note: string;
@@ -14,6 +16,8 @@ interface Props {
 }
 
 const ContactModal = ({
+  fullName,
+  setFullName,
   phoneNumber,
   setPhoneNumber,
   note,
@@ -36,9 +40,17 @@ const ContactModal = ({
 
         <p className="text-sm leading-6 text-slate-400">
           {isArabic
-            ? "سيتم إرسال رقم هاتفك مباشرة إلى مالك العنصر ليتواصل معك."
-            : "Your phone number will be sent directly to the owner so they can contact you."}
+            ? "أدخل اسمك ورقم هاتفك ليتم إرسالهما مباشرة إلى مالك العنصر ليتواصل معك."
+            : "Enter your name and phone number. They will be sent directly to the owner so they can contact you."}
         </p>
+
+        <input
+          type="text"
+          placeholder={isArabic ? "الاسم الكامل" : "Full name"}
+          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
 
         <input
           type="tel"

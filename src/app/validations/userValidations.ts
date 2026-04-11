@@ -19,7 +19,7 @@ const commonPasswords = [
   "12341234",
   "1q2w3e4r",
   "100200300",
-  "123qweasd"
+  "123qweasd",
 ];
 
 export const registerUserSchema = z.object({
@@ -45,6 +45,9 @@ export const registerUserSchema = z.object({
     }),
   profileImage: z.string().url().optional(),
   referredBy: z.string().cuid().optional(),
+  acceptPrivacyPolicy: z.boolean().refine((value) => value === true, {
+    message: "يجب الموافقة على شروط التسجيل وسياسة الخصوصية لإكمال التسجيل",
+  }),
 });
 
 // تسجيل دخول

@@ -6,6 +6,7 @@ import clsx from "clsx";
 import SetReadBtn from "./SetReadBtn";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import {
+  extractItemModerationTarget,
   extractRequestId,
   extractShamCashActivationRequestId,
   extractShamCashRequestId,
@@ -13,7 +14,6 @@ import {
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
-import { useRouter } from "next/navigation";
 
 const typeStyles: Record<NotificationType, string> = {
   INFO: "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/50",
@@ -37,7 +37,6 @@ interface Props {
 }
 
 const NotificationItem = ({ notification, markAsRead }: Props) => {
-  const router = useRouter();
   const { isArabic } = useAppPreferences();
   const { title, message, type, isRead, createdAt } = notification;
   const requestId =
@@ -47,21 +46,36 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
     message,
     title,
   );
+  const moderationTarget = extractItemModerationTarget(message, title);
   const hasShamCashQueueLink = Boolean(shamCashRequestId);
   const hasShamCashActivationLink = Boolean(shamCashActivationRequestId);
+  const hasModerationLink = Boolean(moderationTarget?.itemId);
+  const shamCashQueueHref = shamCashRequestId
+    ? `/admin?page=shamcash-payout-jobs&manualRequestId=${shamCashRequestId}`
+    : null;
+  const shamCashActivationHref = shamCashActivationRequestId
+    ? `/admin?page=shamcash-activation-requests&activationRequestId=${shamCashActivationRequestId}`
+    : null;
+  const moderationHref =
+    moderationTarget?.itemId && moderationTarget.itemType
+      ? `/admin?page=image-moderation&itemType=${moderationTarget.itemType}&itemId=${moderationTarget.itemId}`
+      : null;
+
+  const navigateTo = (href?: string | null) => {
+    if (!href || typeof window === "undefined") return;
+    window.location.assign(href);
+  };
 
   const openShamCashQueue = () => {
-    if (!shamCashRequestId) return;
-    router.push(
-      `/admin?page=shamcash-payout-jobs&manualRequestId=${shamCashRequestId}`,
-    );
+    navigateTo(shamCashQueueHref);
   };
 
   const openShamCashActivationRequest = () => {
-    if (!shamCashActivationRequestId) return;
-    router.push(
-      `/admin?page=shamcash-activation-requests&activationRequestId=${shamCashActivationRequestId}`,
-    );
+    navigateTo(shamCashActivationHref);
+  };
+
+  const openModerationTarget = () => {
+    navigateTo(moderationHref);
   };
 
   const claimRequest = async () => {
@@ -98,17 +112,22 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
       exit={{ opacity: 0, scale: 0.95, height: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       onClick={
-        hasShamCashActivationLink
-          ? openShamCashActivationRequest
-          : hasShamCashQueueLink
-            ? openShamCashQueue
-            : undefined
+        hasModerationLink
+          ? openModerationTarget
+          : hasShamCashActivationLink
+            ? openShamCashActivationRequest
+            : hasShamCashQueueLink
+              ? openShamCashQueue
+              : undefined
       }
       className={clsx(
         "p-4 rounded-lg border-l-4 shadow-sm",
         typeStyles[type],
         !isRead && "ring-1 ring-emerald-300",
-        (hasShamCashQueueLink || hasShamCashActivationLink) && "cursor-pointer",
+        (hasShamCashQueueLink ||
+          hasShamCashActivationLink ||
+          hasModerationLink) &&
+          "cursor-pointer",
       )}
     >
       <div className="flex justify-between items-start">
@@ -196,6 +215,18 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
           {isArabic
             ? "فتح طلب تفعيل شام كاش"
             : "Open ShamCash activation request"}
+        </button>
+      )}
+
+      {hasModerationLink && (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            openModerationTarget();
+          }}
+          className="mt-3 w-full text-sm text-cyan-700 hover:underline"
+        >
+          {isArabic ? "فتح مراجعة العنصر" : "Open item review"}
         </button>
       )}
     </motion.div>

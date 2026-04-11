@@ -33,17 +33,17 @@ const Logo = ({
       <div className="flex flex-col leading-[0.9]">
         <span
           className="text-xs 
-      hidden md:inline-block
+      hidden md:inline-block dark:text-slate-300 text-slate-600
       "
         >
-          {isArabic ? "مشهور" : "Mashhoor"}
+          {isArabic ? "مشــهـور" : "Mashhoor"}
         </span>
         <span
-          className="text-[10px] 
-      hidden md:inline-block text-slate-400
-      "
+          className="text-[9px] 
+          hidden md:inline-block dark:text-slate-300 text-slate-600
+         "
         >
-          {isArabic ? "تسويق ذكي" : "Smart Marketing"}
+          {isArabic ? "نصلك بالعالم" : "Reach to the world"}
         </span>
       </div>
     </div>

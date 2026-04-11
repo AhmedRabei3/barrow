@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { updatePropertySchema } from "@/app/validations/propertyValidations";
-import { Availability, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "@/app/api/utils/moderation";
 
 /**
  * @descriptions Update property
@@ -63,13 +67,18 @@ export async function PUT(req: NextRequest) {
       where: { id },
       data: {
         ...updateData,
-        status: updateData.status as Availability | undefined,
+        ...pendingReviewData,
       } as Prisma.PropertyUncheckedUpdateInput,
     });
 
+    await notifyAdminsOfModerationQueue("PROPERTY", id, "UPDATED", isArabic);
+
     return NextResponse.json({
       success: true,
-      message: t("تم تحديث العقار بنجاح", "Property updated successfully"),
+      message: t(
+        "تم تحديث العقار وإرساله مجددًا لمراجعة الأدمن",
+        "Property updated and sent back for admin review",
+      ),
       property: updated,
     });
   } catch (err) {

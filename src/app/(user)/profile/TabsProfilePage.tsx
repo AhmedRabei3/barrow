@@ -143,7 +143,7 @@ const TabbedView = ({
     {
       key: "WITHDRAWALS",
       label: isArabic ? "سحوباتي" : "My withdrawals",
-      iconImage: "/images/shamcash-withdraw-icon.svg",
+      iconImage: "/images/shamcash-withdraw-icon.png",
       count: null,
     },
   ];

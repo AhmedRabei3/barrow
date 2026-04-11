@@ -5,6 +5,7 @@ import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
 import ContactModal from "./ContactModal";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { useSession } from "next-auth/react";
 
 interface ContactOwnerElementProps {
   itemType: ItemType;
@@ -14,28 +15,42 @@ interface ContactOwnerElementProps {
     currency?: string;
     status?: Availability;
     title?: string;
+    sellOrRent?: string;
   };
 }
 
 const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
   const { isArabic } = useAppPreferences();
+  const { data: session } = useSession();
   const {
     price,
     currency = "USD",
     status = Availability.AVAILABLE,
     title,
     id,
+    sellOrRent,
   } = data;
 
   const [open, setOpen] = useState(false);
+  const [fullName, setFullName] = useState(session?.user?.name || "");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const isAvailable = status === Availability.AVAILABLE;
   const t = (ar: string, en: string) => (isArabic ? ar : en);
+  const requestKind = sellOrRent === "RENT" ? "RENT" : "BUY";
+  const requestTitle =
+    requestKind === "RENT"
+      ? t("طلب إيجار", "Rental request")
+      : t("طلب شراء", "Purchase request");
 
   const submitContact = async () => {
     try {
+      if (!fullName.trim()) {
+        toast.error(t("يرجى إدخال الاسم", "Please enter your name"));
+        return;
+      }
+
       if (!phoneNumber.trim()) {
         toast.error(
           t("يرجى إدخال رقم الهاتف", "Please enter your phone number"),
@@ -51,6 +66,8 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         body: JSON.stringify({
           itemId: id,
           itemType,
+          fullName,
+          requestKind,
           phoneNumber,
           note: note || undefined,
         }),
@@ -67,11 +84,12 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
 
       toast.success(
         t(
-          "تم إرسال رقم هاتفك لمالك العنصر بنجاح",
-          "Your phone number was sent to the owner successfully",
+          "تم إرسال معلومات التواصل إلى مالك العنصر بنجاح",
+          "Your contact details were sent to the owner successfully",
         ),
       );
       setOpen(false);
+      setFullName(session?.user?.name || fullName.trim());
       setPhoneNumber("");
       setNote("");
     } catch (err: unknown) {
@@ -140,8 +158,8 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
           </p>
           <p className="mt-1 text-slate-400">
             {t(
-              "يتلقى المالك رقمك وملاحظتك ليعاود التواصل معك.",
-              "The owner receives your phone number and note to contact you back.",
+              "يتلقى المالك اسمك ورقمك وملاحظتك ليعاود التواصل معك.",
+              "The owner receives your name, phone number, and note to contact you back.",
             )}
           </p>
         </div>
@@ -156,12 +174,14 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
             : "cursor-not-allowed border border-slate-800 bg-slate-900 text-slate-500"
         }`}
       >
-        {t("تواصل مع المالك", "Contact owner")}
+        {requestTitle}
       </button>
 
       {/* MODAL */}
       {open && (
         <ContactModal
+          fullName={fullName}
+          setFullName={setFullName}
           phoneNumber={phoneNumber}
           setNote={setNote}
           setOpen={setOpen}

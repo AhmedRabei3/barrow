@@ -173,6 +173,7 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                   | import("@prisma/client").Availability
                   | undefined,
                 title: data.title ?? data.name ?? data.brand,
+                sellOrRent: data.sellOrRent,
               }}
             />
           </div>

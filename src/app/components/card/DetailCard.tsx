@@ -105,7 +105,7 @@ const DetailCard = ({
       className={`relative rounded-[18px] dark:border-b
      border-slate-800
       dark:bg-slate-950/70
-      px-4 py-4 ${isStateMenuOpen ? "z-[90]" : "z-20"}`}
+      px-4 py-4 ${isStateMenuOpen ? "z-90" : "z-20"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

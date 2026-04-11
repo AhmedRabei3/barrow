@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Rent Anything";
-export const SITE_SHORT_NAME = "RentAnything";
+export const SITE_NAME = "Mashhoor";
+export const SITE_SHORT_NAME = "Mashhoor";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 export const SITE_ICON = "/images/logo.png";
 export const DEFAULT_OG_IMAGE = "/opengraph-image";
 export const DEFAULT_TWITTER_IMAGE = "/twitter-image";
 export const SITE_DESCRIPTION =
-  "Rent Anything is a marketplace to discover, rent, buy, and sell properties, cars, and other items with smart search, secure payments, and subscription benefits.";
+  "Mashhoor is a marketplace to discover, rent, buy, and sell properties, cars, and other items with smart search, secure payments, and subscription benefits.";
 export const SITE_TAGLINE = "Marketplace for Renting, Buying, and Selling";
 
 export const absoluteUrl = (path: string) => {

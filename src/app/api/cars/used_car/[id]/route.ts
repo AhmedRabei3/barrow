@@ -10,6 +10,10 @@ import {
   syncManualRentalStatus,
 } from "@/app/api/utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "@/app/api/utils/moderation";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -103,7 +107,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { updatedCar, manualRentalEndsAt } = await prisma.$transaction(
       async (tx) => {
-        const nextStatus = (carData.status ?? car.status) as Availability;
+        const nextStatus = "PENDING_REVIEW" as Availability;
         const nextSellOrRent = (carData.sellOrRent ??
           car.sellOrRent) as TransactionType;
         const nextRentType = (
@@ -112,7 +116,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
         const updated = await tx.oldCar.update({
           where: { id },
-          data: carData,
+          data: {
+            ...carData,
+            ...pendingReviewData,
+          },
         });
 
         if (location) {
@@ -147,6 +154,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     );
 
+    await notifyAdminsOfModerationQueue("USED_CAR", id, "UPDATED");
+
     return NextResponse.json(
       {
         success: true,
@@ -157,6 +166,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           rentType: updatedCar.rentType,
           manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
         },
+        message: "تم تحديث السيارة وإرسالها مجددًا لمراجعة الأدمن",
       },
       { status: 200 },
     );

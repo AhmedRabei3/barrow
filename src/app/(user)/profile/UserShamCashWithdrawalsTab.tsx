@@ -253,7 +253,7 @@ const UserShamCashWithdrawalsTab = ({
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
           >
             <Image
-              src="/images/shamcash-withdraw-icon.svg"
+              src="/images/shamcash-withdraw-icon.png"
               alt="ShamCash"
               width={18}
               height={18}
@@ -344,7 +344,7 @@ const UserShamCashWithdrawalsTab = ({
             className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
           >
             <Image
-              src="/images/shamcash-withdraw-icon.svg"
+              src="/images/shamcash-withdraw-icon.png"
               alt="ShamCash"
               width={18}
               height={18}

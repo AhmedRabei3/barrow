@@ -10,8 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: isArabic ? `${SITE_NAME} | الرئيسية` : `${SITE_NAME} | Home`,
     description: isArabic
-      ? "اعثر على عقارات وسيارات وعناصر موثقة للبيع أو الإيجار مع فلاتر ذكية ودفعات آمنة وتجربة احترافية."
-      : "Find verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
+      ? "أفضل العروض وأرخص الأسعار للعقارات، السيارات، والإعلانات المتنوعة للبيع والإيجار!"
+      : "Find 
+    verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
     path: "/",
     keywords: [
       "marketplace home",

@@ -19,7 +19,8 @@ const run = async () => {
     {
       name: "QA User",
       email,
-      password: "12345678",
+      password: "StrongPass1!",
+      acceptPrivacyPolicy: true,
     },
     isArabic,
   );
@@ -28,7 +29,7 @@ const run = async () => {
   const loginNew = await loginAction(
     {
       email,
-      password: "12345678",
+      password: "StrongPass1!",
     },
     isArabic,
   );

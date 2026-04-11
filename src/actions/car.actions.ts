@@ -8,6 +8,7 @@ import { translateZodError } from "../app/api/lib/errors/zodTranslator";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { pendingReviewData } from "@/app/api/utils/moderation";
 
 type FormState = {
   success?: boolean;
@@ -32,13 +33,14 @@ export async function addNewCarAction(
     const result = await prisma.newCar.create({
       data: {
         ...validation.data,
+        ...pendingReviewData,
         ownerId: session.user.id,
       },
     });
     const carId = result.id;
     return {
       success: true,
-      message: "Car added successfully 🚀",
+      message: "Car submitted for review successfully",
       carId,
     };
   } catch (err) {

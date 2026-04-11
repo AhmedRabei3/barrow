@@ -10,6 +10,10 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../../utils/moderation";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -91,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { updatedItem, manualRentalEndsAt } = await prisma.$transaction(
       async (tx) => {
-        const nextStatus = (itemData.status ?? item.status) as Availability;
+        const nextStatus = "PENDING_REVIEW" as Availability;
         const nextSellOrRent = (itemData.sellOrRent ??
           item.sellOrRent) as TransactionType;
         const nextRentType = (
@@ -101,7 +105,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         // 🧾 تحديث العنصر
         const updated = await tx.otherItem.update({
           where: { id },
-          data: itemData,
+          data: {
+            ...itemData,
+            ...pendingReviewData,
+          },
         });
 
         // 📍 تحديث الموقع (إن تم إرسال أي قيمة)
@@ -146,6 +153,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     );
 
+    await notifyAdminsOfModerationQueue("OTHER", id, "UPDATED");
+
     return NextResponse.json(
       {
         success: true,
@@ -156,6 +165,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           rentType: updatedItem.rentType,
           manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
         },
+        message: "تم تحديث العنصر وإرساله مجددًا لمراجعة الأدمن",
       },
       { status: 200 },
     );

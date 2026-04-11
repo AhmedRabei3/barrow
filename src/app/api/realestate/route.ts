@@ -6,6 +6,11 @@ import { createItemWithLocation } from "../utils/createHelper";
 import { handleApiError } from "../lib/errors/errorHandler";
 import { Errors } from "../lib/errors/errors";
 import { translateZodError } from "../lib/errors/zodTranslator";
+import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../utils/moderation";
 
 /**------------------------------------------------------------------
  * @description Create a new realestate
@@ -15,6 +20,7 @@ import { translateZodError } from "../lib/errors/zodTranslator";
  ------------------------------------------------------------------*/
 
 export async function POST(req: NextRequest) {
+  const isArabic = resolveIsArabicFromRequest(req);
   /* -------- 1. AUTH -------- */
   const owner = await requireActiveUser();
 
@@ -66,7 +72,7 @@ export async function POST(req: NextRequest) {
     /* -------- 6. HANDLE IMAGES -------- */
     const uploadedImages = await images({ formData });
     /* -------- 7. SAVE TO DATABASE (TRANSACTION) -------- */
-    await createItemWithLocation({
+    const property = await createItemWithLocation({
       location: locParsed,
       images: uploadedImages,
       itemType: "PROPERTY",
@@ -74,14 +80,20 @@ export async function POST(req: NextRequest) {
         tx.property.create({
           data: {
             ...parsed.data,
-            status: "AVAILABLE",
+            ...pendingReviewData,
             ownerId: owner.id,
           },
         }),
     });
+    await notifyAdminsOfModerationQueue(
+      "PROPERTY",
+      property.id,
+      "CREATED",
+      isArabic,
+    );
     return NextResponse.json({
       success: true,
-      message: "تم نشر العقار بنجاح",
+      message: "تم إرسال العقار للمراجعة وسيتم نشره بعد موافقة الأدمن",
     });
   } catch (err) {
     console.error("CREATE PROPERTY ERROR:", err);

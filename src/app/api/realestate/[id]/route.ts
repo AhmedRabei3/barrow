@@ -10,6 +10,10 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import {
+  notifyAdminsOfModerationQueue,
+  pendingReviewData,
+} from "../../utils/moderation";
 
 /**
  * @description Delete property (soft delete) and remove all related data
@@ -180,8 +184,7 @@ export async function PATCH(
 
     const { updatedProperty, manualRentalEndsAt } = await prisma.$transaction(
       async (tx) => {
-        const nextStatus = (propertyData.status ??
-          property.status) as Availability;
+        const nextStatus = "PENDING_REVIEW" as Availability;
         const nextSellOrRent = (propertyData.sellOrRent ??
           property.sellOrRent) as TransactionType;
         const nextRentType = (
@@ -193,7 +196,10 @@ export async function PATCH(
         // 🏠 تحديث العقار
         const updated = await tx.property.update({
           where: { id },
-          data: propertyData,
+          data: {
+            ...propertyData,
+            ...pendingReviewData,
+          },
         });
 
         // 📍 تحديث الموقع (إن وُجد)
@@ -222,6 +228,8 @@ export async function PATCH(
       },
     );
 
+    await notifyAdminsOfModerationQueue("PROPERTY", id, "UPDATED");
+
     return NextResponse.json(
       {
         success: true,
@@ -232,6 +240,7 @@ export async function PATCH(
           rentType: updatedProperty.rentType,
           manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
         },
+        message: "تم تحديث العقار وإرساله مجددًا لمراجعة الأدمن",
       },
       { status: 200 },
     );

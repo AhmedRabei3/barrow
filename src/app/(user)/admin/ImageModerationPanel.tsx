@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
@@ -40,6 +41,7 @@ type ModerationResponse = {
 
 const ImageModerationPanel = () => {
   const { isArabic } = useAppPreferences();
+  const searchParams = useSearchParams();
   const t = useCallback(
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],
@@ -56,6 +58,20 @@ const ImageModerationPanel = () => {
   const [actionItemId, setActionItemId] = useState<string | null>(null);
   const [rejectItem, setRejectItem] = useState<ModerationItem | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const focusedItemId = String(searchParams.get("itemId") || "").trim();
+  const focusedItemType = String(searchParams.get("itemType") || "").trim();
+
+  useEffect(() => {
+    if (
+      focusedItemType === "PROPERTY" ||
+      focusedItemType === "NEW_CAR" ||
+      focusedItemType === "USED_CAR" ||
+      focusedItemType === "OTHER"
+    ) {
+      setFilterType(focusedItemType as ModerationType);
+      setPage(1);
+    }
+  }, [focusedItemType]);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -65,6 +81,9 @@ const ImageModerationPanel = () => {
         page: String(page),
         limit: "12",
       });
+      if (focusedItemId) {
+        params.set("itemId", focusedItemId);
+      }
       const res = await fetch(
         `/api/admin/image-moderation?${params.toString()}`,
       );
@@ -87,7 +106,7 @@ const ImageModerationPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [filterType, page, t]);
+  }, [filterType, focusedItemId, page, t]);
 
   useEffect(() => {
     loadQueue();
@@ -183,6 +202,14 @@ const ImageModerationPanel = () => {
                 "New items or items with replaced images stay hidden until admin approval.",
               )}
             </p>
+            {focusedItemId ? (
+              <p className="mt-2 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                {t(
+                  "تم فتح عنصر محدد من خلال الإشعارات لمراجعته مباشرة.",
+                  "A specific item was opened from notifications for direct review.",
+                )}
+              </p>
+            ) : null}
           </div>
           <select
             value={filterType}
@@ -215,7 +242,11 @@ const ImageModerationPanel = () => {
           {data.items.map((item) => (
             <article
               key={item.id}
-              className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              className={`rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900 ${
+                focusedItemId && item.id === focusedItemId
+                  ? "border-cyan-500 ring-2 ring-cyan-300/60 dark:border-cyan-400 dark:ring-cyan-900"
+                  : "border-slate-200 dark:border-slate-700"
+              }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { memo, useState } from "react";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
@@ -92,6 +93,13 @@ const footerSections = {
 const SiteFooter = () => {
   const { isArabic } = useAppPreferences();
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
+  const privacyLabels = isArabic
+    ? new Set([
+        "سياسة الخصوصية",
+        "شروط الاستخدام",
+        footerSections.ar.legalTerms,
+      ])
+    : new Set(["Privacy Policy", "Terms of Use", footerSections.en.legalTerms]);
 
   const localizedAdvantages = isArabic
     ? advantages
@@ -270,7 +278,18 @@ const SiteFooter = () => {
               </h4>
               <ul className="footer-text space-y-3 text-sm">
                 {footerContent.companyLinks.map((link) => (
-                  <li key={link}>{link}</li>
+                  <li key={link}>
+                    {privacyLabels.has(link) ? (
+                      <Link
+                        href="/privacy-policy"
+                        className="transition hover:text-sky-600 dark:hover:text-sky-300"
+                      >
+                        {link}
+                      </Link>
+                    ) : (
+                      link
+                    )}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -290,7 +309,12 @@ const SiteFooter = () => {
           <div className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between">
             <span>© {new Date().getFullYear()} Rent Anything</span>
             <div className="flex gap-6">
-              <span>{footerContent.legalTerms}</span>
+              <Link
+                href="/privacy-policy"
+                className="transition hover:text-sky-600 dark:hover:text-sky-300"
+              >
+                {footerContent.legalTerms}
+              </Link>
               <span>{footerContent.legalCookies}</span>
             </div>
           </div>

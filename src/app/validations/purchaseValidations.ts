@@ -10,13 +10,21 @@ export const phoneSchema = z
   .trim()
   .regex(
     /^\+?[1-9]\d{7,14}$/,
-    "رقم الهاتف غير صالح، استخدم صيغة دولية مثل +49123456789"
+    "رقم الهاتف غير صالح، استخدم صيغة دولية مثل +49123456789",
   );
 
 export const createPurchaseRequestSchema = z.object({
   itemId: z.string().cuid("معرف العنصر غير صالح"),
 
   itemType: z.nativeEnum(ItemType),
+
+  fullName: z
+    .string()
+    .trim()
+    .min(2, "الاسم قصير جدًا")
+    .max(120, "الاسم طويل جدًا"),
+
+  requestKind: z.enum(["BUY", "RENT"]).default("BUY"),
 
   phoneNumber: phoneSchema,
   note: z
@@ -43,7 +51,7 @@ export const adminDecisionSchemaWithLogic = adminDecisionSchema.superRefine(
         code: z.ZodIssueCode.custom,
       });
     }
-  }
+  },
 );
 
 export const adminGetRequestSchema = z.object({

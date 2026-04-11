@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ItemType } from "@prisma/client";
-
-
+import {
+  notifyAdminsOfModerationQueue,
+  resetItemModeration,
+} from "@/app/api/utils/moderation";
 
 const isItemType = (value: string): value is ItemType =>
   Object.values(ItemType).includes(value as ItemType);
@@ -68,9 +70,12 @@ export async function POST(req: NextRequest) {
       uploadedImages.push(savedImage);
     }
 
+    await resetItemModeration(prisma, itemType, itemId);
+    await notifyAdminsOfModerationQueue(itemType, itemId, "IMAGES_UPDATED");
+
     return NextResponse.json({
       success: true,
-      message: "تم رفع الصور بنجاح",
+      message: "تم رفع الصور وإرسال العنصر مجددًا لمراجعة الأدمن",
       images: uploadedImages,
     });
   } catch (err: unknown) {

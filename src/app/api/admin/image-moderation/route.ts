@@ -67,11 +67,16 @@ const loadModeratorNames = async (moderatedByIds: Array<string | null>) => {
 
 const listPendingByType = async (
   itemType: ItemType,
+  focusItemId?: string,
 ): Promise<ModerationQueueItem[]> => {
   switch (itemType) {
     case ItemType.PROPERTY: {
       const rows = await prisma.property.findMany({
-        where: { isDeleted: false, status: "PENDING_REVIEW" },
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
         orderBy: { createdAt: "desc" },
         include: {
           owner: { select: { id: true, name: true, email: true } },
@@ -110,7 +115,11 @@ const listPendingByType = async (
     }
     case ItemType.NEW_CAR: {
       const rows = await prisma.newCar.findMany({
-        where: { isDeleted: false, status: "PENDING_REVIEW" },
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
         orderBy: { createdAt: "desc" },
         include: {
           owner: { select: { id: true, name: true, email: true } },
@@ -149,7 +158,11 @@ const listPendingByType = async (
     }
     case ItemType.USED_CAR: {
       const rows = await prisma.oldCar.findMany({
-        where: { isDeleted: false, status: "PENDING_REVIEW" },
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
         orderBy: { createdAt: "desc" },
         include: {
           owner: { select: { id: true, name: true, email: true } },
@@ -188,7 +201,11 @@ const listPendingByType = async (
     }
     case ItemType.OTHER: {
       const rows = await prisma.otherItem.findMany({
-        where: { isDeleted: false, status: "PENDING_REVIEW" },
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
         orderBy: { createdAt: "desc" },
         include: {
           owner: { select: { id: true, name: true, email: true } },
@@ -262,6 +279,9 @@ export async function GET(req: NextRequest) {
     const rawType = String(
       req.nextUrl.searchParams.get("type") || "ALL",
     ).toUpperCase();
+    const focusItemId = String(
+      req.nextUrl.searchParams.get("itemId") || "",
+    ).trim();
     const pageParam = Number(req.nextUrl.searchParams.get("page") || 1);
     const limitParam = Number(req.nextUrl.searchParams.get("limit") || 12);
     const page = Number.isFinite(pageParam)
@@ -273,7 +293,9 @@ export async function GET(req: NextRequest) {
     const typesToLoad = isItemType(rawType) ? [rawType] : [...ITEM_TYPES];
 
     const groupedRows = await Promise.all(
-      typesToLoad.map((type) => listPendingByType(type)),
+      typesToLoad.map((type) =>
+        listPendingByType(type, focusItemId || undefined),
+      ),
     );
     const allRows = groupedRows
       .flat()
