@@ -8,6 +8,9 @@ import {
 } from "@/lib/sitemap";
 import { SITE_URL } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const getShardItems = async (model: SitemapModelKey, shardIndex: number) => {
   const query = {
     where: { isDeleted: false, status: Availability.AVAILABLE },

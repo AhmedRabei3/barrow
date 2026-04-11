@@ -1,6 +1,9 @@
 import { getSitemapShardMeta, getTotalSitemapShards } from "@/lib/sitemap";
 import { SITE_URL } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET() {
   const shardMeta = await getSitemapShardMeta();
   const total = getTotalSitemapShards(shardMeta);
