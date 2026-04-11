@@ -11,8 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: isArabic ? `${SITE_NAME} | الرئيسية` : `${SITE_NAME} | Home`,
     description: isArabic
       ? "أفضل العروض وأرخص الأسعار للعقارات، السيارات، والإعلانات المتنوعة للبيع والإيجار!"
-      : "Find 
-    verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
+      : "Find verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
     path: "/",
     keywords: [
       "marketplace home",
