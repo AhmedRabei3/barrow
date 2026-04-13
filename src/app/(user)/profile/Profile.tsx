@@ -14,6 +14,7 @@ import { buildEditDataByType } from "./setItemToEdit";
 import GoBackBtn from "@/app/components/GoBackBtn";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import ProfileAccountEditor from "./ProfileAccountEditor";
+import IdentityVerificationEditor from "./IdentityVerificationEditor";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import Link from "next/link";
@@ -34,6 +35,8 @@ const Profile = () => {
   const [shamCashWithdrawModalOpen, setShamCashWithdrawModalOpen] =
     useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
+  const [identityVerificationModalOpen, setIdentityVerificationModalOpen] =
+    useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("ALL");
   const [activeSidebarSection, setActiveSidebarSection] = useState<
     "OVERVIEW" | "LISTINGS" | "FAV" | "WITHDRAWALS"
@@ -430,7 +433,7 @@ const Profile = () => {
     >
       <div className="flex w-full flex-col gap-8 lg:flex-row">
         <aside className="flex w-full flex-col gap-6 lg:w-64 lg:shrink-0">
-          <div className="rounded-xl border border-slate-300 bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 p-4 shadow-md dark:border-slate-700 dark:from-slate-900 dark:via-blue-900 dark:to-slate-800">
+          <div className="rounded-xl border border-slate-300 bg-linear-to-br from-blue-700 via-blue-600 to-blue-500 p-4 shadow-md dark:border-slate-700 dark:from-slate-900 dark:via-blue-900 dark:to-slate-800">
             <div className="space-y-1">
               <button
                 type="button"
@@ -529,6 +532,20 @@ const Profile = () => {
                 />
                 <span className="font-medium text-white">
                   {isArabic ? "إعدادات الحساب" : "Account Settings"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIdentityVerificationModalOpen(true)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+              >
+                <DynamicIcon
+                  iconName="MdVerifiedUser"
+                  size={18}
+                  className="text-slate-100"
+                />
+                <span className="font-medium text-white">
+                  {isArabic ? "توثيق الحساب" : "Verify account"}
                 </span>
               </button>
               <button
@@ -783,6 +800,31 @@ const Profile = () => {
                 onSaved={async () => {
                   await refetch();
                   setEditProfileModalOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {identityVerificationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="profile-modal-backdrop absolute inset-0"
+              onClick={() => setIdentityVerificationModalOpen(false)}
+            />
+            <div className="relative z-10 w-11/12 max-w-3xl max-h-[88vh] overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setIdentityVerificationModalOpen(false)}
+                className="profile-modal-close absolute top-3 left-3 z-20 rounded-full px-3 py-1.5 text-xs"
+              >
+                {isArabic ? "إغلاق" : "Close"}
+              </button>
+              <IdentityVerificationEditor
+                user={user}
+                onSaved={async () => {
+                  await refetch();
+                  setIdentityVerificationModalOpen(false);
                 }}
               />
             </div>

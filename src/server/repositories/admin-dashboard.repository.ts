@@ -18,6 +18,7 @@ export const adminDashboardRepository = {
         isActive: true,
         isAdmin: true,
         isOwner: true,
+        isIdentityVerified: true,
         isDeleted: true,
         createdAt: true,
         activeUntil: true,
@@ -235,6 +236,20 @@ export const adminDashboardRepository = {
           type: true,
           isRead: true,
           createdAt: true,
+        },
+      }),
+      prisma.identityVerificationRequest.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          status: true,
+          fullName: true,
+          nationalId: true,
+          frontImageUrl: true,
+          backImageUrl: true,
+          adminNote: true,
+          createdAt: true,
+          reviewedAt: true,
         },
       }),
       prisma.payment.findMany({

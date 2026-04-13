@@ -11,6 +11,7 @@ import AddCode from "@/app/components/activeCode/AddCode";
 import AdminAnalyticsDashboard from "./AdminAnalyticsDashboard";
 import ImageModerationPanel from "./ImageModerationPanel";
 import FinancialReportPanel from "./FinancialReportPanel";
+import { useRouter } from "next/navigation";
 
 import SupportMessagesPanel from "./SupportMessagesPanel";
 
@@ -42,6 +43,7 @@ const AdminDashBoard = () => {
   const { data: session, status } = useSession();
   const isOwner = Boolean(session?.user?.isOwner);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const paymentPasswordModal = usePaymentPasswordModal();
   const [page, setPage] = useState<AdminPageKey>("analytics");
@@ -333,11 +335,11 @@ const AdminDashBoard = () => {
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <button
                 type="button"
-                onClick={() => setPage("analytics")}
+                onClick={router.back}
                 className="admin-btn-secondary flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition sm:col-span-2 xl:col-span-1"
               >
                 <MdArrowBack size={18} />
-                {isArabic ? "العودة للوحة التحكم" : "Back to dashboard"}
+                {isArabic ? "عودة" : "Back"}
               </button>
 
               <div className="admin-card-soft rounded-2xl px-4 py-3">

@@ -3,6 +3,7 @@ import { loginUserSchema } from "./app/validations/userValidations";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./lib/prisma";
 import * as bcrypt from "bcryptjs";
+import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 
 export default (<NextAuthConfig>{
   providers: [
@@ -12,6 +13,8 @@ export default (<NextAuthConfig>{
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        await ensureOwnerAccount();
+
         const validation = loginUserSchema.safeParse(credentials);
         if (!validation.success) return null;
 
@@ -34,6 +37,7 @@ export default (<NextAuthConfig>{
           isActive: user.isActive,
           isAdmin: user.isAdmin,
           isOwner: user.isOwner,
+          isIdentityVerified: user.isIdentityVerified,
           activeUntil: user.activeUntil,
           pendingReferralEarnings: Number(user.pendingReferralEarnings),
           notifications: [],

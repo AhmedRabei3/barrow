@@ -16,6 +16,18 @@ export type ProfileData = {
       activeInvitedCount: number;
       inactiveInvitedCount: number;
     };
+    identityVerificationRequest?: {
+      id: string;
+      fullName: string;
+      nationalId: string;
+      frontImageUrl: string;
+      backImageUrl: string;
+      status: "PENDING" | "APPROVED" | "REJECTED";
+      adminNote?: string | null;
+      createdAt: string | Date;
+      updatedAt: string | Date;
+      reviewedAt?: string | Date | null;
+    } | null;
   };
   items: RawProfileItem[];
   purchaseRequests: PurchaseRequest[];
@@ -30,6 +42,7 @@ type ApiProfileResponse =
         activeInvitedCount: number;
         inactiveInvitedCount: number;
       };
+      identityVerificationRequest?: ProfileData["user"]["identityVerificationRequest"];
       items?: RawProfileItem[];
       purchaseRequests?: PurchaseRequest[];
       favorites?: FavoriteItem[];
@@ -63,6 +76,7 @@ const normalizeProfileResponse = (json: ApiProfileResponse): ProfileData => {
       activeInvitedCount: number;
       inactiveInvitedCount: number;
     };
+    identityVerificationRequest?: ProfileData["user"]["identityVerificationRequest"];
     items?: RawProfileItem[];
     purchaseRequests?: PurchaseRequest[];
     favorites?: FavoriteItem[];

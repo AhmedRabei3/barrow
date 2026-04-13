@@ -17,6 +17,7 @@ interface Props {
     isActive?: boolean | null;
     activeUntil?: Date | string | null;
     pendingReferralEarnings?: number | string | { toString(): string } | null;
+    isIdentityVerified?: boolean | null;
     referralStats?: {
       invitedCount: number;
       activeInvitedCount: number;
@@ -95,9 +96,17 @@ const ProfileHeader = ({
           </div>
 
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {user?.name || "-"}
-            </h1>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {user?.name || "-"}
+              </h1>
+              {user?.isIdentityVerified ? (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-300">
+                  <DynamicIcon iconName="MdVerified" size={14} />
+                  {isArabic ? "موثق" : "Verified"}
+                </span>
+              ) : null}
+            </div>
             <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
               {memberSinceLabel}
             </p>
@@ -105,16 +114,22 @@ const ProfileHeader = ({
               <DynamicIcon
                 iconName="MdVerified"
                 size={16}
-                className="text-amber-500"
+                className={
+                  user?.isIdentityVerified ? "text-sky-500" : "text-amber-500"
+                }
               />
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                {user?.isActive
+                {user?.isIdentityVerified
                   ? isArabic
-                    ? "بائع موثّق ومفعّل"
-                    : "Verified and activated seller"
-                  : isArabic
-                    ? "الحساب مسجّل ويحتاج تفعيل"
-                    : "Account registered and awaiting activation"}
+                    ? "الحساب موثق بالهوية الرسمية"
+                    : "Identity verified account"
+                  : user?.isActive
+                    ? isArabic
+                      ? "بائع موثّق ومفعّل"
+                      : "Verified and activated seller"
+                    : isArabic
+                      ? "الحساب مسجّل ويحتاج تفعيل"
+                      : "Account registered and awaiting activation"}
               </span>
             </div>
           </div>

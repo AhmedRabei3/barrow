@@ -36,6 +36,7 @@ export type DashboardUser = {
   isActive: boolean;
   isAdmin: boolean;
   isOwner: boolean;
+  isIdentityVerified: boolean;
   isDeleted: boolean;
   createdAt: string;
   activeUntil: string | null;
@@ -142,6 +143,17 @@ export type AdminDashboardSelectedUserDetails = {
     isRead: boolean;
     createdAt: string;
   }>;
+  identityVerificationRequest?: {
+    id: string;
+    status: string;
+    fullName: string;
+    nationalId: string;
+    frontImageUrl: string;
+    backImageUrl: string;
+    adminNote: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+  } | null;
   monthlyStats: Array<{
     monthKey: string;
     rechargeAmount: number;

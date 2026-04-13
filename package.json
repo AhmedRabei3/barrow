@@ -2,6 +2,9 @@
   "name": "barrow",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:ws": "node --max-old-space-size=4096 ./node_modules/tsx/dist/cli.mjs watch server.ts",
@@ -11,6 +14,8 @@
     "worker:shamcash:autofit": "tsx scripts/shamcash-selector-autofit.ts",
     "worker:shamcash:capture": "tsx scripts/shamcash-manual-capture.ts",
     "worker:rental:reminders": "tsx scripts/rental-reminder-worker.ts",
+    "owner:ensure": "tsx scripts/ensure-owner.ts",
+    "db:seed": "prisma db seed",
     "build": "next build",
     "build:ws": "next build && tsc --project tsconfig.server.json",
     "start": "next start",
@@ -23,6 +28,8 @@
     "@auth/prisma-adapter": "^2.10.0",
     "@hookform/resolvers": "^5.2.2",
     "@paralleldrive/cuid2": "^3.3.0",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.0",
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",

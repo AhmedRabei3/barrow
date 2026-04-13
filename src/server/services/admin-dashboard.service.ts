@@ -133,6 +133,7 @@ const buildUserStats = (
       isActive: user.isActive,
       isAdmin: user.isAdmin,
       isOwner: user.isOwner,
+      isIdentityVerified: user.isIdentityVerified,
       isDeleted: user.isDeleted,
       createdAt: user.createdAt,
       activeUntil: user.activeUntil,
@@ -174,6 +175,7 @@ const toDashboardUser = (
   isActive: user.isActive,
   isAdmin: user.isAdmin,
   isOwner: user.isOwner,
+  isIdentityVerified: user.isIdentityVerified,
   isDeleted: user.isDeleted,
   createdAt: user.createdAt.toISOString(),
   activeUntil: user.activeUntil?.toISOString() ?? null,
@@ -509,6 +511,7 @@ export async function getAdminDashboard(
         recentPayments,
         recentChargingLogs,
         recentNotifications,
+        identityVerificationRequest,
         monthlyPayments,
         monthlyChargingLogs,
       ] = await adminDashboardRepository.getSelectedUserDetails(
@@ -576,6 +579,15 @@ export async function getAdminDashboard(
           type: String(notification.type),
           createdAt: notification.createdAt.toISOString(),
         })),
+        identityVerificationRequest: identityVerificationRequest
+          ? {
+              ...identityVerificationRequest,
+              status: String(identityVerificationRequest.status),
+              createdAt: identityVerificationRequest.createdAt.toISOString(),
+              reviewedAt:
+                identityVerificationRequest.reviewedAt?.toISOString() ?? null,
+            }
+          : null,
         monthlyStats: monthWindows.map((window) => {
           const entry = monthlyStatsMap.get(window.monthKey)!;
           return {

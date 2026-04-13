@@ -5,6 +5,7 @@ import {
   getSessionCookieName,
   shouldUseSecureAuthCookie,
 } from "@/lib/auth-cookie";
+import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 import authConfig from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -32,6 +33,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.isActive = Boolean(user.isActive ?? token.isActive ?? false);
         token.isAdmin = Boolean(user.isAdmin ?? token.isAdmin ?? false);
         token.isOwner = Boolean(user.isOwner ?? token.isOwner ?? false);
+        token.isIdentityVerified = Boolean(
+          user.isIdentityVerified ?? token.isIdentityVerified ?? false,
+        );
         token.activeUntil = (user.activeUntil ??
           token.activeUntil ??
           null) as Date | null;
@@ -45,6 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.isActive = Boolean(token.isActive ?? false);
       token.isAdmin = Boolean(token.isAdmin ?? false);
       token.isOwner = Boolean(token.isOwner ?? false);
+      token.isIdentityVerified = Boolean(token.isIdentityVerified ?? false);
       token.activeUntil = (token.activeUntil ?? null) as Date | null;
       token.pendingReferralEarnings = Number(
         token.pendingReferralEarnings ?? 0,
@@ -58,6 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (!session.user || !token.sub) return session;
 
+      await ensureOwnerAccount();
+
       // جلب البيانات الحديثة من DB لضمان اللحظية
       const dbUser = await prisma.user.findUnique({
         where: { id: token.sub },
@@ -66,6 +73,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           isActive: true,
           isAdmin: true,
           isOwner: true,
+          isIdentityVerified: true,
           activeUntil: true,
           pendingReferralEarnings: true,
           notifications: {
@@ -85,6 +93,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.isActive = dbUser?.isActive ?? false;
       session.user.isAdmin = dbUser?.isAdmin ?? false;
       session.user.isOwner = dbUser?.isOwner ?? false;
+      session.user.isIdentityVerified = dbUser?.isIdentityVerified ?? false;
       session.user.activeUntil = dbUser?.activeUntil ?? null;
       session.user.pendingReferralEarnings = Number(
         dbUser?.pendingReferralEarnings ?? 0,

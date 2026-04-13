@@ -40,6 +40,20 @@ export async function GET(req: NextRequest) {
         favorites: true,
         referrals: true,
         purchaseRequests: true,
+        identityVerificationRequest: {
+          select: {
+            id: true,
+            fullName: true,
+            nationalId: true,
+            frontImageUrl: true,
+            backImageUrl: true,
+            status: true,
+            adminNote: true,
+            createdAt: true,
+            updatedAt: true,
+            reviewedAt: true,
+          },
+        },
       },
     });
     if (!user) throw Errors.UNAUTHORIZED();

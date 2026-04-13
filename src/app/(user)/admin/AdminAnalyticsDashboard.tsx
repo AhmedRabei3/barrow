@@ -10,6 +10,30 @@ import type {
   DashboardUser,
 } from "@/features/admin/dashboard/types";
 
+type IdentityVerificationRequestDto = {
+  id: string;
+  fullName: string;
+  nationalId: string;
+  frontImageUrl: string;
+  backImageUrl: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string | null;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    isIdentityVerified: boolean;
+  };
+  reviewedBy?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
+};
+
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 const COLORS = ["#10b981", "#f59e0b", "#f43f5e"];
@@ -28,6 +52,11 @@ const AdminAnalyticsDashboard = () => {
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [page, setPage] = useState(1);
   const [actionLoadingId, setActionLoadingId] = useState("");
+  const [verificationRequests, setVerificationRequests] = useState<
+    IdentityVerificationRequestDto[]
+  >([]);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+  const [verificationActionId, setVerificationActionId] = useState("");
   const [data, setData] = useState<DashboardResponse>({
     overview: {
       totalUsers: 0,
@@ -130,13 +159,45 @@ const AdminAnalyticsDashboard = () => {
     [page, search, status, t],
   );
 
+  const loadVerificationRequests = useCallback(async () => {
+    try {
+      setVerificationLoading(true);
+      const response = await fetch("/api/admin/identity-verifications");
+      const body = (await response.json()) as {
+        requests?: IdentityVerificationRequestDto[];
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            t(
+              "تعذر تحميل طلبات التوثيق",
+              "Failed to load verification requests",
+            ),
+        );
+      }
+
+      setVerificationRequests(body.requests ?? []);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("حدث خطأ غير متوقع", "Unexpected error"),
+      );
+    } finally {
+      setVerificationLoading(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       loadDashboard(1);
+      void loadVerificationRequests();
     }, 250);
 
     return () => window.clearTimeout(timer);
-  }, [loadDashboard]);
+  }, [loadDashboard, loadVerificationRequests]);
 
   const chartData = useMemo(
     () => [
@@ -311,6 +372,62 @@ const AdminAnalyticsDashboard = () => {
     await handleAdminAction(nextAction, user);
   };
 
+  const handleVerificationDecision = async (
+    request: IdentityVerificationRequestDto,
+    decision: "APPROVE" | "REJECT",
+  ) => {
+    const adminNote =
+      decision === "REJECT"
+        ? window.prompt(
+            t(
+              "سبب الرفض أو ملاحظة للمستخدم",
+              "Rejection reason or note for the user",
+            ),
+          ) || undefined
+        : window.prompt(t("ملاحظة إدارية اختيارية", "Optional admin note")) ||
+          undefined;
+
+    try {
+      setVerificationActionId(request.id);
+      const response = await fetch("/api/admin/identity-verifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestId: request.id,
+          decision,
+          adminNote,
+        }),
+      });
+
+      const body = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            t("تعذر تحديث طلب التوثيق", "Failed to update request"),
+        );
+      }
+
+      toast.success(
+        body.message ||
+          (decision === "APPROVE"
+            ? t("تم اعتماد التوثيق", "Verification approved")
+            : t("تم رفض التوثيق", "Verification rejected")),
+      );
+
+      await Promise.all([loadVerificationRequests(), loadDashboard(page)]);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("حدث خطأ غير متوقع", "Unexpected error"),
+      );
+    } finally {
+      setVerificationActionId("");
+    }
+  };
+
   return (
     <section className="space-y-6">
       <div className="admin-card overflow-hidden rounded-[28px] p-5 sm:p-6">
@@ -398,6 +515,130 @@ const AdminAnalyticsDashboard = () => {
             )}
             accent="sky"
           />
+        </div>
+
+        <div className="mt-6 rounded-[26px] border border-white/10 bg-black/15 p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                {t("طلبات توثيق الحساب", "Identity verification requests")}
+              </h3>
+              <p className="text-sm text-zinc-400">
+                {t(
+                  "مراجعة صور الهوية والرقم الوطني واعتماد الحسابات الموثقة.",
+                  "Review identity uploads and approve verified accounts.",
+                )}
+              </p>
+            </div>
+            <div className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
+              {t("الطلبات الحالية", "Current requests")}:{" "}
+              {verificationRequests.length}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            {verificationLoading ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-300">
+                {t("جاري تحميل الطلبات...", "Loading requests...")}
+              </div>
+            ) : verificationRequests.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-300">
+                {t(
+                  "لا توجد طلبات توثيق حاليًا",
+                  "No verification requests right now",
+                )}
+              </div>
+            ) : (
+              verificationRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 text-sm text-zinc-200"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-bold text-white">
+                        {request.user.name}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {request.user.email}
+                      </p>
+                      <p className="mt-2 text-xs text-zinc-400">
+                        {t("الاسم الرسمي", "Official name")}: {request.fullName}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {t("الرقم الوطني", "National ID")}: {request.nationalId}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                        request.status === "APPROVED"
+                          ? "border border-emerald-500/25 bg-emerald-500/15 text-emerald-300"
+                          : request.status === "REJECTED"
+                            ? "border border-rose-500/25 bg-rose-500/15 text-rose-300"
+                            : "border border-amber-500/25 bg-amber-500/15 text-amber-300"
+                      }`}
+                    >
+                      {request.status === "APPROVED"
+                        ? t("معتمد", "Approved")
+                        : request.status === "REJECTED"
+                          ? t("مرفوض", "Rejected")
+                          : t("قيد المراجعة", "Pending")}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={request.frontImageUrl}
+                        alt={t("الوجه الأمامي", "Front side")}
+                        className="h-44 w-full rounded-2xl object-cover"
+                      />
+                    </div>
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={request.backImageUrl}
+                        alt={t("الوجه الخلفي", "Back side")}
+                        className="h-44 w-full rounded-2xl object-cover"
+                      />
+                    </div>
+                  </div>
+
+                  {request.adminNote ? (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs leading-6 text-zinc-300">
+                      {request.adminNote}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleVerificationDecision(request, "REJECT")
+                      }
+                      disabled={verificationActionId === request.id}
+                      className="rounded-2xl border border-rose-500/25 bg-rose-500/15 px-4 py-2 text-xs font-semibold text-rose-200 transition disabled:opacity-60"
+                    >
+                      {t("رفض", "Reject")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleVerificationDecision(request, "APPROVE")
+                      }
+                      disabled={verificationActionId === request.id}
+                      className="rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+                    >
+                      {verificationActionId === request.id
+                        ? t("جارٍ الحفظ...", "Saving...")
+                        : t("اعتماد التوثيق", "Approve verification")}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
@@ -507,6 +748,11 @@ const AdminAnalyticsDashboard = () => {
                             {user.isOwner ? (
                               <span className="rounded-full border border-fuchsia-500/25 bg-fuchsia-500/15 px-2.5 py-1 text-[11px] font-semibold text-fuchsia-300">
                                 {t("مالك التطبيق", "Application owner")}
+                              </span>
+                            ) : null}
+                            {user.isIdentityVerified ? (
+                              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+                                {t("موثق", "Verified")}
                               </span>
                             ) : null}
                             {user.isAdmin && !user.isOwner ? (
