@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  const fallback = {
+    ok: true,
+    subscriptionMonthlyPrice: 30,
+    featuredAdMonthlyPrice: 10,
+    shamCashQrCodeUrl: "",
+    shamCashWalletCode: "",
+    url: "",
+  };
+
   try {
     const settings = await prisma.appPaymentSettings.findUnique({
       where: { id: 1 },
@@ -26,12 +35,6 @@ export async function GET() {
   } catch (error) {
     console.error("Failed to load public payment settings:", error);
 
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Failed to load payment settings",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json(fallback);
   }
 }

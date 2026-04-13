@@ -24,7 +24,6 @@ const DEFAULT_SUBSCRIPTION_AMOUNT = 30;
 type PaymentMethod = "PAYPAL" | "CARD" | "SHAMCASH";
 type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
 
-
 const ActivationModal = () => {
   const { update, data } = useSession();
   const activationModal = useActivationModal();
@@ -44,6 +43,10 @@ const ActivationModal = () => {
   const userId = data?.user?.id;
 
   useEffect(() => {
+    if (!activationModal.isOpen) {
+      return;
+    }
+
     const loadPaymentSettings = async () => {
       try {
         const res = await request.get("/api/pay/settings");
@@ -72,8 +75,8 @@ const ActivationModal = () => {
         // Keep defaults if settings endpoint fails.
       }
     };
-    loadPaymentSettings();
-  }, []);
+    void loadPaymentSettings();
+  }, [activationModal.isOpen]);
 
   const {
     register,
@@ -187,18 +190,18 @@ const ActivationModal = () => {
             ? "أو فعّل اشتراكك مباشرة عبر إحدى وسائل الدفع"
             : "Or activate your subscription directly with a payment method"}
         </p>
-            <PaymentsBtn 
-              isLoading={isLoading}
-              redirectingMethod={redirectingMethod}
-              requestingSupportCode={requestingSupportCode}
-              subscriptionAmount={subscriptionAmount}
-              isArabic={isArabic}
-              setRequestingSupportCode={setRequestingSupportCode}
-              isShamCashSubmitting={isShamCashSubmitting}
-              setShowShamCashModal={setShowShamCashModal}
-              requestActivationCodeViaSupport={requestActivationCodeViaSupport}
-              setRedirectingMethod={setRedirectingMethod}
-            />
+        <PaymentsBtn
+          isLoading={isLoading}
+          redirectingMethod={redirectingMethod}
+          requestingSupportCode={requestingSupportCode}
+          subscriptionAmount={subscriptionAmount}
+          isArabic={isArabic}
+          setRequestingSupportCode={setRequestingSupportCode}
+          isShamCashSubmitting={isShamCashSubmitting}
+          setShowShamCashModal={setShowShamCashModal}
+          requestActivationCodeViaSupport={requestActivationCodeViaSupport}
+          setRedirectingMethod={setRedirectingMethod}
+        />
       </div>
     </div>
   );
