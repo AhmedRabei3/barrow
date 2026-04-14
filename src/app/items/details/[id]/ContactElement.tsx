@@ -62,7 +62,11 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
 
       const res = await fetch("/api/purchase", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-lang": isArabic ? "ar" : "en",
+          "Accept-Language": isArabic ? "ar" : "en",
+        },
         body: JSON.stringify({
           itemId: id,
           itemType,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ItemDetails from "./ItemDetails";
 import { request } from "@/app/utils/axios";
+import { headers } from "next/headers";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -90,6 +91,9 @@ export async function generateMetadata({
 async function itemDetailsPage({ params }: PageProps) {
   const { id } = await params;
   const item = await getItem(id);
+    const acceptLanguage = (await headers()).get("accept-language") ?? "";
+    const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
+  
 
   const listingTitle =
     item?.data?.title || item?.data?.name || item?.data?.brand || "Listing";
@@ -226,7 +230,9 @@ async function itemDetailsPage({ params }: PageProps) {
           <ItemDetails item={item} />
         ) : (
           <div className="market-panel rounded-[28px] px-6 py-12 text-center text-slate-200">
-            <h2 className="text-xl font-bold">غير موجود!!</h2>
+            <h2 className="text-xl font-bold">
+              {isArabic ? "غير موجود" : "Not Found"}
+            </h2>
           </div>
         )}
       </div>

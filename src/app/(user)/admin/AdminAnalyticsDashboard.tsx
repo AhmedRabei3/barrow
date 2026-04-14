@@ -429,8 +429,8 @@ const AdminAnalyticsDashboard = () => {
   };
 
   return (
-    <section className="space-y-6">
-      <div className="admin-card overflow-hidden rounded-[28px] p-5 sm:p-6">
+    <section className="min-w-0 space-y-6">
+      <div className="admin-card min-w-0 overflow-hidden rounded-[28px] p-4 sm:p-5 lg:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
             <span className="admin-kicker">
@@ -460,7 +460,7 @@ const AdminAnalyticsDashboard = () => {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <MetricCard
             title={t("عدد المستخدمين الكلي", "Total users")}
             value={String(data.overview.totalUsers)}
@@ -487,7 +487,7 @@ const AdminAnalyticsDashboard = () => {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <MetricCard
             title={t("الالتزامات الحية", "Live liabilities")}
             value={formatCurrency(data.overview.totalLiveUserLiabilities)}
@@ -536,7 +536,7 @@ const AdminAnalyticsDashboard = () => {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="mt-4 grid gap-4 2xl:grid-cols-2">
             {verificationLoading ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-300">
                 {t("جاري تحميل الطلبات...", "Loading requests...")}
@@ -642,15 +642,15 @@ const AdminAnalyticsDashboard = () => {
         </div>
       </div>
 
-      <div className="w-full grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="admin-card rounded-[28px] p-5 sm:p-6">
+      <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <div className="admin-card min-w-0 rounded-[28px] p-4 sm:p-5 lg:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">
                 {t("حالة المشتركين", "Subscriber status")}
               </h3>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -658,14 +658,14 @@ const AdminAnalyticsDashboard = () => {
                   "ابحث بالاسم أو البريد",
                   "Search by name or email",
                 )}
-                className="admin-input rounded-2xl px-4 py-2.5 text-sm outline-none ring-0 transition"
+                className="admin-input min-w-0 rounded-2xl px-4 py-2.5 text-sm outline-none ring-0 transition sm:min-w-72"
               />
               <select
                 value={status}
                 onChange={(event) =>
                   setStatus(event.target.value as StatusFilter)
                 }
-                className="admin-select rounded-2xl px-4 py-2.5 text-sm outline-none transition"
+                className="admin-select w-full rounded-2xl px-4 py-2.5 text-sm outline-none transition sm:w-auto"
               >
                 <option value="ACTIVE">{t("مفعل", "Active")}</option>
                 <option value="INACTIVE">{t("غير مفعل", "Inactive")}</option>

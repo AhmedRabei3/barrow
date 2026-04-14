@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
+import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 interface PurchaseElementProps {
   itemType: ItemType;
@@ -16,6 +17,7 @@ interface PurchaseElementProps {
 }
 
 const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
+  const { isArabic } = useAppPreferences();
   const {
     price,
     currency = "USD",
@@ -36,7 +38,11 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
 
       const res = await fetch("/api/purchase", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-lang": isArabic ? "ar" : "en",
+          "Accept-Language": isArabic ? "ar" : "en",
+        },
         body: JSON.stringify({
           itemId: id,
           itemType,

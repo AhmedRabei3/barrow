@@ -23,7 +23,7 @@ const DESKTOP_GRID_CLASS =
   "hidden lg:grid grid-cols-[minmax(0,1fr)_minmax(28rem,42rem)_minmax(0,1fr)] items-center gap-4 px-1 py-2";
 
 const MOBILE_GRID_CLASS =
-  "lg:hidden grid grid-cols-[4rem_minmax(0,1fr)_4rem] items-center gap-2 px-1 py-2.5";
+  "lg:hidden grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-1 py-2.5";
 
 const TABLET_SEARCH_CLASS = "hidden md:block lg:hidden px-1 pb-2";
 
@@ -115,9 +115,11 @@ const Navbar = ({
           </div>
 
           <div className="flex items-center justify-end gap-2 min-w-0 justify-self-end">
-            <NotificationBell />
+            <div className="hidden xl:flex items-center gap-2">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
             <LanguageToggle />
-            <ThemeToggle />
             <div className="shrink-0">
               <UserMenu />
             </div>
@@ -126,13 +128,13 @@ const Navbar = ({
 
         <div dir="ltr" className={MOBILE_GRID_CLASS}>
           <div className="flex items-center justify-center">
-            <UserMenu />
+            <Logo />
           </div>
           <div className="min-w-0 px-0.5">
             <HomeTabs setType={helper.handleSetType} type={type} compact />
           </div>
-          <div className="flex items-center justify-center">
-            <Logo />
+          <div className="flex items-center justify-end">
+            <UserMenu />
           </div>
         </div>
 

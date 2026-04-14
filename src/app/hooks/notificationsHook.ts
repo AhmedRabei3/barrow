@@ -8,7 +8,11 @@ export default function useWebSocketNotifications(userId: string) {
   useEffect(() => {
     if (!userId) return;
 
-    const ws = new WebSocket(`ws://localhost:3000/ws?userId=${userId}`);
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+    const ws = new WebSocket(
+      `${protocol}://${host}/ws?userId=${encodeURIComponent(userId)}`,
+    );
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data) as NotificationMessage;

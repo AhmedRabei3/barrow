@@ -277,13 +277,15 @@ const UserMenu = () => {
       </p>
       <div className="flex items-center justify-start gap-2">
         <LanguageToggle />
-        <ThemeToggle />
+        <div className="hidden lg:flex">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div>
+    <div className="w-full">
       <div className="flex items-center justify-end relative">
         {/* ✅ User menu + dropdown */}
         <div className="relative" ref={menuRef}>

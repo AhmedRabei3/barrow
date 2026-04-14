@@ -329,8 +329,8 @@ const ChatAssistantModal = ({
 
   return (
     <AnimatePresence>
-      <motion.div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-        <motion.div className="bg-white rounded-lg w-full max-w-lg">
+      <motion.div className="fixed inset-0 z-90 flex items-start justify-center overflow-y-auto bg-slate-950/70 px-3 py-6 sm:px-4 sm:py-10">
+        <motion.div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 max-h-[calc(100dvh-3rem)] sm:max-h-[calc(100dvh-5rem)]">
           {step === "chat" && (
             <ChatInterface
               messages={messages}
@@ -341,34 +341,42 @@ const ChatAssistantModal = ({
           )}
 
           {step === "location" && (
-            <div>
-              <MapPicker
-                radius={1000}
-                onLocationSelect={(loc) =>
-                  setValue("location", { lat: loc.lat, lng: loc.lng })
-                }
-              />
-              <button
-                className="btn-primary w-full"
-                onClick={() => setStep("images")}
-              >
-                {t("تأكيد الموقع", "Confirm location")}
-              </button>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+                <MapPicker
+                  radius={1000}
+                  onLocationSelect={(loc) =>
+                    setValue("location", { lat: loc.lat, lng: loc.lng })
+                  }
+                />
+              </div>
+              <div className="border-t border-slate-200 p-3 dark:border-slate-800 sm:p-4">
+                <button
+                  className="btn-primary w-full"
+                  onClick={() => setStep("images")}
+                >
+                  {t("تأكيد الموقع", "Confirm location")}
+                </button>
+              </div>
             </div>
           )}
 
           {step === "images" && (
-            <div>
-              <ImageUpload
-                selectedImages={selectedImages}
-                setSelectedImages={setSelectedImages}
-              />
-              <button
-                className="btn-primary w-full"
-                onClick={handleImagesSubmit}
-              >
-                {t("إرسال", "Submit")}
-              </button>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+                <ImageUpload
+                  selectedImages={selectedImages}
+                  setSelectedImages={setSelectedImages}
+                />
+              </div>
+              <div className="border-t border-slate-200 p-3 dark:border-slate-800 sm:p-4">
+                <button
+                  className="btn-primary w-full"
+                  onClick={handleImagesSubmit}
+                >
+                  {t("إرسال", "Submit")}
+                </button>
+              </div>
             </div>
           )}
         </motion.div>

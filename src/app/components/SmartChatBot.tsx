@@ -560,24 +560,24 @@ const normalizeAnswer = (
 const getSubscriptionAnswerByKey = (key: string, isArabic: boolean) => {
   const answerMap: Record<string, { ar: string; en: string }> = {
     SUB_BENEFITS: {
-      ar: "✨ الاشتراك هو أسرع طريق لتطوير حسابك: يفتح لك مزايا المنصة كاملة، يعزز ظهور إعلاناتك، ويرفع فرص البيع وأرباح الإحالة. ومع كل تجديد، تنتقل الأرباح المعلقة إلى رصيدك.",
-      en: "✨ Subscription is your fastest way to level up: it unlocks full platform features, boosts listing visibility, and increases your chance for more sales and referral earnings. With each renewal, pending earnings move into your balance.",
+      ar: "القدرة على الإعلان عبر المنصة \n تحصل على رابط خاص بك تدعو الآخرين من خلاله للاشتراك : \n يحصل المشتركون من خلال رابطك على حسم للاشتراك الأول 10% \n تحصل على 60% من قيمة الاشتراك لأول 10 مشتركين، 40% من 11-20، 30% من 21-30، و20% لما فوق ذلك \n مع كل تجديد للاشتراك، تنتقل الأرباح المعلقة إلى رصيدك الجاهز للسحب.",
+      en: "✨ The subscription make you able to list throw platform and earn from referrals. \n You get a unique invite link that offers new subscribers a 10% discount on their first subscription. You earn 60% of the subscription fee for your first 10 referrals, 40% for referrals 11-20, 30% for referrals 21-30, and 20% for any referrals beyond that.\n With each subscription renewal, your pending earnings move to your balance, ready for withdrawal.",
     },
     SUB_ACTIVATE: {
-      ar: "🔐 تفعيل الحساب بسيط: عبر بوابات الدفع المتاحة (ومنها PayPal) أو باستخدام كود تفعيل. بعد التأكيد مباشرة يتفعل حسابك لمدة 30 يومًا وتبدأ الاستفادة الكاملة فورًا.",
+      ar: "🔐 تفعيل الحساب بسيط: عبر بوابات الدفع المتاحة (ومنها PayPal) أو باستخدام كود تفعيل. بعد التأكيد مباشرة يتفعل حسابك لمدة 30 يومًا وتحصل على المزايا الكاملة فورًا.",
       en: "🔐 Activation is super simple: use available payment gateways (including PayPal) or an activation code. Once confirmed, your account is active for 30 days and you start getting full benefits immediately.",
     },
     SUB_GRACE: {
-      ar: "⏳ بعد انتهاء الاشتراك لديك فترة سماح لمدة 15 يومًا للتجديد. وخلال هذه الفترة يمكنك التجديد بشكل طبيعي.",
-      en: "⏳ After subscription expiry, you have a 15-day grace period for renewal. Renewing during this window is normal.",
+      ar: "⏳ بعد انتهاء الاشتراك لديك فترة لمدة 15 يومًا لتجديد الاشتراك",
+      en: "⏳ After subscription expiry, you have a 15-day period for renewal.",
     },
     SUB_REFERRAL: {
-      ar: "💸 نظام الدعوات يعمل بشرائح على المدعوين المفعّلين ذوي النشاط الإعلاني الحقيقي (إعلان فعلي غير محذوف): 60% لأول 10، ثم 40% من 11 إلى 20، ثم 30% من 21 إلى 30، ثم 20% لما فوق ذلك. الأرباح تُحتسب تلقائيًا كأرباح إحالة معلقة.",
-      en: "💸 Referrals use tiered rates for activated invites with real listing activity (at least one non-deleted listing): 60% for the first 10, then 40% for 11–20, then 30% for 21–30, and 20% above that. Earnings are credited automatically as pending referral earnings.",
+      ar: "💸 بدعوتك الآخرين تحصل على 60% من اشتراك أول 10 مشتركين وعلى نسبة 40% للمشتركين العشرة التالين، 30% من 21 - 30مشترك و 20% لمافوق ذلك وذلك كلما جددوا اشتراكهم أي أن أرباحك الشهرية شبه ثابتة",
+      en: "💸 By inviting others, you earn 60% from the subscription of the first 10 subscribers, 40% from the next 10 subscribers, 30% from 21-30 subscribers, and 20% for any beyond that, each time they renew their subscription, meaning your monthly earnings are almost stable.",
     },
     SUB_PENDING: {
-      ar: "💰 الأرباح المعلقة تُضاف إلى رصيدك عند تفعيل أو تجديد الاشتراك. وإذا تجاوزت فترة السماح دون تجديد، قد تفقد الأرباح المعلقة.",
-      en: "💰 Pending earnings are transferred to your balance when you activate/renew. If you pass the grace period without renewal, pending earnings may be lost.",
+      ar: "💰 الأرباح المعلقة تُضاف إلى رصيدك عند تجديد الاشتراك. وإذا تجاوزت فترة اعادة التجديد، تفقد الأرباح المعلقة.",
+      en: "💰 Pending earnings are transferred to your balance when you renew your subscription. If you pass the grace period without renewal, pending earnings may be lost.",
     },
     SUB_INVITE: {
       ar: "🔗 من خيار دعوة الأصدقاء يتم إنشاء رابطك الخاص (?ref=معرفك). شارك الرابط، وعند التسجيل ثم التفعيل من خلاله تُحتسب الإحالة لك تلقائيًا.",

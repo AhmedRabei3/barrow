@@ -219,7 +219,7 @@ const AdminDashBoard = () => {
   const isLight = theme === "light";
 
   return (
-    <section className="admin-shell flex min-h-screen overflow-hidden transition-colors">
+    <section className="admin-shell flex min-h-screen flex-col overflow-x-clip transition-colors md:flex-row">
       {/* الشريط الجانبي */}
       <AdminSideBar
         setPage={setPage}
@@ -235,7 +235,7 @@ const AdminDashBoard = () => {
       {/* المحتوى الرئيسي */}
 
       <main
-        className={`relative z-10 flex-1 px-4 pb-24 pt-22 transition-all duration-300 sm:px-6 md:pb-8 md:px-8 ${
+        className={`relative z-10 w-full min-w-0 flex-1 px-3 pb-24 pt-22 transition-all duration-300 sm:px-4 md:pb-8 md:px-6 lg:px-8 ${
           isSidebarCollapsed ? "md:mr-24" : "md:mr-72"
         }`}
       >

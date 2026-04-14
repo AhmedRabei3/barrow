@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ASSISTANT_NAME_AR } from "@/app/i18n/brand";
+import { useAppPreferences } from "./providers/AppPreferencesProvider";
 
 type ChatOption = {
   label: string;
@@ -43,6 +44,7 @@ const ChatInterface = ({
   isLoading,
   currentQuestion,
 }: ChatInterfaceProps) => {
+  const { isArabic } = useAppPreferences();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -70,15 +72,22 @@ const ChatInterface = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg">
+    <div
+      dir={isArabic ? "rtl" : "ltr"}
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] bg-white dark:bg-slate-950"
+    >
       {/* رأس المحادثة */}
-      <div className="bg-linear-to-r from-emerald-500 to-emerald-600 p-4 rounded-t-lg">
-        <h2 className="text-white font-bold text-lg">🤖 {ASSISTANT_NAME_AR}</h2>
-        <p className="text-emerald-100 text-sm">أجب عن الأسئلة بسرعة وسهولة</p>
+      <div className="sticky top-0 z-10 bg-linear-to-r from-emerald-500 to-emerald-600 px-4 py-4 sm:px-5">
+        <h2 className="text-lg font-bold text-white">🤖 {ASSISTANT_NAME_AR}</h2>
+        <p className="text-sm text-emerald-100">
+          {isArabic
+            ? "أجب عن الأسئلة بسرعة وسهولة"
+            : "Answer the guided questions quickly and clearly"}
+        </p>
       </div>
 
       {/* المحادثة */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 space-y-4">
         <AnimatePresence initial={false}>
           {messages.map((msg) =>
             msg.role === "assistant" ? (
@@ -89,8 +98,8 @@ const ChatInterface = ({
                 exit={{ opacity: 0 }}
                 className="flex justify-start"
               >
-                <div className="bg-gray-100 rounded-lg rounded-bl-none p-3 max-w-xs">
-                  <p className="text-gray-800 text-sm">{msg.content}</p>
+                <div className="max-w-[85%] rounded-2xl rounded-bl-none bg-slate-100 p-3 text-sm text-slate-800 dark:bg-slate-800 dark:text-slate-100 sm:max-w-md">
+                  <p>{msg.content}</p>
                 </div>
               </motion.div>
             ) : (
@@ -101,8 +110,8 @@ const ChatInterface = ({
                 exit={{ opacity: 0 }}
                 className="flex justify-end"
               >
-                <div className="bg-emerald-500 text-white rounded-lg rounded-br-none p-3 max-w-xs">
-                  <p className="text-sm">{msg.content}</p>
+                <div className="max-w-[85%] rounded-2xl rounded-br-none bg-emerald-500 p-3 text-sm text-white sm:max-w-md">
+                  <p>{msg.content}</p>
                 </div>
               </motion.div>
             ),
@@ -113,18 +122,18 @@ const ChatInterface = ({
 
       {/* الخيارات أو حقل الإدخال */}
       {currentQuestion && (
-        <div className="border-t p-4 space-y-3">
+        <div className="border-t border-slate-200 px-4 py-4 space-y-3 dark:border-slate-800 sm:px-5">
           {/* الخيارات */}
           {currentQuestion.options && (
-            <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {currentQuestion.options.map((option) => (
                 <button
                   key={String(option.value)}
                   onClick={() => onOptionSelect(String(option.value))}
                   disabled={isLoading}
-                  className="w-full p-3 text-left border-2 border-emerald-200 rounded-lg hover:bg-emerald-50 hover:border-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-2xl border-2 border-emerald-200 p-3 text-start transition-all hover:border-emerald-500 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-900/60 dark:hover:bg-emerald-950/30"
                 >
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-slate-800 dark:text-slate-100">
                     {option.label}
                   </span>
                 </button>
@@ -134,12 +143,15 @@ const ChatInterface = ({
 
           {/* حقل النص */}
           {currentQuestion.type && !currentQuestion.options && (
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-2 sm:flex-row"
+            >
               {currentQuestion.type === "textarea" ? (
                 <textarea
                   ref={textAreaRef}
                   placeholder={currentQuestion.placeholder || "اكتب الإجابة..."}
-                  className="flex-1 p-2 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:outline-none resize-none"
+                  className="min-h-28 flex-1 resize-none rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   rows={3}
                   disabled={isLoading}
                 />
@@ -147,7 +159,7 @@ const ChatInterface = ({
                 <input
                   ref={inputRef}
                   type="color"
-                  className="flex-1 p-2 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:outline-none cursor-pointer"
+                  className="h-12 flex-1 cursor-pointer rounded-2xl border-2 border-slate-300 p-2 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900"
                   disabled={isLoading}
                 />
               ) : (
@@ -155,14 +167,14 @@ const ChatInterface = ({
                   ref={inputRef}
                   type={currentQuestion.type || "text"}
                   placeholder={currentQuestion.placeholder || "اكتب الإجابة..."}
-                  className="flex-1 p-2 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:outline-none"
+                  className="h-12 flex-1 rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   disabled={isLoading}
                 />
               )}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-12 rounded-2xl bg-emerald-500 px-5 py-2 text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ✓
               </button>
@@ -174,9 +186,9 @@ const ChatInterface = ({
             <button
               onClick={() => onOptionSelect("skip")}
               disabled={isLoading}
-              className="w-full p-2 text-gray-500 text-sm hover:text-gray-700 transition-colors disabled:opacity-50"
+              className="w-full p-2 text-sm text-slate-500 transition-colors hover:text-slate-700 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
             >
-              تخطي
+              {isArabic ? "تخطي" : "Skip"}
             </button>
           )}
         </div>
