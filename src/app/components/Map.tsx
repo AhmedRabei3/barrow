@@ -50,9 +50,11 @@ const DynamicMap = dynamic(
 
         useMapEvents({
           click(e: LeafletMouseEvent) {
+            // In view-only mode (no onMapClick handler) do nothing
+            if (!onMapClick) return;
             const { lat, lng } = e.latlng;
             setPos([lat, lng]);
-            onMapClick?.(lat, lng);
+            onMapClick(lat, lng);
           },
         });
 

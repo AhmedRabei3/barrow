@@ -109,9 +109,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       uploadedImages = await images({ formData });
     }
 
+    const hasNewImages = Boolean(uploadedImages && uploadedImages.length > 0);
+
     const { updatedCar, manualRentalEndsAt } = await prisma.$transaction(
       async (tx) => {
-        const nextStatus = "PENDING_REVIEW" as Availability;
+        const nextStatus = (
+          hasNewImages ? "PENDING_REVIEW" : (carData.status ?? car.status)
+        ) as Availability;
         const nextSellOrRent = (carData.sellOrRent ??
           car.sellOrRent) as TransactionType;
         const nextRentType = (
@@ -122,7 +126,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           where: { id },
           data: {
             ...carData,
-            ...pendingReviewData,
+            ...(hasNewImages ? pendingReviewData : {}),
           },
         });
 
@@ -191,7 +195,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     );
 
-    await notifyAdminsOfModerationQueue("NEW_CAR", id, "UPDATED");
+    if (hasNewImages) {
+      await notifyAdminsOfModerationQueue("NEW_CAR", id, "UPDATED");
+    }
 
     return NextResponse.json(
       {

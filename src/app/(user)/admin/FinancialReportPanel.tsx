@@ -517,7 +517,7 @@ const FinancialReportPanel = () => {
           value={`$${formatMoney(data?.summary.pendingReferralEarnings || 0)}`}
         />
         <KpiCard
-          title={t("الالتزامات الحية", "Live liabilities")}
+          title={t("جمالي الالتزامات", "Total liabilities")}
           value={`$${formatMoney(data?.summary.totalLiveUserLiabilities || 0)}`}
         />
         <KpiCard
@@ -710,7 +710,7 @@ const FinancialReportPanel = () => {
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span>{t("الالتزامات الحية", "Live liabilities")}</span>
+              <span>{t("مجموع الالتزامات", "Total liabilities")}</span>
               <span className="font-semibold text-amber-300">
                 -${formatMoney(data?.summary.totalLiveUserLiabilities || 0)}
               </span>

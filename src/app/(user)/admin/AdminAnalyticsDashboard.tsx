@@ -480,7 +480,7 @@ const AdminAnalyticsDashboard = () => {
             title={t("الربح الصافي", "Net profit")}
             value={formatCurrency(data.overview.netProfitAmount)}
             hint={t(
-              "محسوب خادمياً = إجمالي المستلم - الالتزامات الحية - 10% تشغيل.",
+              "محسوب خادمياً = إجمالي المستلم - الالتزامات الإجمالية - 10% تشغيل.",
               "Server-calculated = total received - live liabilities - 10% reserve.",
             )}
             accent="zinc"
@@ -489,7 +489,7 @@ const AdminAnalyticsDashboard = () => {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <MetricCard
-            title={t("الالتزامات الحية", "Live liabilities")}
+            title={t("اجمالي الالتزامات ", "Live liabilities")}
             value={formatCurrency(data.overview.totalLiveUserLiabilities)}
             hint={t(
               "أرصدة المستخدمين الجاهزة + أرباح الإحالة المعلقة.",

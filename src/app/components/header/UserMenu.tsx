@@ -277,9 +277,7 @@ const UserMenu = () => {
       </p>
       <div className="flex items-center justify-start gap-2">
         <LanguageToggle />
-        <div className="hidden lg:flex">
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </div>
     </div>
   );

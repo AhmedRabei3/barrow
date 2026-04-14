@@ -95,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { updatedItem, manualRentalEndsAt } = await prisma.$transaction(
       async (tx) => {
-        const nextStatus = "PENDING_REVIEW" as Availability;
+        const nextStatus = (itemData.status ?? item.status) as Availability;
         const nextSellOrRent = (itemData.sellOrRent ??
           item.sellOrRent) as TransactionType;
         const nextRentType = (
@@ -107,7 +107,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           where: { id },
           data: {
             ...itemData,
-            ...pendingReviewData,
           },
         });
 
@@ -153,8 +152,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     );
 
-    await notifyAdminsOfModerationQueue("OTHER", id, "UPDATED");
-
     return NextResponse.json(
       {
         success: true,
@@ -165,7 +162,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           rentType: updatedItem.rentType,
           manualRentalEndsAt: manualRentalEndsAt?.toISOString() ?? null,
         },
-        message: "تم تحديث العنصر وإرساله مجددًا لمراجعة الأدمن",
+        message: "تم تحديث العنصر بنجاح",
       },
       { status: 200 },
     );

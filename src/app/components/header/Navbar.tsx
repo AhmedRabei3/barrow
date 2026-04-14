@@ -133,7 +133,8 @@ const Navbar = ({
           <div className="min-w-0 px-0.5">
             <HomeTabs setType={helper.handleSetType} type={type} compact />
           </div>
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-1">
+            <NotificationBell hiddenWhenEmpty />
             <UserMenu />
           </div>
         </div>

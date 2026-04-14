@@ -8,7 +8,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import BellBtn from "./BellBtn";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
-const NotificationBell = () => {
+const NotificationBell = ({
+  hiddenWhenEmpty = false,
+}: {
+  hiddenWhenEmpty?: boolean;
+}) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { isArabic } = useAppPreferences();
@@ -21,9 +25,12 @@ const NotificationBell = () => {
     hasMore,
     loading,
     refetch,
-    markAsRead, // ✅ المصدر الوحيد
+    markAsRead,
     unreadCount,
   } = useNotifications(open);
+
+  // On mobile: only render when there are unread notifications
+  if (hiddenWhenEmpty && unreadCount === 0) return null;
 
   return (
     <div ref={ref}>

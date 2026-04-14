@@ -145,7 +145,7 @@ const ChatInterface = ({
           {currentQuestion.type && !currentQuestion.options && (
             <form
               onSubmit={handleSubmit}
-              className="flex flex-col gap-2 sm:flex-row"
+              className="flex w-full min-w-0 flex-col gap-2 sm:flex-row"
             >
               {currentQuestion.type === "textarea" ? (
                 <textarea
@@ -167,7 +167,7 @@ const ChatInterface = ({
                   ref={inputRef}
                   type={currentQuestion.type || "text"}
                   placeholder={currentQuestion.placeholder || "اكتب الإجابة..."}
-                  className="h-12 flex-1 rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="h-12 min-w-0 flex-1 rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   disabled={isLoading}
                 />
               )}
