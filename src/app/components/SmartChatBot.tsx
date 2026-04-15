@@ -1397,9 +1397,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     currentQuestion?.type !== "location";
 
   const chipButtonClass =
-    "px-2.5 py-2 rounded-xl border border-slate-200/90 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 hover:border-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-xs text-right transition-all duration-200 shadow-xs hover:shadow-sm";
+    "px-2.5 py-2 rounded-xl border border-slate-200/90 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs text-right transition-all duration-200 shadow-xs hover:shadow-sm";
   const primaryButtonClass =
-    "px-3 py-2 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium disabled:opacity-50 shadow-sm hover:shadow-md hover:from-emerald-500 hover:to-teal-500 transition-all";
+    "px-3 py-2 rounded-xl bg-linear-to-r from-blue-600 to-teal-600 text-white text-sm font-medium disabled:opacity-50 shadow-sm hover:shadow-md hover:from-blue-500 hover:to-teal-500 transition-all";
   const secondaryButtonClass =
     "px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors";
   const staggerContainerVariants: Variants = {
@@ -1431,14 +1431,14 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       className="w-full max-w-104 h-[min(80dvh-2rem,44rem)] max-h-150 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
       dir={isArabic ? "rtl" : "ltr"}
     >
-      <div className="px-4 py-3 border-b border-emerald-100/70 dark:border-slate-700 bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white">
+      <div className="px-4 py-3 border-b border-blue-100/70 dark:border-slate-700 bg-linear-to-r from-blue-600 via-teal-600 to-cyan-600 text-white">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-200 animate-pulse" />
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-200 animate-pulse" />
               <h3 className="text-sm font-semibold">{tc("headerTitle")}</h3>
             </div>
-            <p className="text-xs text-emerald-50/95 mt-1">
+            <p className="text-xs text-blue-50/95 mt-1">
               {tc("headerSubtitle")}
             </p>
           </div>
@@ -1454,7 +1454,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           )}
         </div>
         {editItemSummary && (
-          <p className="text-[11px] text-emerald-50 mt-2 bg-white/15 rounded-md px-2 py-1 inline-block">
+          <p className="text-[11px] text-blue-50 mt-2 bg-white/15 rounded-md px-2 py-1 inline-block">
             {t("وضع التعديل:", "Edit mode:")} {editItemSummary.typeLabel} —{" "}
             {editItemSummary.displayName}
           </p>
@@ -1499,7 +1499,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                   className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed ${
                     message.role === "assistant"
                       ? `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 ${assistantBubbleClass} shadow-sm`
-                      : `bg-linear-to-r from-emerald-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
+                      : `bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
                   }`}
                 >
                   {message.content}
@@ -1512,9 +1512,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           <div className="flex justify-start">
             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 text-slate-500 dark:text-slate-300 text-xs shadow-sm">
               <span className="inline-flex gap-1 items-center">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" />
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:120ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:240ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce" />
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:120ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:240ms]" />
               </span>
             </div>
           </div>
@@ -1535,7 +1535,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                   type="button"
                   onClick={() => handleAnswer(SMART_CHAT_ACTION_ADD_ITEM)}
                   variants={staggerItemVariants}
-                  className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm text-right transition-all"
+                  className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-500 hover:text-blue-700 dark:hover:text-blue-300 text-sm text-right transition-all"
                 >
                   {t("🆕 إضافة عنصر جديد", "🆕 Add a new item")}
                 </motion.button>
@@ -1795,7 +1795,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 currentQuestion?.placeholder || tc("answerPlaceholder")
               }
               type={currentQuestion?.type === "number" ? "number" : "text"}
-              className="max-w-[90%] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 bg-white dark:bg-slate-900"
+              className="max-w-[90%] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 bg-white dark:bg-slate-900"
             />
             <button
               type="button"
@@ -1804,7 +1804,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 (!textInput.trim() && currentQuestion?.required !== false)
               }
               className="
-               text-emerald-600
+               text-blue-600
                  disabled:opacity-50 shadow-sm 
                  hover:shadow-md
                   transition-all
@@ -1860,7 +1860,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               onClick={handleNavigatePrevious}
               disabled={isLoading}
               variants={staggerItemVariants}
-              className="px-2 py-2 rounded-xl border border-emerald-300/80 text-emerald-700 dark:text-emerald-300 text-xs disabled:opacity-50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+              className="px-2 py-2 rounded-xl border border-blue-300/80 text-blue-700 dark:text-blue-300 text-xs disabled:opacity-50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
             >
               {tc("editAnswer")}
             </motion.button>
@@ -1939,7 +1939,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           {currentQuestion?.required === false && canSubmitText && (
             <button
               type="button"
-              className="text-xs text-emerald-700 hover:text-emerald-800"
+              className="text-xs text-blue-700 hover:text-blue-800"
               onClick={() => {
                 handleAnswer("");
                 setTextInput("");
@@ -1987,8 +1987,8 @@ const MultiSelectComposer = ({
               }}
               className={`px-2 py-2 rounded-xl border text-xs transition-all ${
                 active
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
-                  : "border-slate-200 dark:border-slate-700 hover:border-emerald-400"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                  : "border-slate-200 dark:border-slate-700 hover:border-blue-400"
               }`}
             >
               {option.label}
@@ -1999,7 +1999,7 @@ const MultiSelectComposer = ({
       <button
         type="button"
         disabled={selectedValues.length === 0 || disabled}
-        className="w-full px-3 py-2 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium disabled:opacity-50 shadow-sm hover:shadow-md transition-all"
+        className="w-full px-3 py-2 rounded-xl bg-linear-to-r from-blue-600 to-teal-600 text-white text-sm font-medium disabled:opacity-50 shadow-sm hover:shadow-md transition-all"
         onClick={() => onConfirm(selectedValues)}
       >
         {isArabic

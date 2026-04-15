@@ -9,6 +9,10 @@ interface fetchCategoryProps<TCategory extends CategoryItem = CategoryItem> {
 
 const categoriesCache = new Map<string, CategoryItem[]>();
 
+export const clearCategoriesCache = () => {
+  categoriesCache.clear();
+};
+
 const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
   type,
   withItemsOnly,
@@ -35,6 +39,8 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
     if (data.success && Array.isArray(data.data)) {
       const formatted: CategoryItem[] = data.data.map((cat: CategoryItem) => ({
         name: cat.name,
+        nameAr: cat.nameAr ?? null,
+        nameEn: cat.nameEn ?? null,
         icon: cat.icon,
         type: cat.type,
         id: cat.id,

@@ -41,12 +41,7 @@ export async function GET(req: NextRequest) {
       isDeleted: false,
     };
 
-    // ✅ إذا تم تمرير name نضيف شرط البحث الجزئي غير الحساس لحالة الأحرف
-    if (name) {
-      whereClause.name = {
-        contains: name.trim(),
-      };
-    }
+    const needle = name?.trim();
 
     // ✅ إذا تم تمرير type نضيف شرط المطابقة بالنوع
     if (type && type !== "ALL") {
@@ -89,6 +84,26 @@ export async function GET(req: NextRequest) {
         { otherItems: activeItemsFilter },
       ];
     }
+
+    // ✅ البحث بالاسم (العربي/الإنكليزي) دون كسر باقي الشروط
+    if (needle) {
+      const currentAnd = Array.isArray(whereClause.AND)
+        ? whereClause.AND
+        : whereClause.AND
+          ? [whereClause.AND]
+          : [];
+
+      whereClause.AND = [
+        ...currentAnd,
+        {
+          OR: [
+            { name: { contains: needle } },
+            { nameAr: { contains: needle } },
+            { nameEn: { contains: needle } },
+          ],
+        },
+      ];
+    }
     // ✅ جلب البيانات (كل الفئات إذا لم يُرسل أي name أو type)
     const [categories, totalCount] = await Promise.all([
       prisma.category.findMany({
@@ -97,6 +112,8 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           name: true,
+          nameAr: true,
+          nameEn: true,
           icon: true,
           type: true,
           isDeleted: true,
@@ -118,10 +135,17 @@ export async function GET(req: NextRequest) {
     }
 
     // ✅ النتيجة النهائية
+    const localizedCategories = categories.map((category) => ({
+      ...category,
+      name: isArabic
+        ? category.nameAr || category.nameEn || category.name
+        : category.nameEn || category.name || category.nameAr,
+    }));
+
     return NextResponse.json({
       success: true,
       count: totalCount,
-      data: categories,
+      data: localizedCategories,
     });
   } catch (error) {
     console.error("Error fetching categories:", error);

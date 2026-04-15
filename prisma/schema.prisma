@@ -259,6 +259,8 @@ model User {
 model Category {
   id        String   @id @default(cuid())
   name      String
+  nameAr    String?
+  nameEn    String?
   type      ItemType
   icon      String?
   isDeleted Boolean  @default(false)
