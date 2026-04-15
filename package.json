@@ -16,7 +16,7 @@
     "worker:rental:reminders": "tsx scripts/rental-reminder-worker.ts",
     "owner:ensure": "tsx scripts/ensure-owner.ts",
     "db:seed": "prisma db seed",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "build:ws": "next build && tsc --project tsconfig.server.json",
     "start": "next start",
     "start:ws": "node scripts/start-ws.mjs",
