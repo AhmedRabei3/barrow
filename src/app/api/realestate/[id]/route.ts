@@ -10,10 +10,6 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
-import {
-  notifyAdminsOfModerationQueue,
-  pendingReviewData,
-} from "../../utils/moderation";
 
 /**
  * @description Delete property (soft delete) and remove all related data

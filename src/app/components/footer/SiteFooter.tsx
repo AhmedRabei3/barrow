@@ -9,7 +9,7 @@ import Logo from "../header/Logo";
 
 const advantages = [
   {
-    title: "هدف المنصة",
+    title: "هدف الموقع",
     description:
       "نهدف إلى تسهيل وصولكم لما ترغبون دون أن تضطروا لدفع عمولة مرتفعة.",
   },
@@ -18,17 +18,37 @@ const advantages = [
     description:
       "أنجز معاملات البيع والإيجار بسهولة، واعثر على العقارات والسيارات والكثير من الأشياء الرائعة.",
   },
-  {
-    title: "مزايا الاشتراك المدفوع",
-    description:
-      "الاشتراك : يشاركك في الربح ويزيد من انتشار الموقع وبالتالي يرفع نسبة مشاهدة إعلانك أيضاً ",
-  },
 ];
 
-const usageSteps = [
-  "حدّد نوع العنصر الذي تبحث عنه بسرعة.",
-  "أكمل البيع أو الإيجار بخطوات أوضح وأسهل.",
-  "استفد من الاشتراك المدفوع وبرنامج الدعوات لزيادة أرباحك.",
+const localizedSteps = [
+  {
+    ar: "بيئة نظيفة وموثوقة: نفرض معايير صارمة لضمان إعلانات حقيقية وخالية من أي محتوى مخالف.",
+    en: "Clean & trusted: strict standards ensure authentic listings and a safe transaction environment.",
+  },
+  {
+    ar: "بحث ذكي وسهل: ابحث بالاسم أو الفئة أو نطاق السعر أو عبر الخريطة التفاعلية.",
+    en: "Smart search: find anything by name, category, price range, or interactive map.",
+  },
+  {
+    ar: "تنوع واسع: عقارات، سيارات، دراجات، إلكترونيات وأكثر — كل شيء في مكان واحد.",
+    en: "Broad selection: real estate, cars, bikes, electronics and more — all in one place.",
+  },
+  {
+    ar: "وصول أوسع لإعلانك: خوارزميات ذكية ونظام إحالة يرفع ظهور إعلانك أمام الجمهور المناسب.",
+    en: "Greater reach: smart algorithms and referrals put your listing in front of the right audience.",
+  },
+  {
+    ar: "بدون عمولة: أتمّ بيعك أو إيجارك دون أي رسوم أو عمولات مخفية على الصفقة.",
+    en: "Zero commission: complete every sale or rental without any hidden fees on the deal.",
+  },
+  {
+    ar: "دخل شهري متكرر: ادعُ الآخرين واكسب من كل اشتراك يتم تفعيله شهرياً عبر شرائح مختلفة تصل إلى 60% من اشتراك أول 10 مستخدمين .",
+    en: "Recurring monthly income: refer others and earn from every successful subscription via tiered rewards.",
+  },
+  {
+    ar: "مزايا حصرية دورية: فعاليات، ميزات جديدة، ومكافآت خاصة لمستخدمينا النشطين.",
+    en: "Exclusive perks: regular events, new features, and special rewards for active members.",
+  },
 ];
 
 const footerSections = {
@@ -121,13 +141,7 @@ const SiteFooter = () => {
         },
       ];
 
-  const localizedSteps = isArabic
-    ? usageSteps
-    : [
-        "Choose the listing type you need in seconds.",
-        "Complete sale and rental transactions through clear, simple steps.",
-        "Use paid subscription and referrals to grow your earnings.",
-      ];
+  const steps = localizedSteps.map((item) => (isArabic ? item.ar : item.en));
 
   const footerContent = isArabic ? footerSections.ar : footerSections.en;
 
@@ -173,13 +187,8 @@ const SiteFooter = () => {
               <h3 className="text-xs font-black uppercase tracking-[0.22em] text-primary">
                 {isArabic ? "لماذا تختارنا" : "Why you Choose Us"}
               </h3>
-              <p className="footer-text mt-3 text-sm leading-7">
-                {isArabic
-                  ? "لأنن منصتنا الوحيدة التي تتيج لك أفضل العروض وأرحص الأسعار وتجعلك شريكاً حقيقياً في الربح أيضاً"
-                  : "Because we are the only platform that gives you the best offers, the cheapest prices, and makes you a real partner in profit as well."}
-              </p>
               <ul className="mt-5 space-y-3">
-                {localizedSteps.map((step) => (
+                {steps.map((step) => (
                   <li
                     key={step}
                     className="footer-text flex items-start gap-3 text-sm"
@@ -212,7 +221,7 @@ const SiteFooter = () => {
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-white/75">
-                  {isArabic ? "انطلق الآن" : "Start Now"}
+                  {isArabic ? "سجل الآن" : " Sign Up Now"}
                 </p>
                 <h3 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
                   {isArabic
@@ -221,8 +230,8 @@ const SiteFooter = () => {
                 </h3>
                 <p className="mt-3 text-sm leading-7 text-blue-100 md:text-base">
                   {isArabic
-                    ? "استخدم المنصة للإعلانات، الإيجار، وإدارة الأرباح من مكان واحد بواجهة أوضح وأكثر احترافية."
-                    : "Use the platform for listings, rentals, and earnings management from one place with a clearer and more premium interface."}
+                    ? " البيع ،الإيجار، وإدارة الأرباح من مكان واحد بواجهة أوضح وأكثر احترافية."
+                    : "Sell, rent, and earnings management from one place with a clearer and more premium interface."}
                 </p>
               </div>
               <button

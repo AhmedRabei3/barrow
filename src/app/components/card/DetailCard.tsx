@@ -166,7 +166,7 @@ const DetailCard = ({
            uppercase tracking-[0.16em] text-emerald-800
           border-emerald-500/30 bg-emerald-500/10"
           >
-            {isArabic ? "تقييم" : "Rating"} {averageRatingText}
+             {averageRatingText} <DynamicIcon iconName="MdStar" size={12} className="text-yellow-500" />
           </span>
         ) : null}
       </div>

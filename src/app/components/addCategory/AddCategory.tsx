@@ -77,8 +77,9 @@ export default function AddCategoryForm() {
             }`}
           >
             <option value="">{t("اختر النوع...", "Select type...")}</option>
-            <option value="NEW_CAR">{t("سيارة جديدة", "New car")}</option>
-            <option value="USED_CAR">{t("سيارة مستعملة", "Used car")}</option>
+            <option value="NEW_CAR">
+              {t("سيارة (جديدة ومستعملة)", "Cars (new & used)")}
+            </option>
             <option value="PROPERTY">{t("عقار", "Real estate")}</option>
             <option value="OTHER">{t("أخرى", "Other")}</option>
           </select>

@@ -60,7 +60,12 @@ export async function GET(req: NextRequest) {
           { status: 400 },
         );
       }
-      whereClause.type = normalizedType;
+      // Used cars share categories with new cars — include both types
+      if (normalizedType === ItemType.USED_CAR) {
+        whereClause.type = { in: [ItemType.NEW_CAR, ItemType.USED_CAR] };
+      } else {
+        whereClause.type = normalizedType;
+      }
 
       if (withItemsOnly) {
         if (normalizedType === ItemType.NEW_CAR) {

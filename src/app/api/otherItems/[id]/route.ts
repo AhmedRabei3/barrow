@@ -10,10 +10,7 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
-import {
-  notifyAdminsOfModerationQueue,
-  pendingReviewData,
-} from "../../utils/moderation";
+
 
 interface Params {
   params: Promise<{ id: string }>;

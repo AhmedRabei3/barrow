@@ -11,6 +11,7 @@ import ContactElement from "./ContactElement";
 import RatingSection from "./RatingSection";
 import OwnerListingStateControl from "@/app/components/card/OwnerListingStateControl";
 import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/ownerListingState";
+import { FaGoogle, FaExternalLinkAlt } from "react-icons/fa";
 
 interface ItemDetailsProps {
   item: {
@@ -86,6 +87,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
     item.transactions,
     data.ownerId,
   );
+  const mapsQuery =
+    location?.latitude !== undefined && location?.longitude !== undefined
+      ? `${location.latitude},${location.longitude}`
+      : (location?.address ?? subtitle ?? title);
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 
   return (
     <div className="market-shell rounded-[28px] px-4 py-5 sm:px-6 lg:px-7 lg:py-7">
@@ -152,6 +158,20 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                         {location?.address || subtitle || title}
                       </p>
                     </div>
+                    <a
+                      href={googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300"
+                      aria-label="Open with Google Maps"
+                    >
+                      <FaGoogle className="text-sm" aria-hidden="true" />
+                      <span>فتح باستخدام Google Maps</span>
+                      <FaExternalLinkAlt
+                        className="text-[10px]"
+                        aria-hidden="true"
+                      />
+                    </a>
                   </div>
                   <div className="overflow-hidden rounded-[22px] border border-slate-800/90 bg-slate-950/50 p-2">
                     <div className="aspect-16/10 overflow-hidden rounded-[18px]">

@@ -18,6 +18,7 @@ import MapPicker from "./modals/mapPicker/MapPickerModal";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { SMART_CHAT_EN_MAP, SMART_CHAT_TEXT } from "@/app/i18n/smartChat";
 import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "@/app/i18n/brand";
+import { DynamicIcon } from "./addCategory/IconSetter";
 
 type ItemType = $Enums.ItemType;
 
@@ -1427,7 +1428,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
   return (
     <div
-      className="w-full max-w-104 h-[min(100dvh-2rem,44rem)] max-h-176 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+      className="w-full max-w-104 h-[min(80dvh-2rem,44rem)] max-h-150 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
       dir={isArabic ? "rtl" : "ltr"}
     >
       <div className="px-4 py-3 border-b border-emerald-100/70 dark:border-slate-700 bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white">
@@ -1586,7 +1587,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                       setSubscriptionQuestion(event.target.value)
                     }
                     placeholder={t(
-                      "اكتب سؤالك عن الاشتراك أو الدعوات أو الأرباح...",
+                      "ماهو سؤالك ...",
                       "Ask about subscription, referrals, or withdrawals...",
                     )}
                     className="flex-1 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900/40 bg-white dark:bg-slate-900"
@@ -1786,7 +1787,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           )}
 
         {canSubmitText && !isReadyToSubmit && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 w-full px-0.5">
             <input
               value={textInput}
               onChange={(event) => setTextInput(event.target.value)}
@@ -1794,7 +1795,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 currentQuestion?.placeholder || tc("answerPlaceholder")
               }
               type={currentQuestion?.type === "number" ? "number" : "text"}
-              className="flex-1 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 bg-white dark:bg-slate-900"
+              className="max-w-[90%] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 bg-white dark:bg-slate-900"
             />
             <button
               type="button"
@@ -1802,7 +1803,12 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 isLoading ||
                 (!textInput.trim() && currentQuestion?.required !== false)
               }
-              className={primaryButtonClass}
+              className="
+               text-emerald-600
+                 disabled:opacity-50 shadow-sm 
+                 hover:shadow-md
+                  transition-all
+                  p-1"
               onClick={() => {
                 const value = textInput.trim();
                 if (!value && currentQuestion?.required === false) {
@@ -1815,7 +1821,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 setTextInput("");
               }}
             >
-              {tc("send")}
+              <DynamicIcon iconName="BsSendFill" size={18} />
             </button>
           </div>
         )}
