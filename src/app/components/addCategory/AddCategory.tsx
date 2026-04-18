@@ -223,7 +223,7 @@ export default function AddCategoryForm() {
                 htmlFor="category-name-ar"
                 className="text-sm font-semibold text-slate-700 dark:text-slate-200"
               >
-                {t("اسم الفئة بالعربية", "Category name in Arabic")}
+                {t(" الفئة بالعربية", "Arabic name")}
               </label>
               <input
                 id="category-name-ar"
@@ -250,7 +250,7 @@ export default function AddCategoryForm() {
                 htmlFor="category-name-en"
                 className="text-sm font-semibold text-slate-700 dark:text-slate-200"
               >
-                {t("اسم الفئة بالإنكليزية", "Category name in English")}
+                {t("الاسم الانكليزي", "English name")}
               </label>
               <input
                 id="category-name-en"
@@ -356,7 +356,7 @@ export default function AddCategoryForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {t("اسم الفئة بالعربية", "Category name in Arabic")}
+                    {t("الفئة بالعربية", "Category name in Arabic")}
                   </label>
                   <input
                     {...registerEdit("nameAr", {
@@ -376,7 +376,7 @@ export default function AddCategoryForm() {
 
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {t("اسم الفئة بالإنكليزية", "Category name in English")}
+                    {t("الفئة بالإنكليزية", "English name")}
                   </label>
                   <input
                     {...registerEdit("nameEn", {

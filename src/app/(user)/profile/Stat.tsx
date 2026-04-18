@@ -17,7 +17,7 @@ export const Stat = ({
   hint?: React.ReactNode;
   tone?: "default" | "success" | "primary";
 }) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <div className="rounded-none border-y border-slate-200 bg-white px-4 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:border sm:p-5">
     <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
       <span className="font-semibold tracking-wide">{label}</span>
       <span
@@ -67,10 +67,7 @@ export const PreviewGrid = ({
     className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
   >
     {items.map((it, idx: number) => (
-      <div
-        key={(it as { id?: string })?.id || idx}
-        className="flex justify-center"
-      >
+      <div key={(it as { id?: string })?.id || idx} className="w-full">
         <Card
           grandItem={
             "item" in (it as Record<string, unknown>)

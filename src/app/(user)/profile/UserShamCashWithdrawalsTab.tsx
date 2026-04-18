@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 type WithdrawalStatus =
   | "ALL"
@@ -155,73 +155,61 @@ const UserShamCashWithdrawalsTab = ({
   );
 
   const [status, setStatus] = useState<WithdrawalStatus>("ALL");
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<WithdrawalsResponse | null>(null);
+  const cacheKey = useMemo(
+    () => `profile:withdrawals:shamcash:${status}:${isArabic ? "ar" : "en"}`,
+    [isArabic, status],
+  );
 
-  const loadRows = useCallback(
-    async (silent = false) => {
-      try {
-        if (!silent) {
-          setLoading(true);
-        }
+  const fetchRows = useCallback(
+    async (signal: AbortSignal) => {
+      const params = new URLSearchParams({
+        status,
+        limit: "120",
+      });
 
-        const params = new URLSearchParams({
-          status,
-          limit: "120",
-        });
-
-        const response = await fetch(
-          `/api/profile/withdrawals/shamcash?${params.toString()}`,
-          {
-            headers: {
-              "x-lang": isArabic ? "ar" : "en",
-            },
+      const response = await fetch(
+        `/api/profile/withdrawals/shamcash?${params.toString()}`,
+        {
+          signal,
+          headers: {
+            "x-lang": isArabic ? "ar" : "en",
           },
+          cache: "no-store",
+        },
+      );
+
+      const body = (await response.json()) as WithdrawalsResponse;
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            t(
+              "تعذر تحميل سحوبات شام كاش",
+              "Failed to load ShamCash withdrawals",
+            ),
         );
-
-        const body = (await response.json()) as WithdrawalsResponse;
-
-        if (!response.ok) {
-          throw new Error(
-            body.message ||
-              t(
-                "تعذر تحميل سحوبات شام كاش",
-                "Failed to load ShamCash withdrawals",
-              ),
-          );
-        }
-
-        setData(body);
-      } catch (error) {
-        if (!silent) {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : t("حدث خطأ غير متوقع", "Unexpected error"),
-          );
-        }
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
       }
+
+      return body;
     },
     [isArabic, status, t],
   );
 
-  useEffect(() => {
-    loadRows();
-  }, [loadRows]);
+  const { data, loading, isRefreshing, error, refetch } =
+    useStaleResource<WithdrawalsResponse>({
+      cacheKey,
+      fetcher: fetchRows,
+    });
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      loadRows(true);
+      void refetch();
     }, 8000);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [loadRows]);
+  }, [refetch]);
 
   const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
 
@@ -316,7 +304,7 @@ const UserShamCashWithdrawalsTab = ({
             </p>
             <button
               type="button"
-              onClick={() => loadRows()}
+              onClick={() => void refetch()}
               className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {t("تحديث", "Refresh")}
@@ -325,7 +313,29 @@ const UserShamCashWithdrawalsTab = ({
         </div>
       </div>
 
-      {loading ? (
+      {error && data ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+          <div className="flex items-center justify-between gap-3">
+            <p>
+              {error instanceof Error
+                ? error.message
+                : t(
+                    "تعذر تحديث البيانات حالياً",
+                    "Could not refresh the data right now",
+                  )}
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="rounded-lg border border-current px-3 py-1 font-medium hover:opacity-80"
+            >
+              {t("إعادة المحاولة", "Retry")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {loading && !data ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
           {t("جاري تحميل السحوبات...", "Loading withdrawals...")}
         </div>
@@ -357,6 +367,15 @@ const UserShamCashWithdrawalsTab = ({
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          {isRefreshing && (
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span>
+                {t("يتم تحديث السحوبات...", "Refreshing withdrawals...")}
+              </span>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400">

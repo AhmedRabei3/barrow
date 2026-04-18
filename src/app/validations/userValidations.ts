@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./purchaseValidations";
 
 // اسم افتراضي guest + رقم عشوائي
 const generateGuestName = () =>
@@ -60,6 +61,7 @@ export const loginUserSchema = z.object({
 export const updateUserSchema = z.object({
   name: z.string().min(3).optional(),
   password: z.string().min(6).optional(),
+  phone: phoneSchema.optional(),
   profileImage: z.string().url().optional(),
 });
 

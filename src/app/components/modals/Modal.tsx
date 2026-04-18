@@ -107,38 +107,33 @@ const Modal: React.FC<ModalProps> = ({
             w-full
             md:w-4/6
             sm:w-2/3
-            sm:h-3/4
             lg:w3/6
             xl:w-2/5
-            my-6
+            my-4
+            sm:my-6
             mx-auto
-            h-full
-            lg:h-auto
-            md:h-auto
-            
+            max-h-[calc(100vh-2rem)]
           "
       >
         <div
           className={`
             translate
             duration-300
-            h-full ${showModal ? "translate-y-0" : "translate-y-full"}
-            h-full ${showModal ? "opacity-100" : "opacity-0"}
-            max-h-[90vh]
+            ${showModal ? "translate-y-0" : "translate-y-full"}
+            ${showModal ? "opacity-100" : "opacity-0"}
+            max-h-[calc(100vh-2rem)]
             `}
         >
           <div
             className="
               translate
-              h-full
-              lg:h-auto
-              md:h-auto
               border-0
               rounded-lg
               shadow-lg
               relative
               flex
               flex-col
+              max-h-[calc(100vh-2rem)]
               bg-white dark:bg-slate-900
               text-slate-800 dark:text-slate-100
               outline-none
@@ -188,9 +183,10 @@ const Modal: React.FC<ModalProps> = ({
               className="
                 relative
                 p-6
-                flex-auto
-                max-h-150
-                overflow-auto
+                flex-1
+                min-h-0
+                overflow-y-auto
+                overscroll-contain
                 [&_input]:text-slate-900 dark:[&_input]:text-slate-100
                 [&_input]:placeholder:text-slate-400 dark:[&_input]:placeholder:text-slate-500
                 [&_input]:bg-white dark:[&_input]:bg-slate-800
@@ -208,7 +204,7 @@ const Modal: React.FC<ModalProps> = ({
             </div>
 
             {renderActions && (
-              <div className="flex flex-col gap-1 p-6 text-slate-700 dark:text-slate-300 [&_hr]:border-slate-200 dark:[&_hr]:border-slate-700">
+              <div className="shrink-0 flex flex-col gap-1 border-t border-slate-200 p-6 text-slate-700 dark:border-slate-700 dark:text-slate-300 [&_hr]:border-slate-200 dark:[&_hr]:border-slate-700">
                 <div
                   className="
                   flex

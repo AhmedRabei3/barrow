@@ -7,7 +7,7 @@ import Pagination from "./components/home/Pagination";
 import SiteFooter from "./components/footer/SiteFooter";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchHelper } from "./hooks/useSearchHelper";
 import { request } from "@/app/utils/axios";
 import {
@@ -15,45 +15,32 @@ import {
   FormattedItem,
   RawItem,
 } from "./components/home/getItems";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
   const [currentPage, setCurrentPage] = useState(1);
-  const [featuredItems, setFeaturedItems] = useState<FormattedItem[]>([]);
   const limit = 50;
-  const { items, totalItems, loading, refetch } = useItems({
+  const { items, totalItems, loading, isRefreshing, refetch } = useItems({
     page: currentPage,
     limit,
   });
   const helper = useSearchHelper(setCurrentPage);
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: featuredItems } = useStaleResource<FormattedItem[]>({
+    cacheKey: "items:featured:top-8",
+    fetcher: async () => {
+      const { data } = await request.get("/api/items/featured?limit=8", {
+        timeout: 20000,
+      });
 
-    const loadFeaturedItems = async () => {
-      try {
-        const { data } = await request.get("/api/items/featured?limit=8", {
-          timeout: 20000,
-        });
-
-        if (cancelled || !data?.success) {
-          return;
-        }
-
-        setFeaturedItems(formatRawItems((data.items || []) as RawItem[]));
-      } catch {
-        if (!cancelled) {
-          setFeaturedItems([]);
-        }
+      if (!data?.success) {
+        return [];
       }
-    };
 
-    loadFeaturedItems();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      return formatRawItems((data.items || []) as RawItem[]);
+    },
+  });
 
   return (
     <div>
@@ -86,8 +73,9 @@ const HomePageClient = () => {
 
       <HomeBody
         items={items}
-        featuredItems={featuredItems}
+        featuredItems={featuredItems ?? []}
         loading={loading}
+        isRefreshing={isRefreshing}
         onRefresh={refetch}
       />
 

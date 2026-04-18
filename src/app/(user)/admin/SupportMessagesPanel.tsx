@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 type SupportMessage = {
   id: string;
@@ -23,8 +24,6 @@ const SupportMessagesPanel = () => {
     [isArabic],
   );
 
-  const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [selected, setSelected] = useState<SupportMessage | null>(null);
   const [replySubject, setReplySubject] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
@@ -38,51 +37,64 @@ const SupportMessagesPanel = () => {
   const [processingTicketId, setProcessingTicketId] = useState<string | null>(
     null,
   );
+  const cacheKey = `admin:support-messages:${isArabic ? "ar" : "en"}`;
 
-  const loadMessages = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/admin/support/messages", {
-        headers: {
-          "x-lang": isArabic ? "ar" : "en",
-        },
-      });
+  const fetchMessages = useCallback(async () => {
+    const response = await fetch("/api/admin/support/messages", {
+      headers: {
+        "x-lang": isArabic ? "ar" : "en",
+      },
+      cache: "no-store",
+    });
 
-      const data = (await response.json()) as {
-        messages?: SupportMessage[];
-        message?: string;
-      };
+    const data = (await response.json()) as {
+      messages?: SupportMessage[];
+      message?: string;
+    };
 
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            t("تعذر تحميل رسائل الدعم", "Failed to load support messages"),
-        );
-      }
-
-      setMessages(data.messages || []);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("حدث خطأ غير متوقع", "Unexpected error"),
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+          t("تعذر تحميل رسائل الدعم", "Failed to load support messages"),
       );
-    } finally {
-      setLoading(false);
     }
+
+    return data.messages || [];
   }, [isArabic, t]);
 
+  const {
+    data: messages,
+    loading,
+    isRefreshing,
+    error,
+    refetch,
+    mutate,
+  } = useStaleResource<SupportMessage[]>({
+    cacheKey,
+    fetcher: async () => fetchMessages(),
+  });
+
   useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+    if (!error) {
+      return;
+    }
+
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : t("حدث خطأ غير متوقع", "Unexpected error"),
+    );
+  }, [error, t]);
+
+  const allMessages = useMemo(() => messages ?? [], [messages]);
 
   const sortedMessages = useMemo(
     () =>
-      [...messages].sort(
+      [...allMessages].sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
-    [messages],
+    [allMessages],
   );
 
   const openReplyModal = (message: SupportMessage) => {
@@ -142,7 +154,7 @@ const SupportMessagesPanel = () => {
         data?.message || t("تم إرسال الرد بنجاح", "Reply sent successfully"),
       );
 
-      setMessages((prev) =>
+      mutate((prev = []) =>
         prev.map((item) =>
           item.id === selected.id ? { ...item, status: "CLOSED" } : item,
         ),
@@ -216,7 +228,7 @@ const SupportMessagesPanel = () => {
           ),
       );
 
-      setMessages((prev) =>
+      mutate((prev = []) =>
         prev.map((item) =>
           item.id === ticket.id ? { ...item, status: "CLOSED" } : item,
         ),
@@ -298,7 +310,7 @@ const SupportMessagesPanel = () => {
         </h2>
         <button
           type="button"
-          onClick={loadMessages}
+          onClick={() => void refetch()}
           className="admin-btn-secondary rounded-xl px-3 py-2 text-sm"
         >
           {t("تحديث", "Refresh")}
@@ -365,7 +377,14 @@ const SupportMessagesPanel = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isRefreshing && sortedMessages.length > 0 ? (
+        <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+          <span>{t("يتم تحديث الرسائل...", "Refreshing messages...")}</span>
+        </div>
+      ) : null}
+
+      {loading && !allMessages.length ? (
         <div className="admin-card rounded-3xl p-5 text-sm dark:text-zinc-400 text-slate-700">
           {t("جارِ تحميل الرسائل...", "Loading messages...")}
         </div>

@@ -8,6 +8,7 @@ type User = {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   profileImage?: string | null;
 };
 
@@ -20,6 +21,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
   const { isArabic } = useAppPreferences();
   const [name, setName] = useState(user.name || "");
   const [email, setEmail] = useState(user.email || "");
+  const [phone, setPhone] = useState(user.phone || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const {
@@ -47,6 +49,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
       }
       const trimmedName = name.trim();
       const trimmedEmail = email.trim();
+      const trimmedPhone = phone.trim();
       if (!trimmedName || !trimmedEmail) {
         toast.error(
           isArabic
@@ -61,7 +64,11 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
           "Content-Type": "application/json",
           "x-profile-edit-ticket": verificationTicket,
         },
-        body: JSON.stringify({ name: trimmedName, email: trimmedEmail }),
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          phone: trimmedPhone || null,
+        }),
       });
       const profileJson = await profileRes.json();
       if (!profileRes.ok) {
@@ -185,6 +192,26 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
               placeholder={isArabic ? "البريد الإلكتروني" : "Email"}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500"
             />
+
+            <div className="md:col-span-2">
+              <input
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder={
+                  isArabic
+                    ? "رقم الهاتف كوسيلة تحقق إضافية (مثال +49123456789)"
+                    : "Phone number as an additional verification method (e.g. +49123456789)"
+                }
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                dir="ltr"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {isArabic
+                  ? "يمكنك إضافة رقم هاتفك لاستخدامه كوسيلة تحقق واسترداد إضافية لحسابك لاحقاً."
+                  : "You can add your phone number now to use it later as an additional account verification and recovery method."}
+              </p>
+            </div>
 
             <div className="md:col-span-2">
               <label className="text-sm text-slate-600 block mb-1">

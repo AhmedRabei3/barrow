@@ -159,14 +159,19 @@ const DetailCard = ({
         />
         {averageRatingText ? (
           <span
-            className="inline-flex
-          items-center rounded-md border
+            className="inline-flex gap-1
+            items-center 
            dark:border-slate-700 dark:bg-slate-900
-           px-2.5 py-1 text-[10px] font-bold
-           uppercase tracking-[0.16em] text-emerald-800
-          border-emerald-500/30 bg-emerald-500/10"
+            text-sm font-bold
+           uppercase tracking-[0.16em] text-slate-500
+          "
           >
-             {averageRatingText} <DynamicIcon iconName="MdStar" size={12} className="text-yellow-500" />
+            {averageRatingText}{" "}
+            <DynamicIcon
+              iconName="MdStar"
+              size={18}
+              className="text-yellow-500"
+            />
           </span>
         ) : null}
       </div>

@@ -5,6 +5,8 @@ let connectedUserId: string | null = null;
 let allowReconnect = true;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
+let startupFailureCount = 0;
+const MAX_STARTUP_FAILURES = 2;
 let heartbeatInterval: NodeJS.Timeout | null = null;
 const WS_DEBUG = false;
 
@@ -58,6 +60,8 @@ export const initializeWebSocket = (userId: string) => {
   }
 
   try {
+    let didOpen = false;
+
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const host = window.location.host;
     /* الاتصال المباشر بـ WebSocket server مع تمرير userId */
@@ -68,8 +72,10 @@ export const initializeWebSocket = (userId: string) => {
     connectedUserId = userId;
 
     ws.onopen = () => {
+      didOpen = true;
       wsLog("✅ WebSocket connected, readyState:", ws?.readyState);
       reconnectAttempts = 0;
+      startupFailureCount = 0;
 
       /* إرسال ping كل 25 ثانية للبقاء متصلاً */
       if (heartbeatInterval) clearInterval(heartbeatInterval);
@@ -109,9 +115,18 @@ export const initializeWebSocket = (userId: string) => {
     };
 
     ws.onerror = (error) => {
-      // 1006 يأتي بدون error event عادة، لكن سنسجل أي أخطاء أخرى
+      // فشل الاتصال الأولي متوقع عندما لا يكون خادم ws شغالاً (مثل npm run dev فقط)
+      if (!didOpen) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "⚠️ WebSocket server unavailable. Start dev with npm run dev:ws to enable realtime notifications.",
+          );
+        }
+        return;
+      }
+
       console.error("❌ WebSocket error event:", error);
-      if (error instanceof ErrorEvent) {
+      if (error instanceof ErrorEvent && error.message) {
         console.error("❌ Error message:", error.message);
       }
     };
@@ -133,6 +148,19 @@ export const initializeWebSocket = (userId: string) => {
       }
 
       ws = null;
+
+      if (!didOpen) {
+        startupFailureCount += 1;
+        if (startupFailureCount >= MAX_STARTUP_FAILURES) {
+          allowReconnect = false;
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "⚠️ WebSocket retries paused after repeated startup failures.",
+            );
+          }
+          return;
+        }
+      }
 
       // Retry connection with backoff only when reconnect is allowed
       if (allowReconnect && connectedUserId === closedUserId) {
@@ -202,6 +230,7 @@ export const closeWebSocket = () => {
 
   connectedUserId = null;
   reconnectAttempts = 0;
+  startupFailureCount = 0;
 };
 
 export const getWebSocket = () => ws;

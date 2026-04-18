@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 
 import { SessionProvider } from "next-auth/react";
 import LoginModal from "./components/modals/LoginModal";
-import RegisterModal from "./components/modals/RegisterModal";
+import RegisterModal from "./components/modals/(register)/RegisterModal";
 import ReferralHandler from "./components/modals/referalCatcher/ReferralHandler";
 import LoginParamHandler from "./components/modals/LoginParamHandler";
 import ActivationModal from "./components/modals/(activationModal)/ActivationModal";

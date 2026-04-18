@@ -18,9 +18,9 @@ const MapButton = ({ showMap, setShowMap }: MapButtonProps) => {
       className="
          fixed bottom-6 right-6 z-40
          rounded-full p-3.5
-         bg-white/72 dark:bg-slate-900/72 text-slate-700 dark:text-slate-100
-         border border-white/70 dark:border-slate-700/70 backdrop-blur-md
-         shadow-md hover:shadow-lg hover:bg-white/85 dark:hover:bg-slate-900/85
+         bg-blue/72 bg-blue-600/72 text-slate-100
+         border border-white/70 backdrop-blur-md
+         shadow-md hover:shadow-lg hover:bg-blue/85 hover:bg-blue-900/85
          transition-all duration-300
         "
       title={isArabic ? "عرض الخريطة" : "Show map"}

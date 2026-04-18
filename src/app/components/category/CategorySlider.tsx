@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MdOutlineRefresh } from "react-icons/md";
 import CategoryList from "./CategoryList";
@@ -8,6 +8,7 @@ import categoryFetcher from "./CategoryFetcher";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import type { CategoryItem, ItemType } from "./types";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 interface CategorySliderProps {
   type?: ItemType | null;
@@ -16,67 +17,44 @@ interface CategorySliderProps {
 }
 
 const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
-  const [list, setList] = useState<CategoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshSeed, setRefreshSeed] = useState(0);
   const { isArabic } = useAppPreferences();
+  const cacheKey = useMemo(
+    () => `categories:${type ?? "ALL"}:with-items`,
+    [type],
+  );
 
-  /** 🔹 جلب الفئات من السيرفر */
-  useEffect(() => {
-    let active = true;
+  const { data, loading, isRefreshing, refetch } = useStaleResource<
+    CategoryItem[]
+  >({
+    cacheKey,
+    fetcher: async () =>
+      categoryFetcher({
+        type,
+        withItemsOnly: true,
+      }),
+  });
 
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        const categories = await categoryFetcher({
-          type,
-          withItemsOnly: true,
-        });
-        if (active) {
-          setList(categories);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
+  const list = data ?? [];
 
-    fetchCategories();
-
-    return () => {
-      active = false;
-    };
-  }, [type, refreshSeed]);
-
-  /** 🔹 واجهة التحميل */
-  if (loading)
+  if (loading && !list.length) {
     return (
-      <div
-        className="
-      flex flex-col justify-center 
-      items-center py-10 gap-3"
-      >
+      <div className="flex flex-col items-center justify-center gap-3 py-10">
         <motion.div
-          className="w-6 h-6 rounded-full border-2
-           border-neutral-300 border-t-transparent
-           "
+          className="h-6 w-6 rounded-full border-2 border-neutral-300 border-t-transparent"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
-        <p className="text-neutral-500 text-sm animate-pulse">
+        <p className="animate-pulse text-sm text-neutral-500">
           {isArabic ? "جاري تحميل العناصر..." : "Loading items..."}
         </p>
       </div>
     );
+  }
 
-  /** 🔹 في حال عدم وجود فئات */
-  if (!list.length)
+  if (!list.length) {
     return (
       <motion.div
-        className="w-full flex flex-col items-center justify-center mt-15 py-6 text-neutral-500 text-sm gap-4"
+        className="mt-15 flex w-full flex-col items-center justify-center gap-4 py-6 text-sm text-neutral-500"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
@@ -87,36 +65,36 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
         </p>
         <button
           type="button"
-          onClick={() => setRefreshSeed((prev) => prev + 1)}
-          className="px-4 py-2 
-          rounded-md border 
-          border-neutral-300 
-          hover:bg-neutral-100 
-          text-neutral-700 
-          inline-flex items-center gap-2
-          dark:border-neutral-600
-          dark:hover:bg-neutral-700
-          dark:text-neutral-300
-          "
+          onClick={refetch}
+          className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-4 py-2 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-700"
         >
           <MdOutlineRefresh className="text-lg" />
           {isArabic ? "إعادة المحاولة" : "Retry"}
         </button>
       </motion.div>
     );
+  }
 
-  /** 🔹 عرض الفئات */
   return (
-    <div className="relative overflow-hidden mt-24 md:mt-36 lg:mt-40 block">
+    <div className="relative mt-24 overflow-hidden md:mt-36 lg:mt-40 block">
       <Container>
+        {isRefreshing && list.length > 0 && (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span>
+              {isArabic ? "يتم تحديث الفئات..." : "Refreshing categories..."}
+            </span>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
-            key={type} // يجعل الحركة تحدث عند تغيّر النوع
+            key={type}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex items-center gap-4 relative"
+            className="relative flex items-center gap-4"
           >
             <CategoryList
               list={list}

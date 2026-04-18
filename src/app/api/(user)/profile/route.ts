@@ -230,12 +230,19 @@ export async function PATCH(req: NextRequest) {
     const body = (await req.json()) as {
       name?: string;
       email?: string;
+      phone?: string | null;
     };
 
     const nextName = body?.name?.trim();
     const nextEmail = body?.email?.trim().toLowerCase();
+    const normalizedPhone =
+      typeof body?.phone === "string"
+        ? body.phone.trim()
+        : body?.phone === null
+          ? null
+          : undefined;
 
-    if (!nextName && !nextEmail) {
+    if (!nextName && !nextEmail && normalizedPhone === undefined) {
       return NextResponse.json(
         { success: false, message: "لا توجد بيانات للتحديث" },
         { status: 400 },
@@ -261,6 +268,21 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    if (
+      normalizedPhone !== undefined &&
+      normalizedPhone !== null &&
+      normalizedPhone.length > 0 &&
+      !/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "رقم الهاتف غير صالح، استخدم صيغة دولية مثل +49123456789",
+        },
+        { status: 400 },
+      );
+    }
+
     if (nextEmail) {
       const emailOwner = await prisma.user.findUnique({
         where: { email: nextEmail },
@@ -275,16 +297,34 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    if (normalizedPhone !== undefined && normalizedPhone !== null) {
+      const phoneOwner = await prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+        select: { id: true },
+      });
+
+      if (phoneOwner && phoneOwner.id !== userId) {
+        return NextResponse.json(
+          { success: false, message: "رقم الهاتف مستخدم بالفعل" },
+          { status: 409 },
+        );
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(nextName ? { name: nextName } : {}),
         ...(nextEmail ? { email: nextEmail } : {}),
+        ...(normalizedPhone !== undefined
+          ? { phone: normalizedPhone || null }
+          : {}),
       },
       select: {
         id: true,
         name: true,
         email: true,
+        phone: true,
         profileImage: true,
       },
     });

@@ -15,12 +15,45 @@ import { LoginUserInput } from "@/app/validations/userValidations";
 import { useSession } from "next-auth/react";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
+import GoogleSignInButton from "@/app/components/auth/GoogleSignInButton";
+import EmailVerificationResendPanel from "@/app/components/auth/EmailVerificationResendPanel";
+import { resendVerificationEmailAction } from "@/actions/auth.actions";
+
+const PENDING_VERIFICATION_EMAIL_KEY = "pending-verification-email";
+
+const readPendingVerificationEmail = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const value = window.localStorage.getItem(PENDING_VERIFICATION_EMAIL_KEY);
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+};
+
+const persistPendingVerificationEmail = (value?: string | null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (value && value.trim().length > 0) {
+    window.localStorage.setItem(
+      PENDING_VERIFICATION_EMAIL_KEY,
+      value.trim().toLowerCase(),
+    );
+    return;
+  }
+
+  window.localStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
+};
 
 const LoginModal = () => {
   const router = useRouter();
   const registerModal = useRegisterModal();
   const loginModal = useLoginModal();
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<
+    string | null
+  >(null);
   const [activationMessage, setActivationMessage] = useState<string | null>(
     null,
   );
@@ -32,6 +65,16 @@ const LoginModal = () => {
       loginModal.onClose();
     }
   }, [status, loginModal]);
+
+  useEffect(() => {
+    if (loginModal.isOpen) {
+      setPendingVerificationEmail(readPendingVerificationEmail());
+    }
+  }, [loginModal.isOpen]);
+
+  useEffect(() => {
+    persistPendingVerificationEmail(pendingVerificationEmail);
+  }, [pendingVerificationEmail]);
 
   const {
     register,
@@ -50,6 +93,7 @@ const LoginModal = () => {
       const result = await loginAction(data as LoginUserInput, isArabic);
 
       if (result.success) {
+        setPendingVerificationEmail(null);
         const { email, password } = data;
         const authResult = await signIn("credentials", {
           email,
@@ -108,6 +152,16 @@ const LoginModal = () => {
         router.replace("/");
         loginModal.onClose();
       } else {
+        if (result.requiresEmailVerification) {
+          setPendingVerificationEmail(
+            String(data.email ?? "")
+              .trim()
+              .toLowerCase(),
+          );
+        } else {
+          setPendingVerificationEmail(null);
+        }
+
         toast.error(
           isArabic
             ? localizeErrorMessage(result.message, true)
@@ -150,6 +204,16 @@ const LoginModal = () => {
         errors={errors}
         required
       />
+
+      {pendingVerificationEmail ? (
+        <EmailVerificationResendPanel
+          isArabic={isArabic}
+          expectedEmail={pendingVerificationEmail}
+          onResend={(email) => resendVerificationEmailAction(email, isArabic)}
+        />
+      ) : null}
+
+      <GoogleSignInButton disabled={isLoading} callbackUrl="/" />
     </div>
   );
 

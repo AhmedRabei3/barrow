@@ -14,6 +14,7 @@ interface Props {
   markAsRead: (id: string) => Promise<void>;
   onRefresh: () => Promise<void> | void;
   isLoading?: boolean;
+  isRefreshing?: boolean;
 }
 
 const NotificationList = ({
@@ -23,6 +24,7 @@ const NotificationList = ({
   markAsRead,
   onRefresh,
   isLoading = false,
+  isRefreshing = false,
 }: Props) => {
   const { isArabic } = useAppPreferences();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -81,6 +83,17 @@ const NotificationList = ({
     return () => observer.disconnect();
   }, [hasMore, handleLoadMore]);
 
+  if (isLoading && notifications.length === 0) {
+    return (
+      <div
+        dir={isArabic ? "rtl" : "ltr"}
+        className="flex min-h-32 items-center justify-center py-8 text-sm text-neutral-500"
+      >
+        {isArabic ? "جاري تحميل الإشعارات..." : "Loading notifications..."}
+      </div>
+    );
+  }
+
   if (notifications.length === 0) {
     return (
       <div
@@ -104,6 +117,17 @@ const NotificationList = ({
 
   return (
     <div dir={isArabic ? "rtl" : "ltr"} className="w-full overflow-hidden">
+      {isRefreshing && (
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+          <span>
+            {isArabic
+              ? "يتم تحديث الإشعارات..."
+              : "Refreshing notifications..."}
+          </span>
+        </div>
+      )}
+
       <motion.div
         variants={listVariants}
         initial="hidden"

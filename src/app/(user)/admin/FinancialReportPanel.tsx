@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { MdOutlineTune } from "react-icons/md";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 type FinancialReportRow = {
   id: string;
@@ -171,8 +172,11 @@ const FinancialReportPanel = () => {
   );
   const [dateTo, setDateTo] = useState<string>(formatDateInputValue(today));
   const [channel, setChannel] = useState<ReportChannel>("ALL");
-  const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<FinancialReportResponse | null>(null);
+  const cacheKey = useMemo(
+    () =>
+      `admin:financial-report:${dateFrom}:${dateTo}:${channel}:${isArabic ? "ar" : "en"}`,
+    [channel, dateFrom, dateTo, isArabic],
+  );
 
   const applyThisWeekRange = useCallback(() => {
     const now = new Date();
@@ -280,12 +284,15 @@ const FinancialReportPanel = () => {
     [isArabic],
   );
 
-  const loadReport = useCallback(async () => {
-    try {
-      setLoading(true);
+  const fetchReport = useCallback(
+    async (signal: AbortSignal) => {
       const params = new URLSearchParams({ dateFrom, dateTo, channel });
       const res = await fetch(
         `/api/admin/financial-report?${params.toString()}`,
+        {
+          signal,
+          cache: "no-store",
+        },
       );
       const body = (await res.json()) as FinancialReportResponse & {
         message?: string;
@@ -298,21 +305,28 @@ const FinancialReportPanel = () => {
         );
       }
 
-      setData(body);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("فشل تحميل التقرير المالي", "Failed to load financial report"),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [channel, dateFrom, dateTo, t]);
+      return body;
+    },
+    [channel, dateFrom, dateTo, t],
+  );
+
+  const { data, loading, isRefreshing, error, refetch } =
+    useStaleResource<FinancialReportResponse>({
+      cacheKey,
+      fetcher: fetchReport,
+    });
 
   useEffect(() => {
-    loadReport();
-  }, [loadReport]);
+    if (!error) {
+      return;
+    }
+
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : t("فشل تحميل التقرير المالي", "Failed to load financial report"),
+    );
+  }, [error, t]);
 
   const exportCsv = useCallback(() => {
     if (!data || data.rows.length === 0) {
@@ -360,7 +374,7 @@ const FinancialReportPanel = () => {
     URL.revokeObjectURL(url);
   }, [channel, data, dateFrom, dateTo, t]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <p className="text-slate-500 dark:text-slate-300">
         {t("جاري تحميل التقرير المالي...", "Loading financial report...")}
@@ -430,7 +444,7 @@ const FinancialReportPanel = () => {
 
           <button
             type="button"
-            onClick={loadReport}
+            onClick={() => void refetch()}
             className="admin-btn-primary rounded-xl px-4 py-2.5 text-sm"
           >
             {t("تحديث التقرير", "Refresh report")}
@@ -461,6 +475,13 @@ const FinancialReportPanel = () => {
             {t("هذا الشهر", "This month")}
           </button>
         </div>
+
+        {isRefreshing && data && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span>{t("يتم تحديث التقرير...", "Refreshing report...")}</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

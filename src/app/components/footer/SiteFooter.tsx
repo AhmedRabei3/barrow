@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { memo, useState } from "react";
+import { useSession } from "next-auth/react";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import SupportContactModal from "../header/SupportContactModal";
@@ -9,7 +10,7 @@ import Logo from "../header/Logo";
 
 const advantages = [
   {
-    title: "هدف الموقع",
+    title: "هدفنا",
     description:
       "نهدف إلى تسهيل وصولكم لما ترغبون دون أن تضطروا لدفع عمولة مرتفعة.",
   },
@@ -22,32 +23,54 @@ const advantages = [
 
 const localizedSteps = [
   {
-    ar: "بيئة نظيفة وموثوقة: نفرض معايير صارمة لضمان إعلانات حقيقية وخالية من أي محتوى مخالف.",
-    en: "Clean & trusted: strict standards ensure authentic listings and a safe transaction environment.",
+    arTitle: "بيئة نظيفة وموثوقة",
+    arBody: "نفرض معايير صارمة لضمان الخلو من أي محتوى مخالف أو جنسي.",
+    enTitle: "Clean & trusted",
+    enBody:
+      "Strict standards ensure authentic listings and a safe transaction environment.",
   },
   {
-    ar: "بحث ذكي وسهل: ابحث بالاسم أو الفئة أو نطاق السعر أو عبر الخريطة التفاعلية.",
-    en: "Smart search: find anything by name, category, price range, or interactive map.",
+    arTitle: "بحث ذكي وسهل",
+    arBody: "ابحث بالاسم أو الفئة أو نطاق السعر أو عبر الخريطة التفاعلية.",
+    enTitle: "Smart search",
+    enBody: "Find anything by name, category, price range, or interactive map.",
   },
   {
-    ar: "تنوع واسع: عقارات، سيارات، دراجات، إلكترونيات وأكثر — كل شيء في مكان واحد.",
-    en: "Broad selection: real estate, cars, bikes, electronics and more — all in one place.",
+    arTitle: "تنوع واسع",
+    arBody:
+      "عقارات، سيارات، دراجات، أدوات منزلية وإلكترونية وأكثر، كل شيء في مكان واحد.",
+    enTitle: "Broad selection",
+    enBody:
+      "Real estate, cars, bikes, home appliances, electronics and more, all in one place.",
   },
   {
-    ar: "وصول أوسع لإعلانك: خوارزميات ذكية ونظام إحالة يرفع ظهور إعلانك أمام الجمهور المناسب.",
-    en: "Greater reach: smart algorithms and referrals put your listing in front of the right audience.",
+    arTitle: "وصول أوسع لإعلانك",
+    arBody: "خوارزميات ذكية ونظام إحالة يرفع ظهور إعلانك أمام الجمهور المناسب.",
+    enTitle: "Greater reach",
+    enBody:
+      "Smart algorithms and referrals put your listing in front of the right audience.",
   },
   {
-    ar: "بدون عمولة: أتمّ بيعك أو إيجارك دون أي رسوم أو عمولات مخفية على الصفقة.",
-    en: "Zero commission: complete every sale or rental without any hidden fees on the deal.",
+    arTitle: "بدون عمولة",
+    arBody: "أتمّ بيعك أو إيجارك دون أي رسوم أو عمولات مخفية على الصفقة.",
+    enTitle: "Zero commission",
+    enBody:
+      "Complete every sale or rental without any hidden fees on the deal.",
   },
   {
-    ar: "دخل شهري متكرر: ادعُ الآخرين واكسب من كل اشتراك يتم تفعيله شهرياً عبر شرائح مختلفة تصل إلى 60% من اشتراك أول 10 مستخدمين .",
-    en: "Recurring monthly income: refer others and earn from every successful subscription via tiered rewards.",
+    arTitle: "دخل شهري متكرر",
+    arBody:
+      "ادعُ الآخرين واكسب من كل اشتراك يتم تفعيله شهرياً عبر شرائح مختلفة تصل إلى 60% من اشتراك أول 10 مستخدمين.",
+    enTitle: "Recurring monthly income",
+    enBody:
+      "Refer others and earn from every successful subscription via tiered rewards.",
   },
   {
-    ar: "مزايا حصرية دورية: فعاليات، ميزات جديدة، ومكافآت خاصة لمستخدمينا النشطين.",
-    en: "Exclusive perks: regular events, new features, and special rewards for active members.",
+    arTitle: "مزايا حصرية دورية",
+    arBody: "فعاليات، ميزات جديدة، ومكافآت خاصة لمستخدمينا النشطين.",
+    enTitle: "Exclusive perks",
+    enBody:
+      "Regular events, new features, and special rewards for active members.",
   },
 ];
 
@@ -112,15 +135,9 @@ const footerSections = {
 
 const SiteFooter = () => {
   const { isArabic } = useAppPreferences();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
-  const privacyLabels = isArabic
-    ? new Set([
-        "سياسة الخصوصية",
-        "شروط الاستخدام",
-        footerSections.ar.legalTerms,
-      ])
-    : new Set(["Privacy Policy", "Terms of Use", footerSections.en.legalTerms]);
-
   const localizedAdvantages = isArabic
     ? advantages
     : [
@@ -141,7 +158,11 @@ const SiteFooter = () => {
         },
       ];
 
-  const steps = localizedSteps.map((item) => (isArabic ? item.ar : item.en));
+  const steps = localizedSteps.map((item) =>
+    isArabic
+      ? { title: item.arTitle, body: item.arBody }
+      : { title: item.enTitle, body: item.enBody },
+  );
 
   const footerContent = isArabic ? footerSections.ar : footerSections.en;
 
@@ -154,18 +175,19 @@ const SiteFooter = () => {
               <div className="mb-5 flex items-center gap-3">
                 <div
                   className="
-                flex items-center 
-                justify-center rounded-xl 
-                bg-primary text-white 
-                shadow-lg shadow-primary/20"
+                   flex items-center 
+                   justify-center rounded-xl 
+                   bg-primary text-white 
+                   shadow-lg shadow-primary/20
+                   "
                 >
                   <Logo width={50} height={30} />
                 </div>
               </div>
               <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
                 {isArabic
-                  ? "منصة حديثة لبيع وإيجار واكتشاف أفضل العروض"
-                  : "A modern marketplace for selling, renting, and discovering strong offers"}
+                  ? " بيع وإيجار بأفضل الأسعار و بدون عمولة"
+                  : "Buy and Rent at the Best Prices Without Commission"}
               </h2>
               <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
                 {isArabic
@@ -173,28 +195,41 @@ const SiteFooter = () => {
                   : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSupportModalOpen(true)}
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
-                >
-                  {isArabic ? "فتح مركز الدعم" : "Open Support Center"}
-                </button>
+                {user ? (
+                  <Link
+                    href="/listings/create"
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                  >
+                    {isArabic ? "أنشر إعلانك الآن" : "Post Your Listing Now"}
+                  </Link>
+                ) : (
+                  <Link
+                    href="/auth/login"
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                  >
+                    {isArabic ? "سجل الآن" : "Sign Up Now"}
+                  </Link>
+                )}
               </div>
             </div>
 
-            <div className="footer-panel rounded-3xl p-6">
-              <h3 className="text-xs font-black uppercase tracking-[0.22em] text-primary">
+            <div className="border dark:border-slate-500 bg-blue-800 shadow-lg hover:translate-1.1 rounded-3xl p-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.22em] text-primary">
                 {isArabic ? "لماذا تختارنا" : "Why you Choose Us"}
               </h3>
               <ul className="mt-5 space-y-3">
                 {steps.map((step) => (
                   <li
-                    key={step}
+                    key={step.title}
                     className="footer-text flex items-start gap-3 text-sm"
                   >
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-primary" />
-                    <span className="leading-6">{step}</span>
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-primary " />
+                    <span className="leading-6">
+                      <span className="font-extrabold dark:text-white/80 text-slate-800">
+                        {step.title}
+                      </span>
+                      <span className="font-normal">: {step.body}</span>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -234,89 +269,11 @@ const SiteFooter = () => {
                     : "Sell, rent, and earnings management from one place with a clearer and more premium interface."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setSupportModalOpen(true)}
-                className="inline-flex items-center justify-center 
-                rounded-2xl bg-blue-600 px-6 py-4 
-                text-sm font-black text-primary 
-                transition hover:scale-[1.02]"
-              >
-                {isArabic ? "تحدث مع الدعم" : "Talk to Support"}
-              </button>
-            </div>
-          </section>
-
-          <section className="footer-divider grid grid-cols-1 gap-10 border-t pt-10 md:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <h4 className="footer-heading mb-5 text-xs font-black uppercase tracking-[0.22em]">
-                {isArabic ? "نبذة" : "About"}
-              </h4>
-              <p className="footer-text text-sm leading-7">
-                {isArabic
-                  ? "منصة متعددة الفئات توازن بين سهولة العرض، وضوح المعاملات، وإدارة الأرباح للمستخدم."
-                  : "A multi-category marketplace balancing simple listings, clear transactions, and earnings management for users."}
-              </p>
-              <div className="footer-text mt-5 flex gap-3">
-                <span className="footer-social flex h-10 w-10 items-center justify-center rounded-full">
-                  ⌁
-                </span>
-                <span className="footer-social flex h-10 w-10 items-center justify-center rounded-full">
-                  ⌂
-                </span>
-                <span className="footer-social flex h-10 w-10 items-center justify-center rounded-full">
-                  ✉
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="footer-heading mb-5 text-xs font-black uppercase tracking-[0.22em]">
-                {footerContent.categories}
-              </h4>
-              <ul className="footer-text space-y-3 text-sm">
-                {footerContent.categoriesLinks.map((link) => (
-                  <li key={link}>{link}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="footer-heading mb-5 text-xs font-black uppercase tracking-[0.22em]">
-                {footerContent.company}
-              </h4>
-              <ul className="footer-text space-y-3 text-sm">
-                {footerContent.companyLinks.map((link) => (
-                  <li key={link}>
-                    {privacyLabels.has(link) ? (
-                      <Link
-                        href="/privacy-policy"
-                        className="transition hover:text-sky-600 dark:hover:text-sky-300"
-                      >
-                        {link}
-                      </Link>
-                    ) : (
-                      link
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="footer-heading mb-5 text-xs font-black uppercase tracking-[0.22em]">
-                {footerContent.support}
-              </h4>
-              <ul className="footer-text space-y-3 text-sm">
-                {footerContent.supportLinks.map((link) => (
-                  <li key={link}>{link}</li>
-                ))}
-              </ul>
             </div>
           </section>
 
           <div className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between">
-            <span>© {new Date().getFullYear()} Rent Anything</span>
+            <span>© {new Date().getFullYear()} Mashhoor</span>
             <div className="flex gap-6">
               <Link
                 href="/privacy-policy"

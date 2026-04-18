@@ -1,9 +1,14 @@
 import { NextAuthConfig } from "next-auth";
 import { loginUserSchema } from "./app/validations/userValidations";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { prisma } from "./lib/prisma";
 import * as bcrypt from "bcryptjs";
 import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
+
+const hasGoogleOAuthConfig = Boolean(
+  process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
+);
 
 export default (<NextAuthConfig>{
   providers: [
@@ -44,5 +49,14 @@ export default (<NextAuthConfig>{
         };
       },
     }),
+
+    ...(hasGoogleOAuthConfig
+      ? [
+          Google({
+            clientId: process.env.AUTH_GOOGLE_ID!,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+          }),
+        ]
+      : []),
   ],
 }) satisfies NextAuthConfig;

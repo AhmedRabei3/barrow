@@ -24,6 +24,8 @@ interface FetchItemsParams {
   latitude?: number;
   longitude?: number;
   signal?: AbortSignal;
+  keepPreviousData?: boolean;
+  setRefreshing?: Dispatch<SetStateAction<boolean>>;
 }
 
 export type RawItem = ItemSearchItemDto;
@@ -127,6 +129,8 @@ export const fetchItems = async ({
   setTotal,
   setLoading,
   signal = undefined,
+  keepPreviousData = false,
+  setRefreshing,
 }: FetchItemsParams) => {
   const isEnglishUi =
     typeof window !== "undefined" &&
@@ -139,7 +143,11 @@ export const fetchItems = async ({
   );
 
   try {
-    setLoading(true);
+    if (keepPreviousData) {
+      setRefreshing?.(true);
+    } else {
+      setLoading(true);
+    }
     /* إعداد البارامز التي ستضاف لعنوان البحث */
     const params = new URLSearchParams({
       page: String(page),
@@ -212,9 +220,11 @@ export const fetchItems = async ({
     }
 
     if (!data?.success) {
-      setItems([]);
-      setTotal(0);
-      return;
+      if (!keepPreviousData) {
+        setItems([]);
+        setTotal(0);
+      }
+      return null;
     }
     setTotal(data.totalCount ?? 0);
 
@@ -224,6 +234,10 @@ export const fetchItems = async ({
     );
 
     setItems(formatted);
+    return {
+      items: formatted,
+      totalCount: data.totalCount ?? 0,
+    };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "";
     const isAbortError =
@@ -245,9 +259,16 @@ export const fetchItems = async ({
           ? "Failed to fetch data from server"
           : "فشل في جلب البيانات من السيرفر"),
     );
-    setItems([]);
-    setTotal(0);
+    if (!keepPreviousData) {
+      setItems([]);
+      setTotal(0);
+    }
+    return null;
   } finally {
-    setLoading(false);
+    if (keepPreviousData) {
+      setRefreshing?.(false);
+    } else {
+      setLoading(false);
+    }
   }
 };

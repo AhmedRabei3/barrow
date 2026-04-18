@@ -6,11 +6,19 @@ import { Stat } from "./Stat";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
+const formatEnglishMoney = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    numberingSystem: "latn",
+  }).format(value);
+
 interface Props {
   user: {
     id?: string | null;
     name?: string | null;
     email?: string | null;
+    phone?: string | null;
     profileImage?: string | null;
     createdAt?: Date | string | null;
     balance?: number | string | { toString(): string } | null;
@@ -26,7 +34,7 @@ interface Props {
   } | null;
   totalItems: number;
   formatDate: (date?: string) => string;
-  formatCurrency: (val?: string) => string;
+  walletBalanceLabel: string;
   onPaypalWithdraw?: () => void;
   isWithdrawingPaypal?: boolean;
   onShamCashWithdraw?: () => void;
@@ -36,36 +44,11 @@ interface Props {
   totalFavorites?: number;
 }
 
-const ShamCashMark = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    className="h-4 w-4"
-    focusable="false"
-  >
-    <defs>
-      <linearGradient id="shamcash-a" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#34d399" />
-        <stop offset="100%" stopColor="#22c55e" />
-      </linearGradient>
-      <linearGradient id="shamcash-b" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#22d3ee" />
-        <stop offset="100%" stopColor="#2563eb" />
-      </linearGradient>
-    </defs>
-    <path d="M4 3h9l-3.8 3.8H7.2v2.4h6.2l-3.8 3.8H4z" fill="url(#shamcash-a)" />
-    <path
-      d="M20 21h-9l3.8-3.8h2v-2.4h-6.2l3.8-3.8H20z"
-      fill="url(#shamcash-b)"
-    />
-  </svg>
-);
-
 const ProfileHeader = ({
   user,
   totalItems,
   formatDate,
-  formatCurrency,
+  walletBalanceLabel,
   onPaypalWithdraw,
   isWithdrawingPaypal = false,
   onShamCashWithdraw,
@@ -83,20 +66,23 @@ const ProfileHeader = ({
     : isArabic
       ? `عضو منذ ${joinLabel}`
       : `Member since ${joinLabel}`;
+  const totalInvitesLabel = new Intl.NumberFormat("en-US", {
+    numberingSystem: "latn",
+  }).format(user?.referralStats?.invitedCount ?? 0);
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 items-center gap-5">
+      <div className="flex flex-col gap-5 rounded-none border-y border-slate-200 bg-white px-4 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:border sm:p-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 flex-col items-center gap-4 text-center md:flex-row md:items-center md:gap-5 md:text-start">
           <div className="relative shrink-0">
             <div>
-              <Avatar user={user ?? undefined} size={80} />
+              <Avatar user={user ?? undefined} size={92} />
             </div>
             <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
           </div>
 
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-col items-center gap-2 md:flex-row">
               <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 {user?.name || "-"}
               </h1>
@@ -110,39 +96,36 @@ const ProfileHeader = ({
             <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
               {memberSinceLabel}
             </p>
-            <div className="mt-2 flex items-center gap-2">
-              <DynamicIcon
-                iconName="MdVerified"
-                size={16}
-                className={
-                  user?.isIdentityVerified ? "text-sky-500" : "text-amber-500"
-                }
-              />
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                {user?.isIdentityVerified
-                  ? isArabic
-                    ? "الحساب موثق بالهوية الرسمية"
-                    : "Identity verified account"
-                  : user?.isActive
-                    ? isArabic
-                      ? "بائع موثّق ومفعّل"
-                      : "Verified and activated seller"
-                    : isArabic
-                      ? "الحساب مسجّل ويحتاج تفعيل"
-                      : "Account registered and awaiting activation"}
-              </span>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 md:justify-start">
+              {user?.email ? (
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-slate-800">
+                  {user.email}
+                </span>
+              ) : null}
+              {user?.phone ? (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  {isArabic
+                    ? `تحقق إضافي: ${user.phone}`
+                    : `Additional verification: ${user.phone}`}
+                </span>
+              ) : null}
             </div>
+            {/* تم حذف الجملة التوضيحية أسفل شارة التوثيق بناءً على طلب المستخدم */}
+            {user?.isIdentityVerified || user?.isActive || user ? null : null}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 md:justify-end">
+        <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:gap-3 md:justify-end">
           <button
             type="button"
             onClick={onEditProfile}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            aria-label={isArabic ? "تعديل الملف الشخصي" : "Edit profile"}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-100 px-3 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 md:rounded-lg md:px-4"
           >
-            <DynamicIcon iconName="FaEdit" size={16} />
-            {isArabic ? "تعديل الملف الشخصي" : "Edit profile"}
+            <DynamicIcon iconName="FaUserEdit" size={16} />
+            <span className="hidden md:inline">
+              {isArabic ? "تعديل الملف الشخصي" : "Edit profile"}
+            </span>
           </button>
           <button
             type="button"
@@ -152,7 +135,7 @@ const ProfileHeader = ({
             bg-sky-600 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-blue-600"
           >
             <DynamicIcon iconName="MdAdd" size={18} />
-            {isArabic ? "إنشاء إعلان" : "Create Ad"}
+            {isArabic ? "عنصر جديد" : "New item"}
           </button>
           <button
             type="button"
@@ -175,7 +158,6 @@ const ProfileHeader = ({
             disabled={isWithdrawingShamCash || !onShamCashWithdraw}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
           >
-            <ShamCashMark />
             {isWithdrawingShamCash
               ? isArabic
                 ? "جارٍ الطلب..."
@@ -205,14 +187,17 @@ const ProfileHeader = ({
           value={totalFavorites}
           hint={
             isArabic
-              ? `${user?.referralStats?.invitedCount ?? 0} دعوات كلية`
-              : `${user?.referralStats?.invitedCount ?? 0} total invites`
+              ? `${totalInvitesLabel} دعوات كلية`
+              : `${totalInvitesLabel} total invites`
           }
         />
         <Stat
           iconName="FaMoneyBillWave"
           label={isArabic ? "رصيد المحفظة" : "Wallet balance"}
-          value={`${formatCurrency(user?.balance?.toString())} $`}
+          value={
+            walletBalanceLabel ||
+            `${formatEnglishMoney(Number(user?.balance ?? 0))} $`
+          }
           hint={
             user?.isActive
               ? isArabic

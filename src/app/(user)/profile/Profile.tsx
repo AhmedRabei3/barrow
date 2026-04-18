@@ -24,6 +24,13 @@ import useActivationModal from "@/app/hooks/useActivationModal";
 const SMART_CHAT_EDIT_PAYLOAD_KEY = "smart-chat-edit-payload";
 const SMART_CHAT_ACTION_ADD_ITEM = "ACTION_ADD_ITEM";
 
+const formatEnglishNumber = (value: number, fractionDigits = 0) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+    numberingSystem: "latn",
+  }).format(value);
+
 const Profile = () => {
   const activationModal = useActivationModal();
   const [itemIdToEdit, setItemIdToEdit] = useState<string | null>(null);
@@ -59,6 +66,10 @@ const Profile = () => {
   const { isArabic } = useAppPreferences();
   const availableToWithdraw = Number(user?.balance ?? 0);
   const recentItems = useMemo(() => items.slice(0, 2), [items]);
+  const walletBalanceLabel = useMemo(
+    () => `${formatEnglishNumber(Number(user?.balance ?? 0), 2)} $`,
+    [user?.balance],
+  );
   const referralLink = useMemo(() => {
     if (!user?.id) return "";
     if (typeof window === "undefined") {
@@ -374,10 +385,10 @@ const Profile = () => {
   }, [refetch]);
 
   // Move loading and error checks AFTER all hooks
-  if (loading) {
+  if (loading && !user) {
     return <ProfileSkeleton />;
   }
-  if (error || !user) {
+  if (!user) {
     return (
       <div className="mx-auto flex min-h-[50vh] w-full max-w-xl flex-col items-center justify-center gap-4 px-4 py-10 text-center">
         <div className="rounded-2xl border border-rose-100 bg-white p-8 shadow-sm dark:border-rose-900/40 dark:bg-slate-900">
@@ -429,11 +440,24 @@ const Profile = () => {
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-8"
+      className="mx-auto w-full max-w-7xl px-0 py-4 pb-24 sm:px-4 sm:py-8 lg:px-8"
     >
+      {error && (
+        <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-0">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="rounded-lg border border-current px-3 py-1 font-semibold transition-opacity hover:opacity-80"
+          >
+            {isArabic ? "إعادة المحاولة" : "Retry"}
+          </button>
+        </div>
+      )}
+
       <div className="flex w-full flex-col gap-8 lg:flex-row">
-        <aside className="flex w-full flex-col gap-6 lg:w-64 lg:shrink-0">
-          <div className="rounded-xl border border-slate-300 bg-linear-to-br from-blue-700 via-blue-600 to-blue-500 p-4 shadow-md dark:border-slate-700 dark:from-slate-900 dark:via-blue-900 dark:to-slate-800">
+        <aside className="order-2 flex w-full flex-col gap-5 lg:order-1 lg:w-64 lg:shrink-0 lg:gap-6">
+          <div className="hidden rounded-xl border border-slate-300 bg-linear-to-br from-blue-700 via-blue-600 to-blue-500 p-4 shadow-md dark:border-slate-700 dark:from-slate-900 dark:via-blue-900 dark:to-slate-800 lg:block">
             <div className="space-y-1">
               <button
                 type="button"
@@ -561,7 +585,7 @@ const Profile = () => {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-xl bg-primary p-6 dark:text-white text-slate-700 shadow-lg">
+          <div className="relative mx-0 overflow-hidden rounded-none bg-primary px-4 py-5 text-slate-700 shadow-lg dark:text-white sm:rounded-xl sm:px-6 lg:mx-0 lg:p-6">
             <div className="relative z-10 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-[0.22em] dark:text-white/70 text-slate-700">
@@ -595,13 +619,13 @@ const Profile = () => {
 
         <div
           ref={overviewSectionRef}
-          className="flex min-w-0 flex-1 flex-col gap-6"
+          className="order-1 flex min-w-0 flex-1 flex-col gap-5 lg:order-2 lg:gap-6"
         >
           <ProfileHeader
             user={user}
             totalItems={totalItems}
             formatDate={formatDate}
-            formatCurrency={formatCurrency}
+            walletBalanceLabel={walletBalanceLabel}
             totalFavorites={favorites.length}
             onPaypalWithdraw={handleOpenPaypalWithdrawModal}
             isWithdrawingPaypal={withdrawingPaypal}
@@ -611,8 +635,8 @@ const Profile = () => {
             onCreateListing={handleCreateListing}
           />
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 xl:gap-6">
+            <section className="rounded-none border-y border-slate-200 bg-white px-4 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:border sm:p-6">
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {isArabic ? "أحدث الإعلانات" : "Recent Listings"}
@@ -678,7 +702,7 @@ const Profile = () => {
                             {title}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatCurrency(String(item.price ?? 0))} $
+                            {formatEnglishNumber(Number(item.price ?? 0), 0)} $
                           </p>
                         </div>
                         <span
@@ -696,7 +720,7 @@ const Profile = () => {
                 )}
               </div>
             </section>
-            <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 to-primary/20 p-8 shadow-sm dark:from-primary/10 dark:to-primary/5">
+            <section className="relative overflow-hidden rounded-none border-y border-primary/20 bg-linear-to-br from-primary/5 to-primary/20 px-4 py-5 shadow-sm dark:from-primary/10 dark:to-primary/5 sm:rounded-xl sm:border sm:p-8">
               <div className="relative z-10">
                 <div className="flex justify-between items-center">
                   <DynamicIcon
@@ -713,25 +737,42 @@ const Profile = () => {
                     ? "إحصل على مكافآت تصل حتى 60% من اشتراك بعض المستخدمين الذين قمت بدعوتهم حسب نظام الشرائح المعتمد"
                     : "Earn rewards up to 60% of certain invited users' subscriptions based on our tiered system."}
                 </p>
-                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-inner dark:border-slate-700 dark:bg-slate-900">
-                  <input
-                    className="flex-1 border-none bg-transparent px-2 text-sm font-mono font-medium text-slate-700 focus:ring-0 dark:text-slate-200"
-                    readOnly
-                    type="text"
-                    value={
-                      referralLink ||
-                      (isArabic
-                        ? "رابطك سيظهر هنا"
-                        : "Your link will appear here")
-                    }
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCopyReferralLink}
-                    className="rounded-md bg-primary px-4 py-2 text-xs font-bold text-white transition-colors bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isArabic ? "نسخ الرابط" : "Copy Link"}
-                  </button>
+                <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-inner dark:border-slate-700 dark:bg-slate-900">
+                  <div className="sm:hidden flex items-center justify-end p-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyReferralLink}
+                      className="rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700"
+                    >
+                      {isArabic ? "نسخ الرابط" : "Copy Link"}
+                    </button>
+                  </div>
+                  <div className="relative hidden overflow-hidden sm:block">
+                    <input
+                      className={`w-full overflow-hidden truncate border-none bg-transparent py-3 text-sm font-mono font-medium text-slate-700 focus:ring-0 dark:text-slate-200 ${
+                        isArabic
+                          ? "pr-4 pl-36 text-right"
+                          : "pl-4 pr-36 text-left"
+                      }`}
+                      readOnly
+                      type="text"
+                      value={
+                        referralLink ||
+                        (isArabic
+                          ? "رابطك سيظهر هنا"
+                          : "Your link will appear here")
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyReferralLink}
+                      className={`absolute top-1/2 -translate-y-1/2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700 ${
+                        isArabic ? "left-2" : "right-2"
+                      }`}
+                    >
+                      {isArabic ? "نسخ الرابط" : "Copy Link"}
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   <span>
@@ -779,6 +820,50 @@ const Profile = () => {
             />
           </div>
         </div>
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
+          <div className="grid grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSidebarAction("OVERVIEW")}
+              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
+                activeSidebarSection === "OVERVIEW"
+                  ? "bg-primary text-white"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              <DynamicIcon iconName="MdDashboard" size={18} />
+              <span>{isArabic ? "نظرة عامة" : "Overview"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSidebarAction("LISTINGS")}
+              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
+                activeSidebarSection === "LISTINGS"
+                  ? "bg-primary text-white"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              <DynamicIcon iconName="MdInventory2" size={18} />
+              <span>{isArabic ? "إعلاناتي" : "Listings"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditProfileModalOpen(true)}
+              className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400"
+            >
+              <DynamicIcon iconName="FaUserEdit" size={18} />
+              <span>{isArabic ? "الحساب" : "Account"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdentityVerificationModalOpen(true)}
+              className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400"
+            >
+              <DynamicIcon iconName="MdVerifiedUser" size={18} />
+              <span>{isArabic ? "توثيق" : "Verify"}</span>
+            </button>
+          </div>
+        </nav>
         <GoBackBtn />
 
         {editProfileModalOpen && (

@@ -98,8 +98,15 @@ const otherItemSelect = {
 
 const getCachedCategoryIdByName = unstable_cache(
   async (name: string) => {
+    const needle = name.trim();
     const category = await prisma.category.findFirst({
-      where: { name },
+      where: {
+        OR: [
+          { name: { equals: needle, mode: "insensitive" } },
+          { nameAr: { equals: needle, mode: "insensitive" } },
+          { nameEn: { equals: needle, mode: "insensitive" } },
+        ],
+      },
       select: { id: true },
     });
 

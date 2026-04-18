@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { request } from "@/app/utils/axios";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 type RequestStatus =
   | "PENDING"
@@ -52,46 +53,58 @@ export default function ShamCashActivationRequestsPanel({
     [isArabic],
   );
 
-  const [requests, setRequests] = useState<ActivationRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<RequestsTab>(
     focusActivationRequestId ? "NEW" : "REVIEWED",
   );
   const [actionLoadingId, setActionLoadingId] = useState("");
+  const cacheKey = `admin:shamcash-activation-requests:${isArabic ? "ar" : "en"}`;
 
-  const loadRequests = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await request.get(
-        "/api/admin/shamcash-activation-requests",
-      );
-      setRequests(response.data?.requests || []);
-    } catch (error) {
-      console.error("Failed to load activation requests", error);
-      toast.error(
-        t(
-          "فشل تحميل طلبات تفعيل شام كاش",
-          "Failed to load ShamCash activation requests",
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  const fetchRequests = useCallback(async () => {
+    const response = await request.get(
+      "/api/admin/shamcash-activation-requests",
+    );
+    return (response.data?.requests || []) as ActivationRequest[];
+  }, []);
+
+  const {
+    data: requests,
+    loading,
+    isRefreshing,
+    error,
+    refetch,
+    mutate,
+  } = useStaleResource<ActivationRequest[]>({
+    cacheKey,
+    fetcher: async () => fetchRequests(),
+  });
 
   useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
+    if (!error) {
+      return;
+    }
+
+    console.error("Failed to load activation requests", error);
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : t(
+            "فشل تحميل طلبات تفعيل شام كاش",
+            "Failed to load ShamCash activation requests",
+          ),
+    );
+  }, [error, t]);
+
+  const allRequests = useMemo(() => requests ?? [], [requests]);
 
   const groupedRequests = useMemo(() => {
-    const reviewed = requests.filter((entry) =>
+    const reviewed = allRequests.filter((entry) =>
       reviewedStatuses.includes(entry.status),
     );
-    const fresh = requests.filter(
+    const fresh = allRequests.filter(
       (entry) => !reviewedStatuses.includes(entry.status),
     );
     return { reviewed, fresh };
-  }, [requests]);
+  }, [allRequests]);
 
   const visibleRequests =
     activeTab === "REVIEWED" ? groupedRequests.reviewed : groupedRequests.fresh;
@@ -100,9 +113,9 @@ export default function ShamCashActivationRequestsPanel({
     () =>
       Boolean(
         focusActivationRequestId &&
-        requests.some((entry) => entry.id === focusActivationRequestId),
+        allRequests.some((entry) => entry.id === focusActivationRequestId),
       ),
-    [focusActivationRequestId, requests],
+    [allRequests, focusActivationRequestId],
   );
 
   useEffect(() => {
@@ -112,13 +125,13 @@ export default function ShamCashActivationRequestsPanel({
 
     setActiveTab(
       reviewedStatuses.includes(
-        requests.find((entry) => entry.id === focusActivationRequestId)
+        allRequests.find((entry) => entry.id === focusActivationRequestId)
           ?.status || "PENDING",
       )
         ? "REVIEWED"
         : "NEW",
     );
-  }, [focusActivationRequestId, requests]);
+  }, [allRequests, focusActivationRequestId]);
 
   useEffect(() => {
     if (!focusActivationRequestId || !focusedRequestExists) {
@@ -150,7 +163,7 @@ export default function ShamCashActivationRequestsPanel({
         id: entry.id,
       });
 
-      setRequests((current) =>
+      mutate((current = []) =>
         current.map((item) =>
           item.id === entry.id ? { ...item, status: "ACTIVATED" } : item,
         ),
@@ -190,7 +203,7 @@ export default function ShamCashActivationRequestsPanel({
         reason,
       });
 
-      setRequests((current) =>
+      mutate((current = []) =>
         current.map((item) =>
           item.id === entry.id
             ? {
@@ -242,6 +255,13 @@ export default function ShamCashActivationRequestsPanel({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => void refetch()}
+              className="admin-tab rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors"
+            >
+              {t("تحديث", "Refresh")}
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab("REVIEWED")}
               className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === "REVIEWED"
@@ -267,7 +287,14 @@ export default function ShamCashActivationRequestsPanel({
       </div>
 
       <div className="admin-card rounded-3xl p-3 sm:p-4">
-        {loading ? (
+        {isRefreshing && visibleRequests.length > 0 ? (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span>{t("يتم تحديث الطلبات...", "Refreshing requests...")}</span>
+          </div>
+        ) : null}
+
+        {loading && !allRequests.length ? (
           <div className="px-4 py-8 text-center text-sm text-slate-500">
             {t("جاري تحميل الطلبات...", "Loading requests...")}
           </div>

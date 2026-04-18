@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { Adapter } from "next-auth/adapters";
 import { prisma } from "@/lib/prisma";
-import { PrismaAdapter } from "@/lib/prisma-adapter";
+import { Prisma } from "@prisma/client";
 import {
   getSessionCookieName,
   shouldUseSecureAuthCookie,
@@ -8,8 +10,16 @@ import {
 import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 import authConfig from "./auth.config";
 
+const isDatabaseUnavailableError = (error: unknown) => {
+  return (
+    error instanceof Prisma.PrismaClientInitializationError ||
+    (error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P1001")
+  );
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   cookies: {
@@ -26,6 +36,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
 
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerified: new Date(),
+            ...(user.image
+              ? { profileImage: user.image, image: user.image }
+              : {}),
+          },
+        });
+      }
+
+      return true;
+    },
+
     // JWT callback: احفظ بيانات التصاريح الأساسية داخل التوكن لتكون متاحة في middleware.
     async jwt({ token, user }) {
       if (user) {
@@ -63,42 +89,71 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (!session.user || !token.sub) return session;
 
-      await ensureOwnerAccount();
+      session.user.id = token.sub;
+      // fallback to token data if DB is temporarily unavailable
+      session.user.balance = Number(token.balance ?? 0);
+      session.user.isActive = Boolean(token.isActive ?? false);
+      session.user.isAdmin = Boolean(token.isAdmin ?? false);
+      session.user.isOwner = Boolean(token.isOwner ?? false);
+      session.user.isIdentityVerified = Boolean(
+        token.isIdentityVerified ?? false,
+      );
+      session.user.activeUntil = (token.activeUntil as Date | null) ?? null;
+      session.user.pendingReferralEarnings = Number(
+        token.pendingReferralEarnings ?? 0,
+      );
+      session.user.notifications = token.notifications ?? [];
 
-      // جلب البيانات الحديثة من DB لضمان اللحظية
-      const dbUser = await prisma.user.findUnique({
-        where: { id: token.sub },
-        select: {
-          balance: true,
-          isActive: true,
-          isAdmin: true,
-          isOwner: true,
-          isIdentityVerified: true,
-          activeUntil: true,
-          pendingReferralEarnings: true,
-          notifications: {
-            where: { isRead: false },
-            select: {
-              id: true,
-              title: true,
-              message: true,
-              createdAt: true,
+      try {
+        await ensureOwnerAccount();
+
+        // جلب البيانات الحديثة من DB لضمان اللحظية
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: {
+            balance: true,
+            isActive: true,
+            isAdmin: true,
+            isOwner: true,
+            isIdentityVerified: true,
+            activeUntil: true,
+            pendingReferralEarnings: true,
+            notifications: {
+              where: { isRead: false },
+              select: {
+                id: true,
+                title: true,
+                message: true,
+                createdAt: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      session.user.id = token.sub;
-      session.user.balance = Number(dbUser?.balance ?? 0);
-      session.user.isActive = dbUser?.isActive ?? false;
-      session.user.isAdmin = dbUser?.isAdmin ?? false;
-      session.user.isOwner = dbUser?.isOwner ?? false;
-      session.user.isIdentityVerified = dbUser?.isIdentityVerified ?? false;
-      session.user.activeUntil = dbUser?.activeUntil ?? null;
-      session.user.pendingReferralEarnings = Number(
-        dbUser?.pendingReferralEarnings ?? 0,
-      );
-      session.user.notifications = dbUser?.notifications ?? [];
+        session.user.balance = Number(dbUser?.balance ?? session.user.balance);
+        session.user.isActive = dbUser?.isActive ?? session.user.isActive;
+        session.user.isAdmin = dbUser?.isAdmin ?? session.user.isAdmin;
+        session.user.isOwner = dbUser?.isOwner ?? session.user.isOwner;
+        session.user.isIdentityVerified =
+          dbUser?.isIdentityVerified ?? session.user.isIdentityVerified;
+        session.user.activeUntil =
+          dbUser?.activeUntil ?? session.user.activeUntil;
+        session.user.pendingReferralEarnings = Number(
+          dbUser?.pendingReferralEarnings ??
+            session.user.pendingReferralEarnings,
+        );
+        session.user.notifications = dbUser?.notifications ?? [];
+      } catch (error) {
+        if (isDatabaseUnavailableError(error)) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "⚠️ Auth session fallback: database temporarily unavailable, using token claims.",
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
 
       return session;
     },

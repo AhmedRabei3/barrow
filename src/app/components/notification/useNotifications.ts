@@ -15,6 +15,20 @@ interface NotificationCounterResponse {
   unreadCount: number;
 }
 
+type NotificationsCacheSnapshot = {
+  notifications: NotificationDTO[];
+  nextCursor: string | null;
+  unreadCount: number;
+  hasMore: boolean;
+};
+
+let notificationsCache: NotificationsCacheSnapshot = {
+  notifications: [],
+  nextCursor: null,
+  unreadCount: 0,
+  hasMore: true,
+};
+
 const normalizeNotifications = (list: NotificationDTO[]): NotificationDTO[] => {
   const unique = new Map<string, NotificationDTO>();
 
@@ -38,11 +52,18 @@ export const useNotifications = (enabled: boolean) => {
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],
   );
-  const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<NotificationDTO[]>(
+    notificationsCache.notifications,
+  );
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    notificationsCache.nextCursor,
+  );
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(notificationsCache.hasMore);
+  const [unreadCount, setUnreadCount] = useState(
+    notificationsCache.unreadCount,
+  );
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
 
@@ -74,6 +95,15 @@ export const useNotifications = (enabled: boolean) => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
+  useEffect(() => {
+    notificationsCache = {
+      notifications,
+      nextCursor,
+      unreadCount,
+      hasMore,
+    };
+  }, [hasMore, nextCursor, notifications, unreadCount]);
+
   const fetchNotifications = useCallback(
     async (cursor?: string, reset = false) => {
       if (!isAuthenticated) {
@@ -90,7 +120,11 @@ export const useNotifications = (enabled: boolean) => {
 
       try {
         loadingRef.current = true;
-        setLoading(true);
+        if (reset && notificationsCache.notifications.length > 0) {
+          setIsRefreshing(true);
+        } else {
+          setLoading(true);
+        }
 
         const url = new URL("/api/notifications", window.location.origin);
         if (cursor) url.searchParams.set("cursor", cursor);
@@ -116,6 +150,7 @@ export const useNotifications = (enabled: boolean) => {
       } finally {
         loadingRef.current = false;
         setLoading(false);
+        setIsRefreshing(false);
       }
     },
     [isAuthenticated, t],
@@ -128,8 +163,15 @@ export const useNotifications = (enabled: boolean) => {
     } else if (!isAuthenticated) {
       setNotifications([]);
       setNextCursor(null);
+      setIsRefreshing(false);
       hasMoreRef.current = false;
       setHasMore(false);
+      notificationsCache = {
+        notifications: [],
+        nextCursor: null,
+        unreadCount: 0,
+        hasMore: false,
+      };
     }
   }, [enabled, fetchNotifications, isAuthenticated]);
 
@@ -156,6 +198,19 @@ export const useNotifications = (enabled: boolean) => {
       window.clearInterval(interval);
     };
   }, [fetchUnreadCount, isAuthenticated]);
+
+  /* جلب مسبق لأول دفعة من الإشعارات إذا كان هناك إشعارات غير مقروءة حتى تفتح القائمة فوراً */
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (unreadCount <= 0 || notifications.length > 0 || loadingRef.current) {
+      return;
+    }
+
+    void fetchNotifications(undefined, true);
+  }, [fetchNotifications, isAuthenticated, notifications.length, unreadCount]);
 
   /* 🚀 استقبال الإشعارات الجديدة عبر WebSocket فوراً */
   const handleNewNotification = useCallback(
@@ -214,6 +269,7 @@ export const useNotifications = (enabled: boolean) => {
     notifications,
     unreadCount,
     loading,
+    isRefreshing,
     hasMore,
     loadMore: () => fetchNotifications(nextCursor || undefined),
     markAsRead,

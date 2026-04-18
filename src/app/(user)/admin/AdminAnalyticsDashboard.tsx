@@ -642,8 +642,8 @@ const AdminAnalyticsDashboard = () => {
         </div>
       </div>
 
-      <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <div className="admin-card min-w-0 rounded-[28px] p-4 sm:p-5 lg:p-6">
+      <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.55fr)] 2xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.5fr)]">
+        <div className="admin-card min-w-0 rounded-[28px] p-4 sm:p-5 lg:p-6 w-full">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">
@@ -675,7 +675,7 @@ const AdminAnalyticsDashboard = () => {
             </div>
           </div>
 
-          <div className="admin-table-shell mt-5 overflow-x-auto rounded-3xl">
+          <div className="admin-table-shell mt-5 overflow-x-auto rounded-3xl w-full">
             <table className="admin-table min-w-225 text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -923,7 +923,7 @@ const AdminAnalyticsDashboard = () => {
           </div>
         </div>
 
-        <div className="admin-card rounded-[28px] p-5 sm:p-6">
+        <div className="admin-card min-w-0 w-full rounded-[28px] p-5 sm:p-6">
           <h3 className="text-lg font-bold text-white">
             {t("توزيع حالة المستخدمين", "User status distribution")}
           </h3>

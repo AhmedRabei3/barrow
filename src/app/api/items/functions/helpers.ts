@@ -377,8 +377,15 @@ export async function buildWhere(req: BuildWhereRequest) {
 
   // 🗂️ الفئة
   if (catName && catName !== "All") {
+    const needle = catName.trim();
     const cat = await prisma.category.findFirst({
-      where: { name: catName },
+      where: {
+        OR: [
+          { name: { equals: needle, mode: "insensitive" } },
+          { nameAr: { equals: needle, mode: "insensitive" } },
+          { nameEn: { equals: needle, mode: "insensitive" } },
+        ],
+      },
       select: { id: true },
     });
 

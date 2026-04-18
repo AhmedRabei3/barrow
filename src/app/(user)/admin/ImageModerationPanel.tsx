@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { useStaleResource } from "@/app/hooks/useStaleResource";
 
 type ModerationType = "ALL" | "PROPERTY" | "NEW_CAR" | "USED_CAR" | "OTHER";
 
@@ -39,6 +40,13 @@ type ModerationResponse = {
   items: ModerationItem[];
 };
 
+const EMPTY_MODERATION_RESPONSE: ModerationResponse = {
+  filters: { type: "ALL" },
+  summary: [],
+  pagination: { page: 1, limit: 12, totalItems: 0, totalPages: 1 },
+  items: [],
+};
+
 const ImageModerationPanel = () => {
   const { isArabic } = useAppPreferences();
   const searchParams = useSearchParams();
@@ -46,20 +54,18 @@ const ImageModerationPanel = () => {
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],
   );
-  const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<ModerationType>("ALL");
   const [page, setPage] = useState(1);
-  const [data, setData] = useState<ModerationResponse>({
-    filters: { type: "ALL" },
-    summary: [],
-    pagination: { page: 1, limit: 12, totalItems: 0, totalPages: 1 },
-    items: [],
-  });
   const [actionItemId, setActionItemId] = useState<string | null>(null);
   const [rejectItem, setRejectItem] = useState<ModerationItem | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const focusedItemId = String(searchParams.get("itemId") || "").trim();
   const focusedItemType = String(searchParams.get("itemType") || "").trim();
+  const cacheKey = useMemo(
+    () =>
+      `admin:image-moderation:${filterType}:${page}:${focusedItemId || "all"}:${isArabic ? "ar" : "en"}`,
+    [filterType, focusedItemId, isArabic, page],
+  );
 
   useEffect(() => {
     if (
@@ -73,9 +79,8 @@ const ImageModerationPanel = () => {
     }
   }, [focusedItemType]);
 
-  const loadQueue = useCallback(async () => {
-    try {
-      setLoading(true);
+  const fetchQueue = useCallback(
+    async (signal: AbortSignal) => {
       const params = new URLSearchParams({
         type: filterType,
         page: String(page),
@@ -84,33 +89,49 @@ const ImageModerationPanel = () => {
       if (focusedItemId) {
         params.set("itemId", focusedItemId);
       }
+
       const res = await fetch(
         `/api/admin/image-moderation?${params.toString()}`,
+        {
+          signal,
+          cache: "no-store",
+        },
       );
       const body = (await res.json()) as ModerationResponse & {
         message?: string;
       };
+
       if (!res.ok) {
         throw new Error(
           body.message ||
             t("فشل تحميل طابور المراجعة", "Failed to load moderation queue"),
         );
       }
-      setData(body);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("فشل تحميل طابور المراجعة", "Failed to load moderation queue"),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [filterType, focusedItemId, page, t]);
+
+      return body;
+    },
+    [filterType, focusedItemId, page, t],
+  );
+
+  const { data, loading, isRefreshing, error, refetch, mutate } =
+    useStaleResource<ModerationResponse>({
+      cacheKey,
+      fetcher: fetchQueue,
+    });
 
   useEffect(() => {
-    loadQueue();
-  }, [loadQueue]);
+    if (!error) {
+      return;
+    }
+
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : t("فشل تحميل طابور المراجعة", "Failed to load moderation queue"),
+    );
+  }, [error, t]);
+
+  const queueData = data ?? EMPTY_MODERATION_RESPONSE;
 
   const runAction = useCallback(
     async (
@@ -150,7 +171,18 @@ const ImageModerationPanel = () => {
           setRejectItem(null);
           setRejectNote("");
         }
-        await loadQueue();
+        mutate((current) => {
+          const next = current ?? EMPTY_MODERATION_RESPONSE;
+          return {
+            ...next,
+            pagination: {
+              ...next.pagination,
+              totalItems: Math.max(0, next.pagination.totalItems - 1),
+            },
+            items: next.items.filter((queuedItem) => queuedItem.id !== item.id),
+          };
+        });
+        await refetch();
       } catch (error) {
         toast.error(
           error instanceof Error
@@ -164,10 +196,10 @@ const ImageModerationPanel = () => {
         setActionItemId(null);
       }
     },
-    [loadQueue, t],
+    [mutate, refetch, t],
   );
 
-  if (loading) {
+  if (loading && queueData.items.length === 0) {
     return (
       <p className="text-slate-500 dark:text-slate-300">
         {t(
@@ -183,9 +215,9 @@ const ImageModerationPanel = () => {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
         <StatCard
           title={t("إجمالي المنتظر", "Total pending")}
-          value={data.pagination.totalItems}
+          value={queueData.pagination.totalItems}
         />
-        {data.summary.map((entry) => (
+        {queueData.summary.map((entry) => (
           <StatCard key={entry.type} title={entry.type} value={entry.count} />
         ))}
       </div>
@@ -228,9 +260,20 @@ const ImageModerationPanel = () => {
             <option value="OTHER">{t("عناصر أخرى", "Other items")}</option>
           </select>
         </div>
+        {isRefreshing && queueData.items.length > 0 && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span>
+              {t(
+                "يتم تحديث طابور المراجعة...",
+                "Refreshing moderation queue...",
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
-      {data.items.length === 0 ? (
+      {queueData.items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           {t(
             "لا توجد عناصر بانتظار مراجعة الصور حالياً",
@@ -239,7 +282,7 @@ const ImageModerationPanel = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {data.items.map((item) => (
+          {queueData.items.map((item) => (
             <article
               key={item.id}
               className={`rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900 ${
@@ -475,14 +518,14 @@ const ImageModerationPanel = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <p className="text-slate-600 dark:text-slate-300">
-          {t("الصفحة", "Page")} {data.pagination.page} {t("من", "of")}{" "}
-          {data.pagination.totalPages}
+          {t("الصفحة", "Page")} {queueData.pagination.page} {t("من", "of")}{" "}
+          {queueData.pagination.totalPages}
         </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={data.pagination.page <= 1}
+            disabled={queueData.pagination.page <= 1}
             className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
           >
             {t("السابق", "Previous")}
@@ -491,10 +534,12 @@ const ImageModerationPanel = () => {
             type="button"
             onClick={() =>
               setPage((current) =>
-                Math.min(data.pagination.totalPages, current + 1),
+                Math.min(queueData.pagination.totalPages, current + 1),
               )
             }
-            disabled={data.pagination.page >= data.pagination.totalPages}
+            disabled={
+              queueData.pagination.page >= queueData.pagination.totalPages
+            }
             className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
           >
             {t("التالي", "Next")}

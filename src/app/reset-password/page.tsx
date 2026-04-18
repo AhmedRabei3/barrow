@@ -3,6 +3,7 @@ import { useResetToken } from "./useResetToken";
 import { useResetPassword } from "./useResetPassword";
 
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import PasswordHintsPanel from "@/app/components/inputs/PasswordHintsPanel";
 
 export default function ResetPasswordPage() {
   const token = useResetToken();
@@ -31,6 +32,7 @@ export default function ResetPasswordPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        <PasswordHintsPanel value={password} className="mb-3" />
         <input
           type="password"
           placeholder={isArabic ? "تأكيد كلمة المرور" : "Confirm Password"}

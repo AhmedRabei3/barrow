@@ -71,8 +71,11 @@ const TabbedView = ({
   const properties = items.filter(
     (it: ProfileItem) => it?.category?.type === "PROPERTY",
   );
-  const getItemStatus = (it: ProfileItem) => it?.item?.status ?? it?.status ?? null;
-  const soldItems = items.filter((it: ProfileItem) => getItemStatus(it) === "SOLD");
+  const getItemStatus = (it: ProfileItem) =>
+    it?.item?.status ?? it?.status ?? null;
+  const soldItems = items.filter(
+    (it: ProfileItem) => getItemStatus(it) === "SOLD",
+  );
   const rentedItems = items.filter((it: ProfileItem) => {
     const status = getItemStatus(it);
     return status === "RENTED" || status === "RESERVED";
@@ -180,7 +183,7 @@ const TabbedView = ({
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <section className="rounded-none border-y border-slate-200 bg-white px-4 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:border sm:p-6">
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">

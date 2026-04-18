@@ -24,6 +24,7 @@ const NotificationBell = ({
     loadMore,
     hasMore,
     loading,
+    isRefreshing,
     refetch,
     markAsRead,
     unreadCount,
@@ -56,6 +57,7 @@ const NotificationBell = ({
                 markAsRead={markAsRead} // ✅ من الهوك
                 onRefresh={refetch}
                 isLoading={loading}
+                isRefreshing={isRefreshing}
               />
             </div>
 

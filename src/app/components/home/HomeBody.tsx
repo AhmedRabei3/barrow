@@ -13,6 +13,7 @@ interface HomeBodyProps {
   items: FormattedItem[];
   featuredItems?: FormattedItem[];
   loading: boolean;
+  isRefreshing?: boolean;
   onRefresh: () => void;
 }
 
@@ -57,30 +58,44 @@ const LoadingState = ({ isArabic }: LoadingStateProps) => (
 
 const HomeBody = ({
   loading,
+  isRefreshing = false,
   items,
   featuredItems = [],
   onRefresh,
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
   const { isArabic } = useAppPreferences();
-  const fallbackFeaturedItems = items.filter((it) => Boolean(it.item.isFeatured));
+  const fallbackFeaturedItems = items.filter((it) =>
+    Boolean(it.item.isFeatured),
+  );
   const topFeaturedItems =
     featuredItems.length > 0 ? featuredItems : fallbackFeaturedItems;
   const featuredIds = new Set(topFeaturedItems.map((it) => it.item.id));
   const regularItems = items.filter((it) => !featuredIds.has(it.item.id));
   const mainItems =
-    topFeaturedItems.length > 0 && regularItems.length === 0 ? [] : regularItems;
+    topFeaturedItems.length > 0 && regularItems.length === 0
+      ? []
+      : regularItems;
 
   /** 🔹 الحالات الخاصة */
-  if (loading) return <LoadingState isArabic={isArabic} />;
+  if (loading && !items.length) return <LoadingState isArabic={isArabic} />;
 
-  if (!items.length) {
+  if (!loading && !isRefreshing && !items.length) {
     return <EmptyState isArabic={isArabic} onRefresh={onRefresh} />;
   }
 
   /** 🔹 المكون الرئيسي */
   return (
     <Container>
+      {isRefreshing && items.length > 0 && (
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+          <span>
+            {isArabic ? "يتم تحديث العناصر..." : "Refreshing listings..."}
+          </span>
+        </div>
+      )}
+
       {topFeaturedItems.length > 0 && (
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4">
           <div className="mb-3 flex items-center justify-between">

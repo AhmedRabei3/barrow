@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { toGrandItem } from "../(user)/profile/profileHelper";
 import { PurchaseRequest, User } from "@prisma/client";
 import { detectArabicUi, localizeErrorMessage } from "../i18n/errorMessages";
+import { useStaleResource } from "./useStaleResource";
 
 type RawProfileItem = Record<string, unknown>;
 type FavoriteItem = {
@@ -90,43 +91,60 @@ const normalizeProfileResponse = (json: ApiProfileResponse): ProfileData => {
   };
 };
 
+class ProfileFetchError extends Error {
+  isUnauthorized: boolean;
+
+  constructor(message: string, isUnauthorized = false) {
+    super(message);
+    this.name = "ProfileFetchError";
+    this.isUnauthorized = isUnauthorized;
+  }
+}
+
 export function useProfile() {
   const isArabic = detectArabicUi();
-  const [data, setData] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUnauthorized, setIsUnauthorized] = useState(false);
-  const fetchProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setIsUnauthorized(false);
-      const res = await fetch("/api/profile");
+  const fetchProfile = useCallback(
+    async (signal: AbortSignal) => {
+      const res = await fetch("/api/profile", {
+        signal,
+        cache: "no-store",
+      });
+
       if (!res.ok) {
         if (res.status === 401) {
-          setIsUnauthorized(true);
-          throw new Error(localizeErrorMessage("Unauthorized", isArabic));
+          throw new ProfileFetchError(
+            localizeErrorMessage("Unauthorized", isArabic),
+            true,
+          );
         }
-        throw new Error(
+
+        throw new ProfileFetchError(
           localizeErrorMessage("Failed to load profile", isArabic),
         );
       }
-      const json = (await res.json()) as ApiProfileResponse;
-      setData(normalizeProfileResponse(json));
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : localizeErrorMessage("Unexpected error occurred", isArabic),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [isArabic]);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+      const json = (await res.json()) as ApiProfileResponse;
+      return normalizeProfileResponse(json);
+    },
+    [isArabic],
+  );
+
+  const { data, loading, isRefreshing, error, refetch } =
+    useStaleResource<ProfileData>({
+      cacheKey: "profile:self",
+      fetcher: fetchProfile,
+      shouldResetDataOnError: (fetchError) =>
+        fetchError instanceof ProfileFetchError && fetchError.isUnauthorized,
+    });
+
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : error
+        ? localizeErrorMessage("Unexpected error occurred", isArabic)
+        : null;
+  const isUnauthorized =
+    error instanceof ProfileFetchError ? error.isUnauthorized : false;
 
   /* Normalize items once */
   const normalizedItems = useMemo(() => {
@@ -143,8 +161,9 @@ export function useProfile() {
     favorites: data?.favorites ?? [],
     totalItems,
     loading,
-    error,
+    isRefreshing,
+    error: errorMessage,
     isUnauthorized,
-    refetch: fetchProfile,
+    refetch,
   };
 }

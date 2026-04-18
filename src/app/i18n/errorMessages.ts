@@ -95,6 +95,12 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   "Name is too short": "الاسم قصير جدًا",
   "Invalid email format": "صيغة البريد الإلكتروني غير صحيحة",
   "Email is already in use": "البريد الإلكتروني مستخدم بالفعل",
+  "User already exists": "المستخدم موجود بالفعل",
+  "Incorrect password. We sent you a security alert because of repeated failed attempts.":
+    "كلمة المرور غير صحيحة. أرسلنا لك تنبيهاً أمنياً بسبب تكرار المحاولات الفاشلة.",
+  "Invalid phone number. Use international format like +49123456789":
+    "رقم الهاتف غير صالح، استخدم صيغة دولية مثل +49123456789",
+  "Phone number is already in use": "رقم الهاتف مستخدم بالفعل",
   "Images are required": "الصور مطلوبة",
   "No file uploaded": "لم يتم رفع ملف",
   "Failed to upload image to Cloudinary": "فشل رفع الصورة إلى Cloudinary",
