@@ -225,10 +225,12 @@ const SiteFooter = () => {
                   >
                     <span className="mt-1.5 h-2 w-2 rounded-full bg-primary " />
                     <span className="leading-6">
-                      <span className="font-extrabold dark:text-white/80 text-slate-800">
+                      <span className="font-extrabold text-white/80 ">
                         {step.title}
                       </span>
-                      <span className="font-normal">: {step.body}</span>
+                      <span className="font-normal text-white/80">
+                        : {step.body}
+                      </span>
                     </span>
                   </li>
                 ))}
