@@ -25,7 +25,7 @@ const FloatingChatButton = () => {
   const isSessionLoading = status === "loading";
   const isLoggedIn = Boolean(user?.id);
   const isUserActive = Boolean(user?.isActive);
-  const shouldRender = pathname === "/" || pathname === "/profile";
+  const shouldRender = pathname === "/";
 
   useEffect(() => {
     const handleOpenSmartChat = () => {
