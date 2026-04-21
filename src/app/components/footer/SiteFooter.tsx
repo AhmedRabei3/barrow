@@ -184,7 +184,12 @@ const SiteFooter = () => {
           <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
             <div>
               <div className="mb-5 flex items-center gap-3">
-                <Logo width={50} height={30} />
+                <Logo
+                  width={50}
+                  height={30}
+                  arCustomTxt="حيث تلتقي الشهرة مع المال"
+                  enCustomTxt="Where Fame and Money Meet"
+                />
               </div>
               <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
                 {isArabic
@@ -197,14 +202,7 @@ const SiteFooter = () => {
                   : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                {user ? (
-                  <Link
-                    href="/listings/create"
-                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
-                  >
-                    {isArabic ? "أنشر إعلانك الآن" : "Post Your Listing Now"}
-                  </Link>
-                ) : (
+                {user && (
                   <Link
                     href="/auth/login"
                     className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"

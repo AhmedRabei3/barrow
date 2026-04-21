@@ -6,9 +6,13 @@ import { useAppPreferences } from "../providers/AppPreferencesProvider";
 const Logo = ({
   width = 50,
   height = 50,
+  arCustomTxt = "نصلك بالعالم",
+  enCustomTxt = "U R Famous",
 }: {
   width?: number;
   height?: number;
+  arCustomTxt?: string;
+  enCustomTxt?: string;
 }) => {
   const router = useRouter();
   const { isArabic } = useAppPreferences();
@@ -43,7 +47,7 @@ const Logo = ({
           hidden md:inline-block dark:text-slate-300 text-slate-600
          "
         >
-          {isArabic ? "نوصلك للعالم" : "U R Famous"}
+          {isArabic ? arCustomTxt : enCustomTxt}
         </span>
       </div>
     </div>
