@@ -64,15 +64,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google" && user.id) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            emailVerified: new Date(),
-            ...(user.image
-              ? { profileImage: user.image, image: user.image }
-              : {}),
-          },
-        });
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              emailVerified: new Date(),
+              ...(user.image
+                ? { profileImage: user.image, image: user.image }
+                : {}),
+            },
+          });
+        } catch (error) {
+          console.error("Google post-sign-in user sync failed", error);
+        }
       }
 
       return true;
