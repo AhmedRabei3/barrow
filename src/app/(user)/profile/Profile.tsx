@@ -485,11 +485,6 @@ const Profile = () => {
                 <DynamicIcon
                   iconName="MdInventory2"
                   size={18}
-                  className={
-                    activeSidebarSection === "LISTINGS"
-                      ? "text-white"
-                      : "text-slate-400 bg-white/10"
-                  }
                 />
                 <span className="font-medium text-white">
                   {isArabic ? "إعلاناتي" : "My Listings"}
@@ -507,11 +502,7 @@ const Profile = () => {
                 <DynamicIcon
                   iconName="AiFillHeart"
                   size={18}
-                  className={
-                    activeSidebarSection === "FAV"
-                      ? "text-white"
-                      : "text-slate-400 bg-white/10"
-                  }
+                
                 />
                 <span className="font-medium">
                   {isArabic ? "المفضلة" : "Favorites"}
@@ -529,11 +520,7 @@ const Profile = () => {
                 <DynamicIcon
                   iconName="MdOutlineAccountBalanceWallet"
                   size={18}
-                  className={
-                    activeSidebarSection === "WITHDRAWALS"
-                      ? "text-white"
-                      : "text-slate-400 bg-white/10"
-                  }
+                  
                 />
                 <span className="font-medium text-white">
                   {isArabic ? "الأرباح والسحوبات" : "Earnings"}

@@ -178,7 +178,7 @@ export const fetchItems = async ({
     const url = `/api/items?${params.toString()}`;
 
     const timeoutController = new AbortController();
-    const timeoutId = window.setTimeout(() => timeoutController.abort(), 45000);
+    const timeoutId = window.setTimeout(() => timeoutController.abort(), 8000);
 
     const requestSignal = signal
       ? AbortSignal.any([signal, timeoutController.signal])

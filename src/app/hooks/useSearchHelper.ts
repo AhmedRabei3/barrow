@@ -1,5 +1,5 @@
 import { $Enums } from "@prisma/client";
-import { useCallback } from "react";
+import { startTransition, useCallback } from "react";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
@@ -7,8 +7,10 @@ export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
 
   const update = useCallback(
     (data: Partial<Parameters<typeof setFilters>[0]>) => {
-      setFilters(data);
-      if (setCurrentPage) setCurrentPage(1);
+      startTransition(() => {
+        setFilters(data);
+        if (setCurrentPage) setCurrentPage(1);
+      });
     },
     [setFilters, setCurrentPage],
   );

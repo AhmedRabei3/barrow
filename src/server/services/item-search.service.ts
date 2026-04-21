@@ -1,4 +1,5 @@
 import { $Enums } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import type {
   ItemSearchItemDto,
   ItemSearchQueryDto,
@@ -12,6 +13,49 @@ const ITEM_TYPES: $Enums.ItemType[] = [
   $Enums.ItemType.PROPERTY,
   $Enums.ItemType.OTHER,
 ];
+
+type SerializableSearchQuery = Omit<
+  ItemSearchQueryDto,
+  "userLat" | "userLng"
+> & {
+  userLat: null;
+  userLng: null;
+};
+
+const normalizeSearchQuery = (
+  query: ItemSearchQueryDto,
+): ItemSearchQueryDto => ({
+  ...query,
+  q: query.q.trim().replace(/\s+/g, " "),
+  city: query.city?.trim().replace(/\s+/g, " "),
+  country: query.country?.trim().replace(/\s+/g, " "),
+  catName: query.catName?.trim().replace(/\s+/g, " "),
+  action: query.action?.trim(),
+});
+
+const toSerializableNonGeoQuery = (
+  query: ItemSearchQueryDto,
+): SerializableSearchQuery => ({
+  ...query,
+  userLat: null,
+  userLng: null,
+});
+
+const serializeNonGeoQuery = (query: SerializableSearchQuery) =>
+  JSON.stringify({
+    q: query.q,
+    type: query.type,
+    city: query.city,
+    country: query.country,
+    catName: query.catName,
+    action: query.action,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+    page: query.page,
+    limit: query.limit,
+    userLat: null,
+    userLng: null,
+  } satisfies SerializableSearchQuery);
 
 const buildSearchCondition = (type: $Enums.ItemType, q: string) => {
   if (!q) {
@@ -173,6 +217,7 @@ const buildWhereForType = async (
         ? {
             country: {
               equals: query.country,
+              mode: "insensitive",
             },
           }
         : {}),
@@ -204,7 +249,7 @@ const buildWhereForType = async (
   return where;
 };
 
-export async function searchItems(
+async function searchItemsUncached(
   query: ItemSearchQueryDto,
 ): Promise<ItemSearchResponseDto> {
   const { page, limit, type, userLat, userLng } = query;
@@ -331,4 +376,27 @@ export async function searchItems(
     totalCount: sortedItems.length,
     items: sortFeaturedFirst(sortedItems.slice(skip, skip + limit)),
   };
+}
+
+const getCachedNonGeoSearch = unstable_cache(
+  async (serializedQuery: string) => {
+    const query = JSON.parse(serializedQuery) as SerializableSearchQuery;
+    return searchItemsUncached(query);
+  },
+  ["item-search-results-v3"],
+  { revalidate: 60, tags: ["item-search"] },
+);
+
+export async function searchItems(
+  query: ItemSearchQueryDto,
+): Promise<ItemSearchResponseDto> {
+  const normalizedQuery = normalizeSearchQuery(query);
+
+  if (normalizedQuery.userLat === null && normalizedQuery.userLng === null) {
+    return getCachedNonGeoSearch(
+      serializeNonGeoQuery(toSerializableNonGeoQuery(normalizedQuery)),
+    );
+  }
+
+  return searchItemsUncached(normalizedQuery);
 }

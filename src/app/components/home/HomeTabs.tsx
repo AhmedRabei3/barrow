@@ -1,10 +1,23 @@
 "use client";
 
-import { LayoutGroup, motion } from "framer-motion";
-import { DynamicIcon } from "../addCategory/IconSetter";
 import { $Enums } from "@prisma/client";
 import { memo, useId } from "react";
+import {
+  MdOutlineBallot,
+  MdOutlineRealEstateAgent,
+  MdCarCrash,
+  MdDevicesOther,
+} from "react-icons/md";
+import { FaCarSide } from "react-icons/fa";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+
+const TAB_ICONS = {
+  MdOutlineRealEstateAgent,
+  FaCarSide,
+  MdCarCrash,
+  MdDevicesOther,
+  MdOutlineBallot,
+} as const;
 
 interface HomeTabsProps {
   setType: (t: $Enums.ItemType) => void;
@@ -84,81 +97,36 @@ const HomeTab = ({ setType, type, compact = false }: HomeTabsProps) => {
       </div>
 
       <div className={compact ? "hidden" : "hidden md:block"}>
-        <LayoutGroup id="home-tabs">
-          <div
-            className="relative my-2 flex items-center 
-          justify-center bg-white/80 backdrop-blur-md p-1.5
-          rounded-xl shadow-sm border border-slate-200 w-fit 
-          dark:bg-slate-900/80 dark:border-slate-700
-          mx-auto
-        "
-          >
-            {tabsList.map((item) => {
-              const isActive = selectedType === item.type;
+        <div className="relative mx-auto my-2 flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white/80 p-1.5 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/80">
+          {tabsList.map((item) => {
+            const isActive = selectedType === item.type;
+            const Icon = TAB_ICONS[item.icon as keyof typeof TAB_ICONS];
 
-              return (
-                <motion.button
-                  key={item.type}
-                  type="button"
-                  onClick={() => setType(item.type as $Enums.ItemType)}
-                  className={`
-                relative cursor-pointer select-none px-3 xl:px-4 py-1.5 mx-0.5 rounded-xl 
-                flex items-center gap-2 font-medium transition-colors duration-300 group
-                ${isActive ? "text-white" : "text-gray-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300"}
-              `}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
-                  {/* خلفية التبويب النشط */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeHomeTabBackground"
-                      className="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 rounded-xl shadow-md"
-                      transition={{
-                        type: "spring",
-                        stiffness: 380,
-                        damping: 32,
-                        mass: 0.6,
-                      }}
-                    />
-                  )}
+            return (
+              <button
+                key={item.type}
+                type="button"
+                onClick={() => setType(item.type as $Enums.ItemType)}
+                className={`
+                  group relative mx-0.5 flex cursor-pointer select-none items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-all duration-300 xl:px-4
+                  ${isActive ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white shadow-md" : "text-gray-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300"}
+                `}
+              >
+                <div className="relative z-10 flex flex-col items-center gap-1 md:flex-col lg:flex-row lg:items-center lg:gap-1">
+                  <Icon size={20} />
 
-                  {/* المحتوى */}
-                  <div
-                    className="
-                  relative z-10 
-                  flex flex-col items-center gap-1
-                  md:flex-col
-                  lg:flex-row lg:gap-1 lg:items-center
-                "
-                  >
-                    <DynamicIcon iconName={item.icon} size={20} />
+                  <span className="hidden text-center text-sm 2xl:block">
+                    {isArabic ? item.nameAr : item.nameEn}
+                  </span>
 
-                    {/* النص — في الشاشات الكبيرة والأكبر */}
-                    <span className="hidden 2xl:block text-sm text-center">
-                      {isArabic ? item.nameAr : item.nameEn}
-                    </span>
-
-                    {/* Tooltip — يظهر على الشاشات المتوسطة ومادون */}
-                    <span
-                      className="
-                    absolute -bottom-7 left-1/2 -translate-x-1/2 
-                    px-2 py-1 text-xs rounded-md shadow-md whitespace-nowrap
-                    bg-gray-100 text-blue-700 dark:bg-slate-800 dark:text-sky-300
-                    opacity-0 group-hover:opacity-100
-                    transition-opacity duration-200
-                    2xl:hidden
-                  "
-                    >
-                      {isArabic ? item.nameAr : item.nameEn}
-                    </span>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </LayoutGroup>
+                  <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs text-blue-700 opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 dark:bg-slate-800 dark:text-sky-300 2xl:hidden">
+                    {isArabic ? item.nameAr : item.nameEn}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </>
   );

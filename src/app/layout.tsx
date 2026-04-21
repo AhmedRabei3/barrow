@@ -3,20 +3,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
 import ClientOnly from "./components/ClientOnly";
-import "leaflet/dist/leaflet.css";
+import GlobalOverlays from "./components/GlobalOverlays";
 
 import { SessionProvider } from "next-auth/react";
-import LoginModal from "./components/modals/LoginModal";
-import RegisterModal from "./components/modals/(register)/RegisterModal";
-import ReferralHandler from "./components/modals/referalCatcher/ReferralHandler";
-import LoginParamHandler from "./components/modals/LoginParamHandler";
-import ActivationModal from "./components/modals/(activationModal)/ActivationModal";
-import Countdown from "./components/countdown/Countdown";
-import InviteModal from "./components/modals/inviteModal/InviteModal";
-import SearchModal from "./components/modals/searchModal/SearchModal";
-import FloatingChatButton from "./components/FloatingChatButton";
-import ScrollToTopButton from "./components/ScrollToTopButton";
-import ChunkErrorRecovery from "./components/ChunkErrorRecovery";
 
 import {
   SITE_DESCRIPTION,
@@ -139,19 +128,9 @@ export default async function RootLayout({
         <AppPreferencesProvider initialLocale={initialLocale}>
           <SessionProvider refetchOnWindowFocus={false}>
             <ClientOnly>
-              <ChunkErrorRecovery />
+              <GlobalOverlays />
               {/* <WebVitalsReporter /> */}
-              <ReferralHandler />
-              <LoginParamHandler />
               <AppToaster />
-              <LoginModal />
-              <InviteModal />
-              <RegisterModal />
-              <FloatingChatButton />
-              <ScrollToTopButton />
-              <SearchModal />
-              <ActivationModal />
-              <Countdown />
             </ClientOnly>
             <script
               type="application/ld+json"

@@ -1,20 +1,49 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
-import UserMenu from "./UserMenu";
+import {
+  Suspense,
+  lazy,
+  type ComponentType,
+  useState,
+  useEffect,
+  memo,
+} from "react";
 import Container from "../Container";
 import Logo from "./Logo";
 import { usePathname } from "next/navigation";
 import HomeTabs from "../home/HomeTabs";
 import { $Enums } from "@prisma/client";
-import { motion } from "framer-motion";
 import useScrollDirection from "@/app/hooks/useScrollDirection";
 import SearchBar from "./search-box/SearchBar";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
-import NotificationBell from "../notification/NotificationBell";
 
 import { useSearchHelper } from "../../hooks/useSearchHelper";
+
+const UserMenu = lazy(async () => {
+  const importedModule = await import("./UserMenu.lazy.js");
+
+  return {
+    default: importedModule.default as unknown as ComponentType,
+  };
+});
+
+const NotificationBell = lazy(async () => {
+  const importedModule =
+    await import("../notification/NotificationBell.lazy.js");
+
+  return {
+    default: importedModule.default as unknown as ComponentType<{
+      hiddenWhenEmpty?: boolean;
+    }>,
+  };
+});
+
+const ICON_BUTTON_SKELETON_CLASS =
+  "h-9 w-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
+
+const USER_MENU_SKELETON_CLASS =
+  "h-9 w-16 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
 
 const TOP_BAR_CLASS =
   "fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-950/90";
@@ -81,19 +110,28 @@ const Navbar = ({
 
   if (isAdminPage) return null;
 
+  const topBarStyle = {
+    transform: `translateY(${scrollDir === "down" ? "-4px" : "0px"})`,
+    boxShadow: isScrolled
+      ? "0 4px 14px rgba(15,23,42,0.09)"
+      : "0 0 0 rgba(0,0,0,0)",
+  };
+
+  const collapsibleStyle = {
+    opacity: scrollDir === "down" ? 0 : 1,
+    transform: `translateY(${scrollDir === "down" ? "-15px" : "0px"})`,
+    pointerEvents: scrollDir === "down" ? "none" : "auto",
+  } as const;
+
+  const tabsStyle = {
+    opacity: scrollDir === "down" ? 0 : 1,
+    transform: `translateY(${scrollDir === "down" ? "-8px" : "0px"})`,
+    height: scrollDir === "down" ? 0 : "auto",
+    pointerEvents: scrollDir === "down" ? "none" : "auto",
+  } as const;
+
   return (
-    <motion.div
-      className={TOP_BAR_CLASS}
-      initial={{ y: -16, opacity: 0 }}
-      animate={{
-        y: scrollDir === "down" ? -4 : 0,
-        opacity: 1,
-        boxShadow: isScrolled
-          ? "0 4px 14px rgba(15,23,42,0.09)"
-          : "0 0 0 rgba(0,0,0,0)",
-      }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-    >
+    <div className={TOP_BAR_CLASS} style={topBarStyle}>
       <Container>
         <div dir="ltr" className={DESKTOP_GRID_CLASS}>
           <div className="flex items-center gap-2 min-w-0 shrink-0 justify-self-start">
@@ -116,12 +154,18 @@ const Navbar = ({
 
           <div className="flex items-center justify-end gap-2 min-w-0 justify-self-end">
             <div className="hidden xl:flex items-center gap-2">
-              <NotificationBell />
+              <Suspense
+                fallback={<div className={ICON_BUTTON_SKELETON_CLASS} />}
+              >
+                <NotificationBell />
+              </Suspense>
               <ThemeToggle />
             </div>
             <LanguageToggle />
             <div className="shrink-0">
-              <UserMenu />
+              <Suspense fallback={<div className={USER_MENU_SKELETON_CLASS} />}>
+                <UserMenu />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -134,19 +178,18 @@ const Navbar = ({
             <HomeTabs setType={helper.handleSetType} type={type} compact />
           </div>
           <div className="flex items-center justify-end gap-1">
-            <NotificationBell hiddenWhenEmpty />
-            <UserMenu />
+            <Suspense fallback={null}>
+              <NotificationBell hiddenWhenEmpty />
+            </Suspense>
+            <Suspense fallback={<div className={USER_MENU_SKELETON_CLASS} />}>
+              <UserMenu />
+            </Suspense>
           </div>
         </div>
 
-        <motion.div
-          animate={{
-            opacity: scrollDir === "down" ? 0 : 1,
-            y: scrollDir === "down" ? -15 : 0,
-            pointerEvents: scrollDir === "down" ? "none" : "auto",
-          }}
-          transition={{ duration: 0.35, ease: "easeInOut" }}
-          className={TABLET_SEARCH_CLASS}
+        <div
+          className={`${TABLET_SEARCH_CLASS} transition-all duration-300 ease-in-out`}
+          style={collapsibleStyle}
         >
           <SearchBar
             category={catName}
@@ -159,22 +202,16 @@ const Navbar = ({
             minPrice={minPrice}
             maxPrice={maxPrice}
           />
-        </motion.div>
+        </div>
 
-        <motion.div
-          animate={{
-            opacity: scrollDir === "down" ? 0 : 1,
-            y: scrollDir === "down" ? -8 : 0,
-            height: scrollDir === "down" ? 0 : "auto",
-            pointerEvents: scrollDir === "down" ? "none" : "auto",
-          }}
-          transition={{ duration: 0.26, ease: "easeInOut" }}
-          className={TABS_ROW_CLASS}
+        <div
+          className={`${TABS_ROW_CLASS} overflow-hidden transition-all duration-300 ease-in-out`}
+          style={tabsStyle}
         >
           <HomeTabs setType={helper.handleSetType} type={type} />
-        </motion.div>
+        </div>
       </Container>
-    </motion.div>
+    </div>
   );
 };
 

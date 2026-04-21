@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 type ItemWhereInput = Record<string, unknown>;
 
+const defaultOrderBy = [
+  { createdAt: "desc" as const },
+  { id: "desc" as const },
+];
+
 const locationSelect = {
   latitude: true,
   longitude: true,
@@ -153,6 +158,7 @@ export const itemSearchRepository = {
         const items = await prisma.newCar.findMany({
           where: where as Prisma.NewCarWhereInput,
           select: newCarSelect,
+          orderBy: defaultOrderBy,
           ...pagination,
         });
 
@@ -172,6 +178,7 @@ export const itemSearchRepository = {
         const items = await prisma.oldCar.findMany({
           where: where as Prisma.OldCarWhereInput,
           select: oldCarSelect,
+          orderBy: defaultOrderBy,
           ...pagination,
         });
 
@@ -191,6 +198,7 @@ export const itemSearchRepository = {
         const items = await prisma.property.findMany({
           where: where as Prisma.PropertyWhereInput,
           select: propertySelect,
+          orderBy: defaultOrderBy,
           ...pagination,
         });
 
@@ -208,6 +216,7 @@ export const itemSearchRepository = {
         const items = await prisma.otherItem.findMany({
           where: where as Prisma.OtherItemWhereInput,
           select: otherItemSelect,
+          orderBy: defaultOrderBy,
           ...pagination,
         });
 
@@ -234,6 +243,7 @@ export const itemSearchRepository = {
     const [images, reviewsAgg, featuredPins] = await Promise.all([
       prisma.itemImage.findMany({
         where: { itemId: { in: itemIds } },
+        orderBy: [{ itemId: "asc" }, { createdAt: "asc" }],
         select: { itemId: true, url: true },
       }),
       prisma.review.groupBy({
@@ -247,6 +257,7 @@ export const itemSearchRepository = {
           itemId: { in: itemIds },
           createdAt: { gte: featuredCutoff },
         },
+        orderBy: { createdAt: "desc" },
         select: {
           itemId: true,
           itemType: true,

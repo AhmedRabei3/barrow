@@ -2,12 +2,12 @@ import { AnimatePresence } from "framer-motion";
 import React, { useCallback, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import PublishMenue from "../header/PublishMenue";
-import h from "@/app/hooks";
+import useClickOutside from "@/app/hooks/useOutsideClick";
 
 const PublishBtn = () => {
   const [openPublish, setPublishOpen] = useState<boolean>(false);
   const publishRef = useRef(null!);
-  h.useClickOutside(publishRef, () => setPublishOpen(false));
+  useClickOutside(publishRef, () => setPublishOpen(false));
   const togglePublish = useCallback(() => setPublishOpen((prev) => !prev), []);
 
   return (

@@ -1,11 +1,11 @@
 "use client";
-import h from "@/app/hooks";
+import useSearchModal from "@/app/hooks/useSearchModal";
 import Modal from "../Modal";
 import SearchWizard from "./SearchWizard";
 import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 
 const SearchModal = () => {
-  const searchModal = h.useSearchModal();
+  const searchModal = useSearchModal();
   const { isArabic } = useAppPreferences();
 
   return (

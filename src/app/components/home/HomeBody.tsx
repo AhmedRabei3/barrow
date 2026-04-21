@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { MdOutlineRefresh } from "react-icons/md";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
@@ -65,17 +65,25 @@ const HomeBody = ({
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
   const { isArabic } = useAppPreferences();
-  const fallbackFeaturedItems = items.filter((it) =>
-    Boolean(it.item.isFeatured),
+  const fallbackFeaturedItems = useMemo(
+    () => items.filter((it) => Boolean(it.item.isFeatured)),
+    [items],
   );
-  const topFeaturedItems =
-    featuredItems.length > 0 ? featuredItems : fallbackFeaturedItems;
-  const featuredIds = new Set(topFeaturedItems.map((it) => it.item.id));
-  const regularItems = items.filter((it) => !featuredIds.has(it.item.id));
-  const mainItems =
-    topFeaturedItems.length > 0 && regularItems.length === 0
+  const topFeaturedItems = useMemo(
+    () => (featuredItems.length > 0 ? featuredItems : fallbackFeaturedItems),
+    [fallbackFeaturedItems, featuredItems],
+  );
+  const featuredIds = useMemo(
+    () => new Set(topFeaturedItems.map((it) => it.item.id)),
+    [topFeaturedItems],
+  );
+  const mainItems = useMemo(() => {
+    const regularItems = items.filter((it) => !featuredIds.has(it.item.id));
+
+    return topFeaturedItems.length > 0 && regularItems.length === 0
       ? []
       : regularItems;
+  }, [featuredIds, items, topFeaturedItems.length]);
 
   /** 🔹 الحالات الخاصة */
   if (loading && !items.length) return <LoadingState isArabic={isArabic} />;
@@ -89,7 +97,11 @@ const HomeBody = ({
     <Container>
       {isRefreshing && items.length > 0 && (
         <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+          <span
+            className="h-2 w-2 
+              animate-pulse 
+              rounded-full bg-emerald-500"
+          />
           <span>
             {isArabic ? "يتم تحديث العناصر..." : "Refreshing listings..."}
           </span>

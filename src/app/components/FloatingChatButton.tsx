@@ -1,6 +1,12 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import SmartChatBot from "./SmartChatBot";
+import {
+  Suspense,
+  lazy,
+  type ComponentType,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { DynamicIcon } from "./addCategory/IconSetter";
 import { useSession } from "next-auth/react";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
@@ -9,6 +15,16 @@ import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "@/app/i18n/brand";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+
+const SmartChatBot = lazy(async () => {
+  const importedModule = await import("./SmartChatBot.lazy.js");
+
+  return {
+    default: importedModule.default as unknown as ComponentType<{
+      onClose: () => void;
+    }>,
+  };
+});
 
 const FloatingChatButton = () => {
   const [open, setOpen] = useState(false);
@@ -112,7 +128,22 @@ const FloatingChatButton = () => {
               </div>
             </div>
           ) : isLoggedIn && isUserActive ? (
-            <SmartChatBot onClose={() => setOpen(false)} />
+            <Suspense
+              fallback={
+                <div
+                  className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+                  dir={isArabic ? "rtl" : "ltr"}
+                >
+                  <div className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
+                    {isArabic
+                      ? "جارٍ تحميل المساعد..."
+                      : "Loading assistant..."}
+                  </div>
+                </div>
+              }
+            >
+              <SmartChatBot onClose={() => setOpen(false)} />
+            </Suspense>
           ) : (
             <div
               className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"

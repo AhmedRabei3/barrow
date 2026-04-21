@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useState } from "react";
+import { lazy, memo, Suspense, type ComponentType, useState } from "react";
 import { useSession } from "next-auth/react";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
-import SupportContactModal from "../header/SupportContactModal";
 import Logo from "../header/Logo";
+
+const SupportContactModal = lazy(async () => {
+  const importedModule = await import("../header/SupportContactModal.lazy.js");
+
+  return {
+    default: importedModule.default as unknown as ComponentType<{
+      isOpen: boolean;
+      onClose: () => void;
+      onOpenCountChange?: (count: number) => void;
+    }>,
+  };
+});
 
 const advantages = [
   {
@@ -213,8 +224,8 @@ const SiteFooter = () => {
               </div>
             </div>
 
-            <div className="border dark:border-slate-500 bg-blue-800 shadow-lg hover:translate-1.1 rounded-3xl p-6">
-              <h3 className="text-sm font-black uppercase tracking-[0.22em] text-primary">
+            <div className="border dark:border-slate-500 bg-blue-600 shadow-lg hover:translate-1.1 rounded-3xl p-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why you Choose Us"}
               </h3>
               <ul className="mt-5 space-y-3">
@@ -289,10 +300,14 @@ const SiteFooter = () => {
         </div>
       </Container>
 
-      <SupportContactModal
-        isOpen={isSupportModalOpen}
-        onClose={() => setSupportModalOpen(false)}
-      />
+      {isSupportModalOpen ? (
+        <Suspense fallback={null}>
+          <SupportContactModal
+            isOpen={isSupportModalOpen}
+            onClose={() => setSupportModalOpen(false)}
+          />
+        </Suspense>
+      ) : null}
     </footer>
   );
 };

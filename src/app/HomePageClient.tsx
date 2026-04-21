@@ -7,7 +7,7 @@ import Pagination from "./components/home/Pagination";
 import SiteFooter from "./components/footer/SiteFooter";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchHelper } from "./hooks/useSearchHelper";
 import { request } from "@/app/utils/axios";
 import {
@@ -26,20 +26,41 @@ const HomePageClient = () => {
     limit,
   });
   const helper = useSearchHelper(setCurrentPage);
+  const minPrice = useMemo(
+    () =>
+      typeof filters.minPrice === "string"
+        ? Number(filters.minPrice)
+        : filters.minPrice,
+    [filters.minPrice],
+  );
+  const maxPrice = useMemo(
+    () =>
+      typeof filters.maxPrice === "string"
+        ? Number(filters.maxPrice)
+        : filters.maxPrice,
+    [filters.maxPrice],
+  );
+
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  const fetchFeaturedItems = useCallback(async () => {
+    const { data } = await request.get("/api/items/featured?limit=8", {
+      timeout: 8000,
+    });
+
+    if (!data?.success) {
+      return [];
+    }
+
+    return formatRawItems((data.items || []) as RawItem[]);
+  }, []);
+
+  const paginationVisible = totalItems > limit;
 
   const { data: featuredItems } = useStaleResource<FormattedItem[]>({
     cacheKey: "items:featured:top-8",
-    fetcher: async () => {
-      const { data } = await request.get("/api/items/featured?limit=8", {
-        timeout: 20000,
-      });
-
-      if (!data?.success) {
-        return [];
-      }
-
-      return formatRawItems((data.items || []) as RawItem[]);
-    },
+    fetcher: fetchFeaturedItems,
   });
 
   return (
@@ -54,16 +75,8 @@ const HomePageClient = () => {
         handelSellOrRent={helper.handleAction}
         handleSetMinPrice={helper.handleSetMinPrice}
         handleSetMaxPrice={helper.handleSetMaxPrice}
-        minPrice={
-          typeof filters.minPrice === "string"
-            ? Number(filters.minPrice)
-            : filters.minPrice
-        }
-        maxPrice={
-          typeof filters.maxPrice === "string"
-            ? Number(filters.maxPrice)
-            : filters.maxPrice
-        }
+        minPrice={minPrice}
+        maxPrice={maxPrice}
       />
       <CategorySlider
         type={filters.type}
@@ -76,10 +89,10 @@ const HomePageClient = () => {
         featuredItems={featuredItems ?? []}
         loading={loading}
         isRefreshing={isRefreshing}
-        onRefresh={refetch}
+        onRefresh={handleRefresh}
       />
 
-      {totalItems > limit && (
+      {paginationVisible && (
         <Pagination
           itemsCount={totalItems}
           itemsPerPage={limit}

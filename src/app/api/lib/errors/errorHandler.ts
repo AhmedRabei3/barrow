@@ -4,6 +4,7 @@ import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { isDatabaseUnavailableError, RequestTimeoutError } from "./dbGuard";
 
 export function handleApiError(
   error: unknown,
@@ -20,6 +21,29 @@ export function handleApiError(
         field: error.field ?? null,
       },
       { status: error.statusCode },
+    );
+  }
+
+  if (isDatabaseUnavailableError(error)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: localizeErrorMessage(
+          "Database temporarily unavailable",
+          isArabic,
+        ),
+      },
+      { status: 503 },
+    );
+  }
+
+  if (error instanceof RequestTimeoutError) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: localizeErrorMessage(error.message, isArabic),
+      },
+      { status: 503 },
     );
   }
 

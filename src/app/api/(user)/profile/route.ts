@@ -6,6 +6,27 @@ import { handleApiError } from "../../lib/errors/errorHandler";
 import { attachExtrasBatch } from "../../items/functions/helpers";
 import { requireProfileEditTicket } from "../../utils/profileEditVerification";
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
+import { withTimeout } from "../../lib/errors/dbGuard";
+
+const ITEM_RELATION_SELECT = {
+  category: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+    },
+  },
+  location: {
+    select: {
+      latitude: true,
+      longitude: true,
+      address: true,
+      city: true,
+      country: true,
+      state: true,
+    },
+  },
+} as const;
 
 /**
  * @description Get user profile
@@ -18,69 +39,102 @@ export async function GET(req: NextRequest) {
   try {
     const session = await authHelper();
     const now = new Date();
-    const user = await prisma.user.findUnique({
-      where: { id: session.id },
-      include: {
-        properties: {
-          where: { isDeleted: false },
-          include: { category: true, location: true },
-        },
-        newCars: {
-          where: { isDeleted: false },
-          include: { category: true, location: true },
-        },
-        oldCars: {
-          where: { isDeleted: false },
-          include: { category: true, location: true },
-        },
-        otherItems: {
-          where: { isDeleted: false },
-          include: { category: true, location: true },
-        },
-        favorites: true,
-        referrals: true,
-        purchaseRequests: true,
-        identityVerificationRequest: {
+    const [user, properties, newCars, oldCars, otherItems] = await withTimeout(
+      Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.id },
           select: {
             id: true,
-            fullName: true,
-            nationalId: true,
-            frontImageUrl: true,
-            backImageUrl: true,
-            status: true,
-            adminNote: true,
+            name: true,
+            email: true,
+            phone: true,
+            profileImage: true,
             createdAt: true,
-            updatedAt: true,
-            reviewedAt: true,
+            balance: true,
+            isActive: true,
+            activeUntil: true,
+            pendingReferralEarnings: true,
+            isIdentityVerified: true,
+            isAdmin: true,
+            isOwner: true,
+            isDeleted: true,
+            referrals: {
+              select: {
+                newUser: true,
+              },
+            },
+            favorites: {
+              select: {
+                itemId: true,
+                itemType: true,
+              },
+            },
+            identityVerificationRequest: {
+              select: {
+                id: true,
+                fullName: true,
+                nationalId: true,
+                frontImageUrl: true,
+                backImageUrl: true,
+                status: true,
+                adminNote: true,
+                createdAt: true,
+                updatedAt: true,
+                reviewedAt: true,
+              },
+            },
           },
-        },
-      },
-    });
+        }),
+        prisma.property.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.newCar.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.oldCar.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.otherItem.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+      ]),
+      8000,
+      "Profile lookup timed out",
+    );
+
     if (!user) throw Errors.UNAUTHORIZED();
 
     const invitedUserIds = user.referrals.map((referral) => referral.newUser);
     const activeInvitedCount = invitedUserIds.length
-      ? await prisma.user.count({
-          where: {
-            id: { in: invitedUserIds },
-            activeUntil: { gt: now },
-            isDeleted: false,
-          },
-        })
+      ? await withTimeout(
+          prisma.user.count({
+            where: {
+              id: { in: invitedUserIds },
+              activeUntil: { gt: now },
+              isDeleted: false,
+            },
+          }),
+          5000,
+          "Referral lookup timed out",
+        )
       : 0;
 
-    const items = [
-      ...user.newCars,
-      ...user.oldCars,
-      ...user.otherItems,
-      ...user.properties,
-    ];
+    const items = [...newCars, ...oldCars, ...otherItems, ...properties];
 
-    const itemsExtra = await attachExtrasBatch(items);
+    const itemsExtra = await withTimeout(
+      attachExtrasBatch(items),
+      8000,
+      "Profile item enrichment timed out",
+    );
     const safeUser = {
       ...user,
       password: undefined,
       items: itemsExtra,
+      purchaseRequests: [],
       referralStats: {
         invitedCount: invitedUserIds.length,
         activeInvitedCount,

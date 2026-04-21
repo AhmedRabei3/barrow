@@ -5,9 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { IoMdMenu } from "react-icons/io";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import h from "@/app/hooks";
 import { AnimatePresence, motion } from "framer-motion";
 import useActivationModal from "@/app/hooks/useActivationModal";
+import useClickOutside from "@/app/hooks/useOutsideClick";
+import useInviteModal from "@/app/hooks/useInviteHook";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
 import UserMenueItem from "./UserMenueItem";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
@@ -41,9 +44,9 @@ const UserMenu = () => {
   const [drawerCity, setDrawerCity] = useState("");
   const [drawerMinPrice, setDrawerMinPrice] = useState("");
   const [drawerMaxPrice, setDrawerMaxPrice] = useState("");
-  const loginModal = h.useLoginModal();
-  const registerModal = h.useRegisterModal();
-  const inviteModal = h.useInviteModal();
+  const loginModal = useLoginModal();
+  const registerModal = useRegisterModal();
+  const inviteModal = useInviteModal();
   const activationModal = useActivationModal();
   const { filters } = useSearchFilters();
   const searchHelper = useSearchHelper();
@@ -55,7 +58,7 @@ const UserMenu = () => {
   const user = session?.user;
   const isSessionLoading = status === "loading";
   // ✅ إغلاق القوائم عند النقر خارجها
-  h.useClickOutside(menuRef, () => setOpen(false));
+  useClickOutside(menuRef, () => setOpen(false));
 
   const toggleHandler = useCallback(() => setOpen((prev) => !prev), []);
 

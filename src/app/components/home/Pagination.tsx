@@ -1,7 +1,12 @@
 "use client";
 
 import { memo } from "react";
-import { DynamicIcon } from "../addCategory/IconSetter";
+import {
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 
 interface PaginationProps {
   itemsCount: number; // totalItems من السيرفر
@@ -41,14 +46,14 @@ const Pagination = ({
           disabled={currentPage === 1}
           className="px-3 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-300 dark:border-slate-600 rounded-xl disabled:opacity-50"
         >
-          <DynamicIcon iconName="FaAngleDoubleLeft" size={14} />
+          <FaAngleDoubleLeft size={14} />
         </button>
         <button
           onClick={() => setPage(currentPage - 1)}
           disabled={currentPage === 1}
           className="px-3 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-300 dark:border-slate-600 rounded-xl disabled:opacity-50"
         >
-          <DynamicIcon iconName="FaChevronLeft" size={14} />
+          <FaChevronLeft size={14} />
         </button>
 
         {/* Prev dots */}
@@ -92,14 +97,14 @@ const Pagination = ({
           disabled={currentPage === totalPages}
           className="px-3 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-300 dark:border-slate-600 rounded-xl disabled:opacity-50"
         >
-          <DynamicIcon iconName="FaChevronRight" size={14} />
+          <FaChevronRight size={14} />
         </button>
         <button
           onClick={() => setPage(totalPages)}
           disabled={currentPage === totalPages}
           className="px-3 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-300 dark:border-slate-600 rounded-xl disabled:opacity-50"
         >
-          <DynamicIcon iconName="FaAngleDoubleRight" size={14} />
+          <FaAngleDoubleRight size={14} />
         </button>
       </div>
     </div>

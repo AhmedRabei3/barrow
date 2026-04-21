@@ -1,5 +1,4 @@
 import React, { memo } from "react";
-import { motion } from "framer-motion";
 
 interface CardContainerProps {
   setIsPaused: (paused: boolean) => void;
@@ -13,7 +12,7 @@ const CardContainer = ({
   isOverlayOpen = false,
 }: CardContainerProps) => {
   return (
-    <motion.div
+    <div
       className={`
       group relative flex h-full w-full cursor-pointer 
       flex-col overflow-visible rounded-[18px]
@@ -26,12 +25,9 @@ const CardContainer = ({
       active:scale-[0.995] ${isOverlayOpen ? "z-80" : "z-0"}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      initial={{ opacity: 0, scale: 0.97, y: 14 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 

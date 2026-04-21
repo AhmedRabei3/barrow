@@ -2,8 +2,7 @@
 
 import { FormattedItem } from "./getItems";
 import Card from "../card/Card";
-import { memo } from "react";
-import { motion } from "framer-motion";
+import { memo, useMemo } from "react";
 
 interface CardListProps {
   items: FormattedItem[];
@@ -12,6 +11,16 @@ interface CardListProps {
 const getCardKey = (item: FormattedItem) => `${item.item.id}`;
 
 const CardList = ({ items }: CardListProps) => {
+  const renderedItems = useMemo(
+    () =>
+      items.map((item, index) => ({
+        item,
+        key: getCardKey(item),
+        delay: Math.min(index * 0.02, 0.2),
+      })),
+    [items],
+  );
+
   return (
     <div
       className="
@@ -20,16 +29,14 @@ const CardList = ({ items }: CardListProps) => {
         gap-x-5 gap-y-8 md:gap-x-6 md:gap-y-9 items-stretch
         "
     >
-      {items.map((i, index) => (
-        <motion.div
-          key={getCardKey(i)}
-          className="h-full w-full flex"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, delay: Math.min(index * 0.02, 0.2) }}
+      {renderedItems.map(({ item, key, delay }) => (
+        <div
+          key={key}
+          className="flex h-full w-full"
+          style={{ transitionDelay: `${delay}s` }}
         >
-          <Card grandItem={i} />
-        </motion.div>
+          <Card grandItem={item} />
+        </div>
       ))}
     </div>
   );

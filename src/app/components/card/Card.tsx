@@ -160,6 +160,7 @@ const Card: FC<CardProps> = ({
       <CardContainer setIsPaused={setIsPaused} isOverlayOpen={isStateMenuOpen}>
         <Link
           href={detailHref}
+          prefetch={false}
           aria-label={`Open details for ${itemLabel}`}
           className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
         />

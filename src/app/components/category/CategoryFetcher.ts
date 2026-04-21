@@ -28,8 +28,9 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
       setList?.(cached as TCategory[]);
       return cached as TCategory[];
     }
-
+ 
     const { data } = await request.get("/api/categories", {
+      timeout: 8000,
       params: {
         ...(normalizedType ? { type: normalizedType } : {}),
         ...(withItemsOnly ? { withItemsOnly: "true" } : {}),

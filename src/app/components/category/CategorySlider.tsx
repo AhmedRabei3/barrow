@@ -1,7 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { memo, useCallback, useMemo } from "react";
 import { MdOutlineRefresh } from "react-icons/md";
 import CategoryList from "./CategoryList";
 import categoryFetcher from "./CategoryFetcher";
@@ -22,16 +21,20 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
     () => `categories:${type ?? "ALL"}:with-items`,
     [type],
   );
+  const fetchCategories = useCallback(
+    () =>
+      categoryFetcher({
+        type,
+        withItemsOnly: true,
+      }),
+    [type],
+  );
 
   const { data, loading, isRefreshing, refetch } = useStaleResource<
     CategoryItem[]
   >({
     cacheKey,
-    fetcher: async () =>
-      categoryFetcher({
-        type,
-        withItemsOnly: true,
-      }),
+    fetcher: fetchCategories,
   });
 
   const list = data ?? [];
@@ -39,11 +42,7 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
   if (loading && !list.length) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-10">
-        <motion.div
-          className="h-6 w-6 rounded-full border-2 border-neutral-300 border-t-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-neutral-300 border-t-transparent" />
         <p className="animate-pulse text-sm text-neutral-500">
           {isArabic ? "جاري تحميل العناصر..." : "Loading items..."}
         </p>
@@ -53,11 +52,7 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
 
   if (!list.length) {
     return (
-      <motion.div
-        className="mt-15 flex w-full flex-col items-center justify-center gap-4 py-6 text-sm text-neutral-500"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <div className="mt-15 flex w-full flex-col items-center justify-center gap-4 py-6 text-sm text-neutral-500">
         <p className="dark:text-slate-400">
           {isArabic
             ? "لا توجد فئات لهذا النوع"
@@ -71,7 +66,7 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
           <MdOutlineRefresh className="text-lg" />
           {isArabic ? "إعادة المحاولة" : "Retry"}
         </button>
-      </motion.div>
+      </div>
     );
   }
 
@@ -87,22 +82,12 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
           </div>
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={type}
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="relative flex items-center gap-4"
-          >
-            <CategoryList
-              list={list}
-              setCatName={setCatName}
-              catName={catName}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <div
+          key={type}
+          className="relative flex items-center gap-4 transition-all duration-300 ease-out"
+        >
+          <CategoryList list={list} setCatName={setCatName} catName={catName} />
+        </div>
       </Container>
     </div>
   );

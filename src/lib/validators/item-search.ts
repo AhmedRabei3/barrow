@@ -2,14 +2,25 @@ import { $Enums } from "@prisma/client";
 import { z } from "zod";
 import type { ItemSearchQueryDto } from "@/features/items/types";
 
+const normalizeSearchText = (text: string) => text.replace(/\s+/g, " ").trim();
+
 const optionalTrimmedString = z.preprocess((value) => {
   if (typeof value !== "string") {
     return undefined;
   }
 
-  const trimmed = value.trim();
+  const trimmed = normalizeSearchText(value);
   return trimmed.length > 0 ? trimmed : undefined;
 }, z.string().min(1).optional());
+
+const optionalTrimmedSearchQuery = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = normalizeSearchText(value);
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.string().min(1).max(120).optional());
 
 const optionalFiniteNumber = z.preprocess((value) => {
   if (value === undefined || value === null || value === "") {
@@ -31,7 +42,7 @@ const optionalNullableFiniteNumber = z.preprocess((value) => {
 
 const itemSearchQuerySchema = z
   .object({
-    q: optionalTrimmedString.default(""),
+    q: optionalTrimmedSearchQuery.default(""),
     type: z.nativeEnum($Enums.ItemType).nullable().optional(),
     city: optionalTrimmedString,
     country: optionalTrimmedString,

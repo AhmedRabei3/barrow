@@ -5,6 +5,8 @@ import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { handleApiError } from "@/app/api/lib/errors/errorHandler";
+import { withTimeout } from "@/app/api/lib/errors/dbGuard";
 
 const isItemType = (value: string): value is ItemType => {
   return Object.values(ItemType).includes(value as ItemType);
@@ -105,24 +107,28 @@ export async function GET(req: NextRequest) {
       ];
     }
     // ✅ جلب البيانات (كل الفئات إذا لم يُرسل أي name أو type)
-    const [categories, totalCount] = await Promise.all([
-      prisma.category.findMany({
-        where: whereClause,
-        orderBy: { name: "asc" },
-        select: {
-          id: true,
-          name: true,
-          nameAr: true,
-          nameEn: true,
-          icon: true,
-          type: true,
-          isDeleted: true,
-        },
-      }),
-      prisma.category.count({
-        where: whereClause,
-      }),
-    ]);
+    const [categories, totalCount] = await withTimeout(
+      Promise.all([
+        prisma.category.findMany({
+          where: whereClause,
+          orderBy: { name: "asc" },
+          select: {
+            id: true,
+            name: true,
+            nameAr: true,
+            nameEn: true,
+            icon: true,
+            type: true,
+            isDeleted: true,
+          },
+        }),
+        prisma.category.count({
+          where: whereClause,
+        }),
+      ]),
+      5000,
+      "Category lookup timed out",
+    );
 
     // ✅ في حال عدم العثور على أي فئات
     if (!categories.length) {
@@ -149,18 +155,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching categories:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: localizeErrorMessage("Failed to fetch categories", isArabic),
-        details:
-          process.env.NODE_ENV === "development"
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : undefined,
-      },
-      { status: 500 },
-    );
+    return handleApiError(error, req);
   }
 }

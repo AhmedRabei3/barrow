@@ -238,7 +238,8 @@ const UserShamCashWithdrawalsTab = ({
             type="button"
             onClick={onOpenShamCashWithdraw}
             disabled={isWithdrawingShamCash}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
+            className="inline-flex items-center 
+            justify-center gap-2 rounded-lg bg-white/80 hover:bg-white/90 px-3 py-2 text-xs sm:text-sm font-medium text-emerald-600/80 disabled:opacity-60"
           >
             <Image
               src="/images/shamcash-withdraw-icon.png"

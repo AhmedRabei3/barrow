@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { DynamicIcon } from "../addCategory/IconSetter";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { DynamicIcon } from "../addCategory/IconSetter";
 import type { CategoryItem } from "./types";
 
 interface ListProps {
@@ -55,7 +55,15 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
              `}
             onClick={() => setCatName(item.name)}
           >
-            <DynamicIcon iconName={item.icon!} size={22} />
+            <span className="flex h-8 w-8 items-center justify-center text-slate-700  dark:text-slate-200">
+              {item.icon ? (
+                <DynamicIcon iconName={item.icon} size={18} />
+              ) : (
+                <span className="text-xs font-semibold">
+                  {item.name.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+            </span>
 
             <p className="text-sm">{item.name}</p>
           </div>

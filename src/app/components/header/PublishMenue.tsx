@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import h from "@/app/hooks";
+import useChatAssistantModal from "@/app/hooks/useChatAssistantModal";
 import { Dispatch, SetStateAction } from "react";
 import { FaRobot } from "react-icons/fa";
 
@@ -8,7 +8,7 @@ interface PublishMenueProps {
 }
 
 const PublishMenue = ({ setPublishOpen }: PublishMenueProps) => {
-  const chatAssistant = h.useChatAssistantModal();
+  const chatAssistant = useChatAssistantModal();
 
   const openAssistant = () => {
     setPublishOpen(false);

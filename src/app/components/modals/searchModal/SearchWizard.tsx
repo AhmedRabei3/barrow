@@ -3,8 +3,7 @@
 import StepOne from "./StepOne";
 import StepTwo from "./SecondStep";
 import { useState, useCallback } from "react";
-import h from "@/app/hooks";
-import { Filters } from "@/app/hooks/useSearchFilters";
+import { Filters, useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 import { SEARCH_MODAL_TEXT } from "@/app/i18n/searchModal";
 
@@ -15,7 +14,7 @@ interface SearchWizardProps {
 const SearchWizard = ({ onFinish }: SearchWizardProps) => {
   const { isArabic } = useAppPreferences();
   const locale = isArabic ? "ar" : "en";
-  const { filters: storeFilters, setFilters } = h.useSearchFilters();
+  const { filters: storeFilters, setFilters } = useSearchFilters();
 
   const [step, setStep] = useState(0);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import h from "@/app/hooks";
+import useClickOutside from "@/app/hooks/useOutsideClick";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function MiniDropdown({
@@ -15,7 +15,7 @@ export function MiniDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  h.useClickOutside(ref, () => setOpen(false));
+  useClickOutside(ref, () => setOpen(false));
 
   return (
     <div className="relative" ref={ref}>

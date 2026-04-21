@@ -317,6 +317,7 @@ model Category {
   otherItems OtherItem[]
 
   @@unique([name, type])
+  @@index([type, isDeleted])
 }
 
 /**
@@ -392,6 +393,9 @@ model Property {
   owner    User      @relation(fields: [ownerId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
   location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
 }
 
 model NewCar {
@@ -422,6 +426,9 @@ model NewCar {
   owner    User      @relation(fields: [ownerId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
   location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
 }
 
 model OldCar {
@@ -455,6 +462,9 @@ model OldCar {
   owner    User      @relation(fields: [ownerId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
   location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
 }
 
 model OtherItem {
@@ -481,6 +491,9 @@ model OtherItem {
   owner    User      @relation(fields: [ownerId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
   location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
 }
 
 /**
@@ -496,6 +509,8 @@ model ItemImage {
   url       String
   publicId  String
   createdAt DateTime @default(now())
+
+  @@index([itemId, createdAt])
 }
 
 model Review {
@@ -508,6 +523,8 @@ model Review {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([itemId, itemType, createdAt])
 }
 
 model favoratedItem {
@@ -531,6 +548,7 @@ model PinnedItem {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, itemId, itemType])
+  @@index([createdAt, itemType, itemId])
 }
 
 /**
