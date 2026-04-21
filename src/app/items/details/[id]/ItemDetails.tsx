@@ -12,6 +12,7 @@ import RatingSection from "./RatingSection";
 import OwnerListingStateControl from "@/app/components/card/OwnerListingStateControl";
 import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/ownerListingState";
 import { FaGoogle, FaExternalLinkAlt } from "react-icons/fa";
+import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 interface ItemDetailsProps {
   item: {
@@ -76,6 +77,7 @@ interface ItemDetailsProps {
 
 const ItemDetails = ({ item }: ItemDetailsProps) => {
   const { data: session } = useSession();
+    const { isArabic } = useAppPreferences();
   const { data, images, type, location, reviews } = item;
   const title = data?.title || data?.name || data?.brand || "Listing";
   const subtitle = [data?.model, location?.city, location?.country]
@@ -122,11 +124,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                 align="right"
                 variant="hero"
               />
-              <div className="rounded-2xl border border-slate-700/80 bg-slate-950/55 px-4 py-3 text-right">
+              <div className={`${isArabic ? "rtl" : "ltr"} dark:bg-slate-950/55 px-4 py-3 text-right`}>
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Price
+                  {isArabic ? "السعر" : "PRICE"}
                 </p>
-                <p className="mt-1 text-2xl font-black text-sky-300 sm:text-3xl">
+                <p className="mt-1 text-2xl font-black dark:text-sky-300 sm:text-3xl text-sky-500">
                   ${priceLabel}
                 </p>
               </div>

@@ -36,14 +36,14 @@ const Logo = ({
       hidden md:inline-block dark:text-slate-300 text-slate-600
       "
         >
-          {isArabic ? "مشــهـور" : "Mashhoor"}
+          {isArabic ? "مـشــهــور" : "Mashhoor"}
         </span>
         <span
           className="text-[9px] 
           hidden md:inline-block dark:text-slate-300 text-slate-600
          "
         >
-          {isArabic ? "نصلك بالعالم" : "Reach to the world"}
+          {isArabic ? "نوصلك للعالم" : "U R Famous"}
         </span>
       </div>
     </div>

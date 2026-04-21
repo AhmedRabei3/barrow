@@ -184,16 +184,7 @@ const SiteFooter = () => {
           <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
             <div>
               <div className="mb-5 flex items-center gap-3">
-                <div
-                  className="
-                   flex items-center 
-                   justify-center rounded-xl 
-                   bg-primary text-white 
-                   shadow-lg shadow-primary/20
-                   "
-                >
-                  <Logo width={50} height={30} />
-                </div>
+                <Logo width={50} height={30} />
               </div>
               <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
                 {isArabic

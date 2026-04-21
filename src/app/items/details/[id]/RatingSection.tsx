@@ -121,7 +121,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
         </span>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-800/90 bg-slate-950/40 p-3">
+      <div className={`mt-4 flex flex-wrap items-center gap-1 ${isArabic ? "rtl" : "ltr"} dark:bg-slate-950/40 p-3`}>
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= (myRate || Math.round(average));
           return (
@@ -130,7 +130,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
               type="button"
               onClick={() => submitRate(star)}
               disabled={saving || isSessionLoading}
-              className="rounded-xl p-2 transition hover:bg-slate-800/70 disabled:opacity-60"
+              className="rounded-xl p-2 transition hover:bg-yellow-200/70 disabled:opacity-60"
               aria-label={`${isArabic ? "تقييم" : "Rate"} ${star}`}
             >
               <FaStar

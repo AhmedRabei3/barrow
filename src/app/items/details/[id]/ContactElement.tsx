@@ -110,23 +110,23 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
   return (
     <div className="market-panel rounded-[26px] p-5 sm:p-6">
       {title && (
-        <div>
+        <div className="py-2">
           <p className="market-kicker">{t("التواصل", "Contact")}</p>
           <h3 className="mt-2 text-xl font-bold text-white">{title}</h3>
         </div>
       )}
 
-      <div className="rounded-[22px] border border-slate-800/90 bg-slate-950/45 p-4">
+      <div className="rounded-[22px] dark:bg-slate-950/45 p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
               {t("السعر الحالي", "Current price")}
             </p>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-sky-300">
+              <span className="text-3xl font-black dark:text-sky-300">
                 {price.toLocaleString()}
               </span>
-              <span className="text-sm text-slate-400">{currency}</span>
+              <span className="text-sm dark:text-slate-400">{currency}</span>
             </div>
           </div>
 
@@ -145,22 +145,26 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="market-panel-soft rounded-2xl px-4 py-3 text-sm text-slate-300">
-          <p className="font-semibold text-white">
+        <div
+          className=" 
+         px-4 py-3 text-sm 
+        dark:text-slate-300"
+        >
+          <p className="font-semibold dark:text-white">
             {t("شراء آمن", "Safe communication")}
           </p>
-          <p className="mt-1 text-slate-400">
+          <p className="mt-1 text-slate-500 dark:text-slate-400">
             {t(
               "سيتم إرسال معلومات التواصل فقط دون أي دفع داخل الصفحة.",
               "Only your contact details are sent. No payment happens on this page.",
             )}
           </p>
         </div>
-        <div className="market-panel-soft rounded-2xl px-4 py-3 text-sm text-slate-300">
-          <p className="font-semibold text-white">
+        <div className="px-4 py-3 text-sm dark:text-slate-300">
+          <p className="font-semibold dark:text-white">
             {t("تنسيق مباشر", "Direct request")}
           </p>
-          <p className="mt-1 text-slate-400">
+          <p className="mt-1 text-slate-500 dark:text-slate-400">
             {t(
               "يتلقى المالك اسمك ورقمك وملاحظتك ليعاود التواصل معك.",
               "The owner receives your name, phone number, and note to contact you back.",
@@ -175,7 +179,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         className={`w-full rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
           isAvailable
             ? "market-primary-btn"
-            : "cursor-not-allowed border border-slate-800 bg-slate-900 text-slate-500"
+            : "cursor-not-allowed border dark:border-slate-800 dark:bg-slate-900 text-slate-500"
         }`}
       >
         {requestTitle}
@@ -196,7 +200,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         />
       )}
 
-      <p className="text-center text-xs leading-6 text-slate-500">
+      <p className="text-center text-xs leading-6 text-rose-500 dark:text-rose-400 mt-4">
         {t(
           "المنصة وسيط عرض وتواصل فقط، ولا تتدخل في الدفع أو الاتفاق النهائي بين الطرفين.",
           "The platform only facilitates listing display and contact, and does not handle payment or final agreement between both parties.",
