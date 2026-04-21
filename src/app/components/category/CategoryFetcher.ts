@@ -8,6 +8,46 @@ interface fetchCategoryProps<TCategory extends CategoryItem = CategoryItem> {
 }
 
 const categoriesCache = new Map<string, CategoryItem[]>();
+const CATEGORY_STORAGE_PREFIX = "barrow:categories:";
+
+const readPersistedCategories = (cacheKey: string): CategoryItem[] | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(
+      `${CATEGORY_STORAGE_PREFIX}${cacheKey}`,
+    );
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+
+    return parsed as CategoryItem[];
+  } catch {
+    return null;
+  }
+};
+
+const persistCategories = (cacheKey: string, categories: CategoryItem[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      `${CATEGORY_STORAGE_PREFIX}${cacheKey}`,
+      JSON.stringify(categories),
+    );
+  } catch {
+    // Ignore storage quota or privacy mode failures.
+  }
+};
 
 export const clearCategoriesCache = () => {
   categoriesCache.clear();
@@ -28,7 +68,13 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
       setList?.(cached as TCategory[]);
       return cached as TCategory[];
     }
- 
+
+    const persisted = readPersistedCategories(cacheKey);
+    if (persisted?.length) {
+      categoriesCache.set(cacheKey, persisted);
+      setList?.(persisted as TCategory[]);
+    }
+
     const { data } = await request.get("/api/categories", {
       timeout: 8000,
       params: {
@@ -52,6 +98,7 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
       }));
 
       categoriesCache.set(cacheKey, formatted);
+      persistCategories(cacheKey, formatted);
       setList?.(formatted as TCategory[]);
       return formatted as TCategory[];
     }

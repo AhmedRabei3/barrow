@@ -5,6 +5,7 @@ import { lazy, memo, Suspense, type ComponentType, useState } from "react";
 import { useSession } from "next-auth/react";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
 import Logo from "../header/Logo";
 
 const SupportContactModal = lazy(async () => {
@@ -148,6 +149,7 @@ const SiteFooter = () => {
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
   const user = session?.user;
+  const register = useRegisterModal();
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
   const localizedAdvantages = isArabic
     ? advantages
@@ -193,22 +195,30 @@ const SiteFooter = () => {
               </div>
               <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
                 {isArabic
-                  ? " بيع وإيجار بأفضل الأسعار و بدون عمولة"
+                  ? " البيع والإيجار بأفضل الأسعار و بدون عمولة"
                   : "Buy and Rent at the Best Prices Without Commission"}
               </h2>
               <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
                 {isArabic
-                  ? "نجمع العقارات والسيارات والسلع الأخرى في تجربة واحدة واضحة وسريعة ."
+                  ? "نجمع العقارات والسيارات وكل ماتحتاجه في تجربة واحدة واضحة وسريعة ."
                   : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                {user && (
-                  <Link
-                    href="/auth/login"
+                {user ? (
+                  <button
+                    onClick={() => setSupportModalOpen(true)}
                     className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
                   >
-                    {isArabic ? "سجل الآن" : "Sign Up Now"}
-                  </Link>
+                    {isArabic ? "الدعم" : "Support"}
+                  </button>
+                ): (
+                  <button
+                    onClick={() => register.onOpen()}
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                  >
+                    {isArabic ? "الدعم" : "Support"}
+                  </button>
+
                 )}
               </div>
             </div>

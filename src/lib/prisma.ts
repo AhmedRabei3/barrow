@@ -3,6 +3,7 @@ import { realtimeBus } from "./realtimeBus";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 const prismaClient = globalForPrisma.prisma || new PrismaClient();
+let prismaConnectPromise: Promise<void> | null = null;
 let sendNotificationToUserLoader:
   | null
   | ((
@@ -67,6 +68,17 @@ export const prisma = prismaClient.$extends({
     },
   },
 });
+
+export const ensurePrismaConnection = async () => {
+  if (!prismaConnectPromise) {
+    prismaConnectPromise = prismaClient.$connect().catch((error) => {
+      prismaConnectPromise = null;
+      throw error;
+    });
+  }
+
+  return prismaConnectPromise;
+};
 
 if (process.env.NODE_ENV !== "production")
   globalForPrisma.prisma = prismaClient;
