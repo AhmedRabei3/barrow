@@ -69,7 +69,11 @@ export type FormattedItem = {
   };
   itemImages: Array<{ url?: string }>;
   itemLocation: RawItem["location"][];
-  category?: { type?: $Enums.ItemType };
+  category?: {
+    id?: string;
+    name?: string;
+    type?: $Enums.ItemType;
+  };
   totalReviews: number;
   averageRating: number;
 };

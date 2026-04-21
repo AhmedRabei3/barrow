@@ -162,11 +162,19 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                       href={googleMapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300"
+                      className="
+                        inline-flex items-center 
+                        gap-2 rounded-xl border 
+                       dark:border-slate-700 
+                       dark:bg-slate-900/80 
+                       px-3 py-2 text-xs font-semibold 
+                       dark:text-slate-100 transition 
+                       hover:border-sky-500 hover:text-sky-300
+                      "
                       aria-label="Open with Google Maps"
                     >
                       <FaGoogle className="text-sm" aria-hidden="true" />
-                      <span>فتح باستخدام Google Maps</span>
+                      <span>فتح باستخدام Google Maps </span>
                       <FaExternalLinkAlt
                         className="text-[10px]"
                         aria-hidden="true"
