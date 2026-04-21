@@ -925,7 +925,7 @@ const FinancialReportPanel = () => {
       <div className="admin-card rounded-[28px] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h3 className="text-sm font-semibold text-zinc-100">
-            {t("سحوبات الأدمن من الصندوق", "Admin fund withdrawals")}
+            {t("سحوبات المدير من الصندوق", "Admin fund withdrawals")}
           </h3>
           <p className="text-xs text-zinc-500">
             {t("إجمالي السحوبات اليدوية", "Total manual withdrawals")}: $

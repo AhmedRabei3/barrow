@@ -10,7 +10,7 @@ import {
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 
 /**
- * @description مسار تصفير رصيد المستخدم بعد قيام الأدمن بتحويل الرصيد له
+ * @description مسار تصفير رصيد المستخدم بعد قيام المدير بتحويل الرصيد له
  * @access private (Admin only)
  * @route ~api/admin/achivment
  * @method POST

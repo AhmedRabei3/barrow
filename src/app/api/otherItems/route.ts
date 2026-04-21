@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         message: t(
-          "تم إرسال العنصر للمراجعة وسيتم نشره بعد موافقة الأدمن",
+          "تم إرسال العنصر للمراجعة وسيتم نشره بعد موافقة المدير",
           "The item was submitted for review and will be published after admin approval",
         ),
       },

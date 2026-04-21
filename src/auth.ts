@@ -10,6 +10,32 @@ import {
 import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 import authConfig from "./auth.config";
 
+const LOCAL_AUTH_URL_PATTERN =
+  /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i;
+
+const resolveDeploymentAuthUrl = () => {
+  const configuredUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL ?? "";
+
+  if (!vercelHost) {
+    return configuredUrl;
+  }
+
+  if (!configuredUrl || LOCAL_AUTH_URL_PATTERN.test(configuredUrl)) {
+    return `https://${vercelHost}`;
+  }
+
+  return configuredUrl;
+};
+
+const resolvedAuthUrl = resolveDeploymentAuthUrl();
+
+if (resolvedAuthUrl) {
+  process.env.AUTH_URL = resolvedAuthUrl;
+  process.env.NEXTAUTH_URL = resolvedAuthUrl;
+}
+
 const isDatabaseUnavailableError = (error: unknown) => {
   return (
     error instanceof Prisma.PrismaClientInitializationError ||

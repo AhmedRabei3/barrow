@@ -76,7 +76,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: t(
-        "تم تحديث العقار وإرساله مجددًا لمراجعة الأدمن",
+        "تم تحديث العقار وإرساله مجددًا لمراجعة المدير",
         "Property updated and sent back for admin review",
       ),
       property: updated,

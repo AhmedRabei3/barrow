@@ -35,10 +35,10 @@ type ShamCashActivationRequestsPanelProps = {
 };
 
 const STATUS_LABELS: Record<RequestStatus, { ar: string; en: string }> = {
-  PENDING: { ar: "بانتظار مراجعة الأدمن", en: "Waiting for admin review" },
+  PENDING: { ar: "بانتظار مراجعة المدير", en: "Waiting for admin review" },
   VERIFIED: { ar: "تم التحقق", en: "Verified" },
   REJECTED: { ar: "مرفوض", en: "Rejected" },
-  ADMIN_REVIEW: { ar: "قيد مراجعة الأدمن", en: "Admin review" },
+  ADMIN_REVIEW: { ar: "قيد مراجعة المدير", en: "Admin review" },
   ACTIVATED: { ar: "تم التفعيل", en: "Activated" },
 };
 

@@ -5,10 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * @description مسار جلب طلبات الشراء التي يقوم الأدمن بالإشراف عليها
+ * @description مسار جلب طلبات الشراء التي يقوم المدير بالإشراف عليها
  * @route ~/api/admin/purchase-req/my-req
  * @method GET
- * @access private (فقط الأدمن المسؤول عن الطلب)
+ * @access private (فقط المدير المسؤول عن الطلب)
  */
 
 export async function GET(req: NextRequest) {

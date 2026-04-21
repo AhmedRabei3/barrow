@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
           userId: verificationRequest.userId,
           title: approved ? "تم توثيق الحساب" : "تمت مراجعة طلب التوثيق",
           message: approved
-            ? "وافق الأدمن على طلب توثيق حسابك، وأصبح حسابك موثقًا الآن."
+            ? "وافق المدير على طلب توثيق حسابك، وأصبح حسابك موثقًا الآن."
             : body.adminNote?.trim() ||
               "تم رفض طلب التوثيق الحالي. يمكنك تحديث البيانات وإرسال طلب جديد.",
           type: approved ? NotificationType.INFO : NotificationType.WARNING,

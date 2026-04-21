@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
         status: "ADMIN_REVIEW",
         checkedByWorker: true,
         adminNote: t(
-          "تم تسجيل الطلب وهو بانتظار مراجعة الأدمن.",
-          "Request saved and is awaiting admin review.",
+          "طلبك قيد المراجعة ،سنعلمك بالنتيجة قريباً ، شكراً لصبركم",
+          "Your request is under review. You will be notified of the result soon. Thank you for your patience.",
         ),
       },
     });
@@ -121,8 +121,8 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         title: t("تم استلام طلبك", "Your request was received"),
         message: t(
-          "تم إرسال طلبك إلى الأدمن للمراجعة اليدوية. سيصلك إشعار عند القبول أو الرفض.",
-          "Your request was sent to the admin team for manual review. You will receive a notification once it is approved or rejected.",
+          "تم إرسال طلبك إلى المدير للمراجعة. سيصلك إشعار عند القبول أو الرفض.",
+          "Your request was sent to the admin team for review. You will receive a notification once it is approved or rejected.",
         ),
         type: "INFO",
       },
@@ -132,8 +132,8 @@ export async function POST(req: NextRequest) {
       ok: true,
       pending: true,
       message: t(
-        "تم إرسال طلبك إلى الأدمن للمراجعة اليدوية، وسيصلك إشعار بالنتيجة قريباً",
-        "Your request was sent for manual admin review, and you will receive the result through notifications soon.",
+        "طلبك قيد المراجعة , سيتم إرسال إشعار بالنتيجة قريباً ، شكراً لصبركم",
+        "Your request is under review, you will receive a notification with the result soon. Thank you for your patience.",
       ),
     });
   } catch (error) {

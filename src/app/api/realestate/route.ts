@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({
       success: true,
-      message: "تم إرسال العقار للمراجعة وسيتم نشره بعد موافقة الأدمن",
+      message: "تم إرسال العقار للمراجعة وسيتم نشره بعد موافقة المدير",
     });
   } catch (err) {
     console.error("CREATE PROPERTY ERROR:", err);

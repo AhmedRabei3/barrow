@@ -7,7 +7,7 @@ import { Errors } from "@/app/api/lib/errors/errors";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 
 /**
- * @description راوت الإجراءات الخاصة بالأدمن الخاصة بالشراء
+ * @description راوت الإجراءات الخاصة بالمدير الخاصة بالشراء
  * @param req body = {requestId , decision , adminNote}
  * @route ~/api/purchase/admin_aggremental
  */

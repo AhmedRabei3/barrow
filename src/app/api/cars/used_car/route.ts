@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         car,
-        message: "تم إرسال السيارة للمراجعة وسيتم نشرها بعد موافقة الأدمن",
+        message: "تم إرسال السيارة للمراجعة وسيتم نشرها بعد موافقة المدير",
       },
       { status: 201 },
     );

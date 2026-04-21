@@ -6,11 +6,20 @@ import { prisma } from "./lib/prisma";
 import * as bcrypt from "bcryptjs";
 import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 
-const hasGoogleOAuthConfig = Boolean(
-  process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
-);
+const googleClientId =
+  process.env.AUTH_GOOGLE_ID ??
+  process.env.GOOGLE_CLIENT_ID ??
+  process.env.AUTH_GOOGLE_CLIENT_ID;
+
+const googleClientSecret =
+  process.env.AUTH_GOOGLE_SECRET ??
+  process.env.GOOGLE_CLIENT_SECRET ??
+  process.env.AUTH_GOOGLE_CLIENT_SECRET;
+
+const hasGoogleOAuthConfig = Boolean(googleClientId && googleClientSecret);
 
 export default (<NextAuthConfig>{
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
@@ -53,8 +62,8 @@ export default (<NextAuthConfig>{
     ...(hasGoogleOAuthConfig
       ? [
           Google({
-            clientId: process.env.AUTH_GOOGLE_ID!,
-            clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
           }),
         ]
       : []),

@@ -183,46 +183,44 @@ const SiteFooter = () => {
     <footer className="footer-shell mt-12">
       <Container>
         <div className="space-y-14 py-14 md:py-20">
-          <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
-            <div>
-              <div className="mb-5 flex items-center gap-3">
-                <Logo
-                  width={50}
-                  height={30}
-                  arCustomTxt="حيث تلتقي الشهرة مع المال"
-                  enCustomTxt="Where Fame and Money Meet"
-                />
-              </div>
-              <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
-                {isArabic
-                  ? " البيع والإيجار بأفضل الأسعار و بدون عمولة"
-                  : "Buy and Rent at the Best Prices Without Commission"}
-              </h2>
-              <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
-                {isArabic
-                  ? "نجمع العقارات والسيارات وكل ماتحتاجه في تجربة واحدة واضحة وسريعة ."
-                  : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {user ? (
-                  <button
-                    onClick={() => setSupportModalOpen(true)}
-                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
-                  >
-                    {isArabic ? "الدعم" : "Support"}
-                  </button>
-                ): (
-                  <button
-                    onClick={() => register.onOpen()}
-                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
-                  >
-                    {isArabic ? "الدعم" : "Support"}
-                  </button>
-
-                )}
-              </div>
+          <div>
+            <div className="mb-5 flex items-center gap-3">
+              <Logo
+                width={50}
+                height={30}
+                arCustomTxt="حيث تلتقي الشهرة مع المال"
+                enCustomTxt="Where Fame and Money Meet"
+              />
             </div>
-
+            <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
+              {isArabic
+                ? " البيع والإيجار بأفضل الأسعار و بدون عمولة"
+                : "Buy and Rent at the Best Prices Without Commission"}
+            </h2>
+            <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
+              {isArabic
+                ? "نجمع العقارات والسيارات وكل ماتحتاجه في تجربة واحدة واضحة وسريعة ."
+                : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {user ? (
+                <button
+                  onClick={() => setSupportModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                >
+                  {isArabic ? "الدعم" : "Support"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => register.onOpen()}
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                >
+                  {isArabic ? "التسجيل" : "Sign Up"}
+                </button>
+              )}
+            </div>
+          </div>
+          <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
             <div className="border dark:border-slate-500 bg-blue-600 shadow-lg hover:translate-1.1 rounded-3xl p-6">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why you Choose Us"}
@@ -262,12 +260,9 @@ const SiteFooter = () => {
                 </p>
               </article>
             ))}
-          </section>
-
-          <section className="rounded-[28px] bg-blue-800 p-8 text-white shadow-[0_26px_60px_rgba(37,99,235,0.24)] md:p-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-white/75">
+                <p className="text-xs font-black uppercase tracking-[0.22em] dark:text-white/75">
                   {isArabic ? "سجل الآن" : " Sign Up Now"}
                 </p>
                 <h3 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
@@ -275,16 +270,18 @@ const SiteFooter = () => {
                     ? "أعثر على أفضل العروض"
                     : "Find the best deals now"}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-blue-100 md:text-base">
+                <p className="mt-3 text-sm leading-7 dark:text-blue-100 md:text-base">
                   {isArabic
-                    ? " البيع ،الإيجار، وإدارة الأرباح من مكان واحد بواجهة أوضح وأكثر احترافية."
-                    : "Sell, rent, and earnings management from one place with a clearer and more premium interface."}
+                    ? "المال والشهرة في انتظارك، انضم إلينا وابدأ رحلتك اليوم!"
+                    : "Fame and money await you, join us and start your journey today!"}
                 </p>
               </div>
             </div>
           </section>
 
-          <div className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between">
+          <section className="rounded-[28px] bg-blue-800 p-8 text-white shadow-[0_26px_60px_rgba(37,99,235,0.24)] md:p-10"></section>
+
+          <div dir="ltr" className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between">
             <span>© {new Date().getFullYear()} Mashhoor</span>
             <div className="flex gap-6">
               <Link

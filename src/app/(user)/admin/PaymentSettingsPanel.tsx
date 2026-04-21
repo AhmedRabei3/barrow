@@ -331,7 +331,7 @@ const PaymentSettingsPanel = () => {
               </h3>
               <p className="text-xs text-slate-400">
                 {t(
-                  "يُرسل إليه رابط إعادة تعيين كلمة مرور إعدادات الدفع. عند تركه فارغاً سيتم استخدام بريد حساب الأدمن الحالي.",
+                  "يُرسل إليه رابط إعادة تعيين كلمة مرور إعدادات الدفع. عند تركه فارغاً سيتم استخدام بريد حساب المدير الحالي.",
                   "This email receives the payment-settings password reset link. If left empty, the current admin account email is used.",
                 )}
               </p>

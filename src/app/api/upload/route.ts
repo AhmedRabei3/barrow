@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "تم رفع الصور وإرسال العنصر مجددًا لمراجعة الأدمن",
+      message: "تم رفع الصور وإرسال العنصر مجددًا لمراجعة المدير",
       images: uploadedImages,
     });
   } catch (err: unknown) {

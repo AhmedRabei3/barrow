@@ -154,7 +154,7 @@ const IdentityVerificationEditor = ({
           </h3>
           <p className="mt-1 text-sm leading-7 text-slate-500 dark:text-slate-400">
             {isArabic
-              ? "ارفع بيانات الهوية الرسمية والرقم الوطني ليقوم الأدمن بمراجعة الطلب ووضع شارة التوثيق على حسابك."
+              ? "ارفع بيانات الهوية الرسمية والرقم الوطني ليقوم المدير بمراجعة الطلب ووضع شارة التوثيق على حسابك."
               : "Upload your official identity documents and national ID for admin review and verified badge approval."}
           </p>
         </div>
