@@ -63,10 +63,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google" && user.id) {
+      if (account?.provider === "google") {
         try {
-          await prisma.user.update({
-            where: { id: user.id },
+          const normalizedEmail = user.email?.trim().toLowerCase();
+
+          await prisma.user.updateMany({
+            where: {
+              OR: [
+                ...(user.id ? [{ id: user.id }] : []),
+                ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+              ],
+            },
             data: {
               emailVerified: new Date(),
               ...(user.image

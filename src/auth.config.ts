@@ -64,6 +64,7 @@ export default (<NextAuthConfig>{
           Google({
             clientId: googleClientId!,
             clientSecret: googleClientSecret!,
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
