@@ -125,16 +125,137 @@ export async function GET(req: NextRequest) {
 
     const items = [...newCars, ...oldCars, ...otherItems, ...properties];
 
+    const propertyIds = properties.map((item) => item.id);
+    const newCarIds = newCars.map((item) => item.id);
+    const oldCarIds = oldCars.map((item) => item.id);
+    const otherItemIds = otherItems.map((item) => item.id);
+
+    const purchaseRequestsRaw =
+      propertyIds.length ||
+      newCarIds.length ||
+      oldCarIds.length ||
+      otherItemIds.length
+        ? await withTimeout(
+            prisma.purchaseRequest.findMany({
+              where: {
+                OR: [
+                  ...(propertyIds.length
+                    ? [
+                        {
+                          itemType: "PROPERTY" as const,
+                          itemId: { in: propertyIds },
+                        },
+                      ]
+                    : []),
+                  ...(newCarIds.length
+                    ? [
+                        {
+                          itemType: "NEW_CAR" as const,
+                          itemId: { in: newCarIds },
+                        },
+                      ]
+                    : []),
+                  ...(oldCarIds.length
+                    ? [
+                        {
+                          itemType: "USED_CAR" as const,
+                          itemId: { in: oldCarIds },
+                        },
+                      ]
+                    : []),
+                  ...(otherItemIds.length
+                    ? [
+                        {
+                          itemType: "OTHER" as const,
+                          itemId: { in: otherItemIds },
+                        },
+                      ]
+                    : []),
+                ],
+              },
+              orderBy: { createdAt: "desc" },
+              include: {
+                buyer: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profileImage: true,
+                  },
+                },
+              },
+            }),
+            8000,
+            "Owner purchase requests lookup timed out",
+          )
+        : [];
+
     const itemsExtra = await withTimeout(
       attachExtrasBatch(items),
       8000,
       "Profile item enrichment timed out",
     );
+
+    type EnrichedProfileItem = {
+      id: string;
+      category?: { type?: string | null };
+      brand?: string | null;
+      model?: string | null;
+      title?: string | null;
+      name?: string | null;
+      images?: { url: string }[];
+    };
+
+    const enrichedItems = itemsExtra as EnrichedProfileItem[];
+
+    const itemMetaByKey = new Map<
+      string,
+      { title: string; listingUrl: string; imageUrl: string | null }
+    >();
+
+    for (const item of enrichedItems) {
+      const itemId = String(item?.id ?? "");
+      const itemType = String(item?.category?.type ?? "");
+
+      if (!itemId || !itemType) {
+        continue;
+      }
+
+      const titleParts = [item?.brand, item?.model].filter(Boolean);
+      const fallbackTitle = item?.title ?? item?.name ?? "Listing";
+      const title = titleParts.length
+        ? titleParts.join(" ")
+        : String(fallbackTitle);
+
+      itemMetaByKey.set(`${itemType}:${itemId}`, {
+        title,
+        listingUrl: `/items/details/${itemId}`,
+        imageUrl:
+          typeof item?.images?.[0]?.url === "string"
+            ? item.images[0].url
+            : null,
+      });
+    }
+
+    const purchaseRequests = purchaseRequestsRaw.map((request) => {
+      const key = `${request.itemType}:${request.itemId}`;
+      const itemSummary = itemMetaByKey.get(key) ?? {
+        title: "Listing",
+        listingUrl: `/items/details/${request.itemId}`,
+        imageUrl: null,
+      };
+
+      return {
+        ...request,
+        itemSummary,
+      };
+    });
+
     const safeUser = {
       ...user,
       password: undefined,
       items: itemsExtra,
-      purchaseRequests: [],
+      purchaseRequests,
       referralStats: {
         invitedCount: invitedUserIds.length,
         activeInvitedCount,

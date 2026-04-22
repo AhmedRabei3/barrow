@@ -20,6 +20,11 @@ import SupportContactModal from "./SupportContactModal";
 import LanguageToggle from "./LanguageToggle";
 import ThemeToggle from "./ThemeToggle";
 
+interface DeferredPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 const MOBILE_DRAWER_CLASS =
   "fixed top-0 right-0 h-dvh w-[84vw] max-w-xs bg-white dark:bg-slate-900 shadow-2xl z-60 md:hidden p-4 overflow-y-auto border-l border-slate-200 dark:border-slate-700 flex flex-col gap-3";
 
@@ -40,6 +45,8 @@ const UserMenu = () => {
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
   const [showQuickFilters, setShowQuickFilters] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] =
+    useState<DeferredPromptEvent | null>(null);
   const [drawerQuery, setDrawerQuery] = useState("");
   const [drawerCity, setDrawerCity] = useState("");
   const [drawerMinPrice, setDrawerMinPrice] = useState("");
@@ -80,6 +87,11 @@ const UserMenu = () => {
   const goToProfile = useCallback(() => {
     closeMenu();
     router.push("/profile");
+  }, [closeMenu, router]);
+
+  const goToProfileRequests = useCallback(() => {
+    closeMenu();
+    router.push("/profile?tab=requests");
   }, [closeMenu, router]);
 
   const goToAdmin = useCallback(() => {
@@ -135,6 +147,25 @@ const UserMenu = () => {
     loadOpenTicketsCount();
   }, [isOpen, user, isArabic]);
 
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event as DeferredPromptEvent);
+    };
+
+    const onAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
   const handleLogout = async () => {
     closeMenu();
     await signOut({ redirect: false });
@@ -184,6 +215,19 @@ const UserMenu = () => {
     now.getTime() >= activeUntilDate!.getTime() &&
     now.getTime() <= graceEndDate!.getTime();
 
+  const pendingEarnings = Number(user?.pendingReferralEarnings ?? 0);
+  const readyEarnings = Number(user?.balance ?? 0);
+  const remainingActiveDays = activeUntilDate
+    ? Math.max(
+        0,
+        Math.ceil(
+          (activeUntilDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+        ),
+      )
+    : 0;
+  const shouldShowRenewAlert = isInGracePeriod;
+  const showMenuIndicator = shouldShowRenewAlert;
+
   const handleSubscriptionAction = () => {
     closeMenu();
 
@@ -213,6 +257,17 @@ const UserMenu = () => {
         : "Activate account";
 
   const subscriptionIcon = isSubscriptionActive ? "MdGroupAdd" : "FaCheck";
+
+  const handleInstallApp = useCallback(async () => {
+    if (!deferredInstallPrompt) {
+      return;
+    }
+
+    closeMenu();
+    await deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    setDeferredInstallPrompt(null);
+  }, [closeMenu, deferredInstallPrompt]);
 
   const renderGuestMenuItems = () => (
     <>
@@ -247,6 +302,14 @@ const UserMenu = () => {
         iconName="MdPerson"
         isArabic={isArabic}
       />
+      <UserMenueItem
+        label={
+          isArabic ? "طلبات الشراء والإيجار" : "Purchase & rental requests"
+        }
+        onClick={goToProfileRequests}
+        iconName="MdOutlineShoppingCart"
+        isArabic={isArabic}
+      />
       {user?.isAdmin && (
         <UserMenueItem
           label={isArabic ? "لوحة الإدارة" : "Admin dashboard"}
@@ -261,6 +324,15 @@ const UserMenu = () => {
         iconName="RiCustomerService2Fill"
         badge={openTicketsCount > 0 ? String(openTicketsCount) : undefined}
       />
+
+      {deferredInstallPrompt ? (
+        <UserMenueItem
+          label={isArabic ? "تثبيت التطبيق" : "Install app"}
+          onClick={handleInstallApp}
+          iconName="MdInstallMobile"
+          isArabic={isArabic}
+        />
+      ) : null}
 
       <UserMenueItem
         label={isArabic ? "تسجيل الخروج" : "Logout"}
@@ -294,12 +366,16 @@ const UserMenu = () => {
           <button
             onClick={toggleHandler}
             className="
+            group relative
             rounded-full border border-slate-200 px-2.5 py-1.5
             shadow-sm hover:shadow-md transition-all duration-200
             flex items-center gap-2
             bg-white text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100
           "
           >
+            {showMenuIndicator ? (
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500" />
+            ) : null}
             <IoMdMenu size={20} />
             <Image
               className="rounded-full"
@@ -308,6 +384,41 @@ const UserMenu = () => {
               width={24}
               height={24}
             />
+
+            {user ? (
+              <span className="pointer-events-none absolute top-full right-0 z-70 mt-2 hidden min-w-72 rounded-xl border border-slate-200 bg-white p-3 text-left text-xs text-slate-600 shadow-xl md:group-hover:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <div className="font-semibold text-slate-800 dark:text-slate-100">
+                  {isArabic ? "ملخص الأرباح" : "Earnings summary"}
+                </div>
+                <div className="mt-2 space-y-1">
+                  <div>
+                    {isArabic ? "الأرباح المعلقة:" : "Pending earnings:"}{" "}
+                    <span className="font-bold">
+                      {pendingEarnings.toFixed(2)} $
+                    </span>
+                  </div>
+                  <div>
+                    {isArabic ? "الأرباح الجاهزة:" : "Ready earnings:"}{" "}
+                    <span className="font-bold">
+                      {readyEarnings.toFixed(2)} $
+                    </span>
+                  </div>
+                  <div>
+                    {isArabic
+                      ? "الأيام المتبقية للتفعيل:"
+                      : "Activation days left:"}{" "}
+                    <span className="font-bold">{remainingActiveDays}</span>
+                  </div>
+                </div>
+                {shouldShowRenewAlert ? (
+                  <div className="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                    {isArabic
+                      ? `قم بتجديد الاشتراك لتحصل على أرباحك المعلقة (${pendingEarnings.toFixed(2)} $)`
+                      : `Renew your subscription to unlock pending earnings (${pendingEarnings.toFixed(2)} $)`}
+                  </div>
+                ) : null}
+              </span>
+            ) : null}
           </button>
 
           {/* Desktop dropdown */}

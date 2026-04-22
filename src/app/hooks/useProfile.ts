@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { toGrandItem } from "../(user)/profile/profileHelper";
-import { PurchaseRequest, User } from "@prisma/client";
+import { User } from "@prisma/client";
 import { detectArabicUi, localizeErrorMessage } from "../i18n/errorMessages";
 import { useStaleResource } from "./useStaleResource";
 
@@ -8,6 +8,33 @@ type RawProfileItem = Record<string, unknown>;
 type FavoriteItem = {
   itemId: string;
   itemType: "NEW_CAR" | "USED_CAR" | "PROPERTY" | "OTHER";
+};
+
+export type ProfilePurchaseRequest = {
+  id: string;
+  itemId: string;
+  itemType: "NEW_CAR" | "USED_CAR" | "PROPERTY" | "OTHER";
+  buyerId: string;
+  buyerNote?: string | null;
+  offeredPrice?: string | number | null;
+  phoneNumber: string;
+  ownerPhoneNumber?: string | null;
+  rejectionReason?: string | null;
+  status: string;
+  assignedAdminId?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  buyer?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    profileImage?: string | null;
+  };
+  itemSummary?: {
+    title: string;
+    listingUrl: string;
+    imageUrl: string | null;
+  };
 };
 
 export type ProfileData = {
@@ -31,7 +58,7 @@ export type ProfileData = {
     } | null;
   };
   items: RawProfileItem[];
-  purchaseRequests: PurchaseRequest[];
+  purchaseRequests: ProfilePurchaseRequest[];
   favorites: FavoriteItem[];
 };
 
@@ -45,7 +72,7 @@ type ApiProfileResponse =
       };
       identityVerificationRequest?: ProfileData["user"]["identityVerificationRequest"];
       items?: RawProfileItem[];
-      purchaseRequests?: PurchaseRequest[];
+      purchaseRequests?: ProfilePurchaseRequest[];
       favorites?: FavoriteItem[];
     });
 
@@ -79,7 +106,7 @@ const normalizeProfileResponse = (json: ApiProfileResponse): ProfileData => {
     };
     identityVerificationRequest?: ProfileData["user"]["identityVerificationRequest"];
     items?: RawProfileItem[];
-    purchaseRequests?: PurchaseRequest[];
+    purchaseRequests?: ProfilePurchaseRequest[];
     favorites?: FavoriteItem[];
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useProfile } from "@/app/hooks/useProfile";
+import { useSearchParams } from "next/navigation";
 import ProfileHeader from "./ProfileHeader";
 import TabbedView, { type ProfileTabKey } from "./TabsProfilePage";
 
@@ -32,6 +33,7 @@ const formatEnglishNumber = (value: number, fractionDigits = 0) =>
   }).format(value);
 
 const Profile = () => {
+  const searchParams = useSearchParams();
   const activationModal = useActivationModal();
   const [itemIdToEdit, setItemIdToEdit] = useState<string | null>(null);
   const [itemIdToDelete, setItemIdToDelete] = useState<string | null>(null);
@@ -46,7 +48,7 @@ const Profile = () => {
     useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("ALL");
   const [activeSidebarSection, setActiveSidebarSection] = useState<
-    "OVERVIEW" | "LISTINGS" | "FAV" | "WITHDRAWALS"
+    "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS"
   >("OVERVIEW");
   const [paypalEmail, setPaypalEmail] = useState("");
   const [paypalWithdrawAmount, setPaypalWithdrawAmount] = useState("");
@@ -56,6 +58,7 @@ const Profile = () => {
   const {
     user,
     items,
+    purchaseRequests,
     favorites,
     totalItems,
     loading,
@@ -111,6 +114,22 @@ const Profile = () => {
     setActiveTab(tab);
   };
 
+  useEffect(() => {
+    const tab = (searchParams.get("tab") || "").toLowerCase();
+
+    if (tab === "requests" || tab === "purchases") {
+      setActiveTab("REQUESTS");
+      setActiveSidebarSection("REQUESTS");
+      return;
+    }
+
+    if (tab === "withdrawals") {
+      setActiveTab("WITHDRAWALS");
+      setActiveSidebarSection("WITHDRAWALS");
+      return;
+    }
+  }, [searchParams]);
+
   const scrollToSection = (section: "OVERVIEW" | "LISTINGS") => {
     const targetRef =
       section === "OVERVIEW" ? overviewSectionRef : listingsSectionRef;
@@ -122,7 +141,7 @@ const Profile = () => {
   };
 
   const handleSidebarAction = (
-    section: "OVERVIEW" | "LISTINGS" | "FAV" | "WITHDRAWALS",
+    section: "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS",
   ) => {
     setActiveSidebarSection(section);
 
@@ -139,6 +158,12 @@ const Profile = () => {
 
     if (section === "FAV") {
       setActiveTab("FAV");
+      scrollToSection("LISTINGS");
+      return;
+    }
+
+    if (section === "REQUESTS") {
+      setActiveTab("REQUESTS");
       scrollToSection("LISTINGS");
       return;
     }
@@ -482,10 +507,7 @@ const Profile = () => {
                     : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
                 }`}
               >
-                <DynamicIcon
-                  iconName="MdInventory2"
-                  size={18}
-                />
+                <DynamicIcon iconName="MdInventory2" size={18} />
                 <span className="font-medium text-white">
                   {isArabic ? "إعلاناتي" : "My Listings"}
                 </span>
@@ -499,11 +521,7 @@ const Profile = () => {
                     : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
                 }`}
               >
-                <DynamicIcon
-                  iconName="AiFillHeart"
-                  size={18}
-                
-                />
+                <DynamicIcon iconName="AiFillHeart" size={18} />
                 <span className="font-medium">
                   {isArabic ? "المفضلة" : "Favorites"}
                 </span>
@@ -520,10 +538,28 @@ const Profile = () => {
                 <DynamicIcon
                   iconName="MdOutlineAccountBalanceWallet"
                   size={18}
-                  
                 />
                 <span className="font-medium text-white">
                   {isArabic ? "الأرباح والسحوبات" : "Earnings"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSidebarAction("REQUESTS")}
+                className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
+                  activeSidebarSection === "REQUESTS"
+                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
+                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <DynamicIcon iconName="MdOutlineShoppingCart" size={18} />
+                  <span className="font-medium text-white">
+                    {isArabic ? "طلبات الشراء والإيجار" : "Purchase requests"}
+                  </span>
+                </span>
+                <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold text-white">
+                  {purchaseRequests.length}
                 </span>
               </button>
             </div>
@@ -785,11 +821,16 @@ const Profile = () => {
             <TabbedView
               items={items}
               favorites={favorites}
+              purchaseRequests={purchaseRequests}
               activeTab={activeTab}
               onTabChange={(tab) => {
                 setActiveTab(tab);
                 if (tab === "FAV") {
                   setActiveSidebarSection("FAV");
+                  return;
+                }
+                if (tab === "REQUESTS") {
+                  setActiveSidebarSection("REQUESTS");
                   return;
                 }
                 if (tab === "WITHDRAWALS") {
@@ -808,7 +849,7 @@ const Profile = () => {
           </div>
         </div>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <button
               type="button"
               onClick={() => handleSidebarAction("OVERVIEW")}
@@ -832,6 +873,18 @@ const Profile = () => {
             >
               <DynamicIcon iconName="MdInventory2" size={18} />
               <span>{isArabic ? "إعلاناتي" : "Listings"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSidebarAction("REQUESTS")}
+              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
+                activeSidebarSection === "REQUESTS"
+                  ? "bg-primary text-white"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              <DynamicIcon iconName="MdOutlineShoppingCart" size={18} />
+              <span>{isArabic ? "الطلبات" : "Requests"}</span>
             </button>
             <button
               type="button"

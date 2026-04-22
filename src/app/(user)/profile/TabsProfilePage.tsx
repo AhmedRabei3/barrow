@@ -6,6 +6,7 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 import Pagination from "@/app/components/home/Pagination";
 import Image from "next/image";
 import UserShamCashWithdrawalsTab from "./UserShamCashWithdrawalsTab";
+import { ProfilePurchaseRequest } from "@/app/hooks/useProfile";
 
 type ProfileItem = {
   id?: string;
@@ -30,11 +31,13 @@ export type ProfileTabKey =
   | "OTHER"
   | "PROP"
   | "FAV"
+  | "REQUESTS"
   | "WITHDRAWALS";
 
 const TabbedView = ({
   items,
   favorites,
+  purchaseRequests,
   activeTab,
   onTabChange,
   setItemIdToDelete,
@@ -46,6 +49,7 @@ const TabbedView = ({
 }: {
   items: ProfileItem[];
   favorites: FavoriteItem[];
+  purchaseRequests: ProfilePurchaseRequest[];
   activeTab: ProfileTabKey;
   onTabChange: (tab: ProfileTabKey) => void;
   setItemIdToDelete: Dispatch<SetStateAction<string | null>>;
@@ -144,6 +148,12 @@ const TabbedView = ({
       count: favoritesItems.length,
     },
     {
+      key: "REQUESTS",
+      label: isArabic ? "طلبات الشراء والإيجار" : "Purchase & rental requests",
+      icon: "MdOutlineShoppingCart",
+      count: purchaseRequests.length,
+    },
+    {
       key: "WITHDRAWALS",
       label: isArabic ? "سحوباتي" : "My withdrawals",
       iconImage: "/images/shamcash-withdraw-icon.png",
@@ -174,6 +184,8 @@ const TabbedView = ({
 
   const active = activeTab;
   const activeItems = getItemsFor(active);
+  const activeCount =
+    active === "REQUESTS" ? purchaseRequests.length : activeItems.length;
   const start = (currentPage - 1) * ITEMS_PER_PAGE;
   const pagedItems = activeItems.slice(start, start + ITEMS_PER_PAGE);
 
@@ -194,7 +206,7 @@ const TabbedView = ({
           </h3>
         </div>
         <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-          {activeItems.length} {isArabic ? "عنصر" : "items"}
+          {activeCount} {isArabic ? "عنصر" : "items"}
         </span>
       </div>
 
@@ -244,6 +256,104 @@ const TabbedView = ({
             onOpenShamCashWithdraw={onOpenShamCashWithdraw}
             isWithdrawingShamCash={isWithdrawingShamCash}
           />
+        ) : active === "REQUESTS" ? (
+          <div className="space-y-3">
+            {purchaseRequests.length ? (
+              purchaseRequests.map((request) => {
+                const statusText =
+                  request.status === "PENDING_ADMIN"
+                    ? isArabic
+                      ? "بانتظار المشرف"
+                      : "Pending admin"
+                    : request.status === "ADMIN_REJECTED"
+                      ? isArabic
+                        ? "مرفوض من المشرف"
+                        : "Rejected by admin"
+                      : request.status === "PENDING_OWNER"
+                        ? isArabic
+                          ? "بانتظار قرار المالك"
+                          : "Pending owner"
+                        : request.status === "OWNER_DECLINED"
+                          ? isArabic
+                            ? "مرفوض من المالك"
+                            : "Declined by owner"
+                          : request.status === "OWNER_ACCEPTED"
+                            ? isArabic
+                              ? "موافق عليه من المالك"
+                              : "Accepted by owner"
+                            : request.status === "CONVERTED_TO_TRANSACTION"
+                              ? isArabic
+                                ? "تم تحويله إلى معاملة"
+                                : "Converted to transaction"
+                              : request.status;
+
+                return (
+                  <div
+                    key={request.id}
+                    className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                          {request.itemSummary?.title ||
+                            (isArabic ? "عنصر" : "Listing")}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {isArabic ? "المشتري:" : "Buyer:"}{" "}
+                          {request.buyer?.name ||
+                            request.buyer?.email ||
+                            request.buyerId}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {isArabic ? "الهاتف:" : "Phone:"}{" "}
+                          {request.phoneNumber}
+                        </p>
+                      </div>
+                      <span className="inline-flex w-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {statusText}
+                      </span>
+                    </div>
+
+                    {request.buyerNote ? (
+                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                        {isArabic ? "ملاحظة:" : "Note:"} {request.buyerNote}
+                      </p>
+                    ) : null}
+
+                    {request.rejectionReason &&
+                    (request.status === "OWNER_DECLINED" ||
+                      request.status === "ADMIN_REJECTED") ? (
+                      <p className="mt-2 rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                        {isArabic ? "سبب الرفض:" : "Rejection reason:"}{" "}
+                        {request.rejectionReason}
+                      </p>
+                    ) : null}
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span>
+                        {isArabic ? "العرض:" : "Offer:"}{" "}
+                        {request.offeredPrice ?? "-"}
+                      </span>
+                      {request.itemSummary?.listingUrl ? (
+                        <a
+                          href={request.itemSummary.listingUrl}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          {isArabic ? "عرض العنصر" : "View listing"}
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                {isArabic
+                  ? "لا توجد طلبات شراء أو إيجار على عناصرك حالياً"
+                  : "No purchase or rental requests on your listings yet"}
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <div className="mb-4 flex items-center justify-between">
@@ -256,7 +366,7 @@ const TabbedView = ({
                 </h4>
               </div>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-300 sm:text-sm">
-                {activeItems.length} {isArabic ? "عنصر" : "items"}
+                {activeCount} {isArabic ? "عنصر" : "items"}
               </span>
             </div>
             <PreviewGrid

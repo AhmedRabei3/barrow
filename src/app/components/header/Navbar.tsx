@@ -108,6 +108,16 @@ const Navbar = ({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Keep silent to avoid noisy console in unsupported/private contexts.
+    });
+  }, []);
+
   if (isAdminPage) return null;
 
   const topBarStyle = {

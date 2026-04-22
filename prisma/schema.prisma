@@ -600,6 +600,7 @@ model PurchaseRequest {
   assignedAdmin   User?   @relation("assignedAdmin", fields: [assignedAdminId], references: [id])
 
   ownerPhoneNumber String?
+  rejectionReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

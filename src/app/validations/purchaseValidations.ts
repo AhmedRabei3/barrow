@@ -63,12 +63,26 @@ export const ownerDecisionSchema = z
     requestId: z.string().cuid(),
     decision: z.enum(["ACCEPT", "DECLINE"]),
     ownerPhoneNumber: phoneSchema.optional(),
+    rejectionReason: z
+      .string()
+      .trim()
+      .min(5, "سبب الرفض قصير جدًا")
+      .max(500, "سبب الرفض طويل جدًا")
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.decision === "ACCEPT" && !data.ownerPhoneNumber) {
       ctx.addIssue({
         path: ["phoneNumber"],
         message: "يرجى إدخال رقم الهاتف ليتم التواصل معك",
+        code: z.ZodIssueCode.custom,
+      });
+    }
+
+    if (data.decision === "DECLINE" && !data.rejectionReason) {
+      ctx.addIssue({
+        path: ["rejectionReason"],
+        message: "يرجى إدخال سبب الرفض ليصل للزبون",
         code: z.ZodIssueCode.custom,
       });
     }

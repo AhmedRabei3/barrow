@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const owner = await authHelper();
 
     const body = await req.json();
-    const { requestId, decision, ownerPhoneNumber } =
+    const { requestId, decision, ownerPhoneNumber, rejectionReason } =
       ownerDecisionSchema.parse(body);
 
     const request = await prisma.purchaseRequest.findUnique({
@@ -47,10 +47,14 @@ export async function POST(req: NextRequest) {
        OWNER DECLINE
     ========================= */
     if (decision === "DECLINE") {
+      const localizedReason =
+        rejectionReason?.trim() || "رفض المالك الطلب دون إضافة تفاصيل إضافية.";
+
       await prisma.purchaseRequest.update({
         where: { id: requestId },
         data: {
           status: PurchaseRequestStatus.OWNER_DECLINED,
+          rejectionReason: localizedReason,
         },
       });
 
@@ -59,8 +63,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: request.buyerId,
           title: "طلب شراء/إيجار",
-          message:
-            "لايريد مالك العنصر إتمام عملية الشراء/الإيجار. يمكنك البحث عن عناصر أخرى.",
+          message: `تم رفض طلب الشراء/الإيجار من المالك. سبب الرفض: ${localizedReason}`,
           type: NotificationType.INFO,
         },
       });
