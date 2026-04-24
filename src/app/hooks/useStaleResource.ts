@@ -25,6 +25,14 @@ export const clearCachedResource = (key: string) => {
   staleResourceCache.delete(key);
 };
 
+export const clearCachedResourcesByPrefix = (prefix: string) => {
+  for (const key of staleResourceCache.keys()) {
+    if (key.startsWith(prefix)) {
+      staleResourceCache.delete(key);
+    }
+  }
+};
+
 interface UseStaleResourceOptions<TData> {
   cacheKey: string;
   fetcher: (signal: AbortSignal) => Promise<TData>;

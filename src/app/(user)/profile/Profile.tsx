@@ -22,6 +22,12 @@ import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import useActivationModal from "@/app/hooks/useActivationModal";
+import { buildListingDetailsPath } from "@/lib/listingSeo";
+import {
+  dispatchInventoryInvalidated,
+  playDeleteFeedback,
+  waitForDeleteAnimation,
+} from "@/app/utils/deleteFeedback";
 
 const SMART_CHAT_EDIT_PAYLOAD_KEY = "smart-chat-edit-payload";
 const SMART_CHAT_ACTION_ADD_ITEM = "ACTION_ADD_ITEM";
@@ -47,6 +53,8 @@ const Profile = () => {
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [identityVerificationModalOpen, setIdentityVerificationModalOpen] =
     useState(false);
+  const [removingItemIds, setRemovingItemIds] = useState<string[]>([]);
+  const [hiddenItemIds, setHiddenItemIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("ALL");
   const [activeSidebarSection, setActiveSidebarSection] = useState<
     "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS"
@@ -68,8 +76,16 @@ const Profile = () => {
     refetch,
   } = useProfile();
   const { isArabic } = useAppPreferences();
+  const visibleItems = useMemo(
+    () =>
+      items.filter((entry) => {
+        const itemId = String(entry?.item?.id ?? "");
+        return itemId ? !hiddenItemIds.includes(itemId) : true;
+      }),
+    [hiddenItemIds, items],
+  );
   const availableToWithdraw = Number(user?.balance ?? 0);
-  const recentItems = useMemo(() => items.slice(0, 2), [items]);
+  const recentItems = useMemo(() => visibleItems.slice(0, 2), [visibleItems]);
   const walletBalanceLabel = useMemo(
     () => `${formatEnglishNumber(Number(user?.balance ?? 0), 2)} $`,
     [user?.balance],
@@ -203,6 +219,21 @@ const Profile = () => {
       setDeleting,
       refetch,
       setItemIdToDelete,
+      async () => {
+        const deletedId = itemIdToDelete!;
+        playDeleteFeedback();
+        setRemovingItemIds((current) =>
+          current.includes(deletedId) ? current : [...current, deletedId],
+        );
+        await waitForDeleteAnimation();
+        setHiddenItemIds((current) =>
+          current.includes(deletedId) ? current : [...current, deletedId],
+        );
+        setRemovingItemIds((current) =>
+          current.filter((entryId) => entryId !== deletedId),
+        );
+        dispatchInventoryInvalidated();
+      },
     );
   };
 
@@ -700,11 +731,25 @@ const Profile = () => {
                         : item.moderationAction === "REJECT"
                           ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
                           : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
+                      const itemLocation = (item.location ?? null) as
+                        | { city?: string; country?: string }
+                        | null;
+                      const detailHref = item.id
+                        ? buildListingDetailsPath({
+                            id: item.id,
+                            title: item.title,
+                            name: item.name,
+                            brand: item.brand,
+                            model: item.model,
+                            city: itemLocation?.city,
+                            country: itemLocation?.country,
+                          })
+                        : "#";
 
                     return (
                       <Link
                         key={item.id}
-                        href={item.id ? `/items/details/${item.id}` : "#"}
+                          href={detailHref}
                         className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 transition-colors hover:border-primary/30 dark:border-slate-800"
                       >
                         <div className="h-14 w-14 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
@@ -822,7 +867,7 @@ const Profile = () => {
 
           <div ref={listingsSectionRef}>
             <TabbedView
-              items={items}
+              items={visibleItems}
               favorites={favorites}
               purchaseRequests={purchaseRequests}
               activeTab={activeTab}
@@ -844,6 +889,7 @@ const Profile = () => {
               }}
               setItemIdToEdit={setItemIdToEdit}
               setItemIdToDelete={setItemIdToDelete}
+              removingItemIds={removingItemIds}
               onStatusChanged={refetch}
               availableToWithdraw={availableToWithdraw}
               onOpenShamCashWithdraw={handleOpenShamCashWithdrawModal}

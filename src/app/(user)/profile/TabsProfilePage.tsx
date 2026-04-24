@@ -42,6 +42,7 @@ const TabbedView = ({
   onTabChange,
   setItemIdToDelete,
   setItemIdToEdit,
+  removingItemIds,
   onStatusChanged,
   availableToWithdraw,
   onOpenShamCashWithdraw,
@@ -54,6 +55,7 @@ const TabbedView = ({
   onTabChange: (tab: ProfileTabKey) => void;
   setItemIdToDelete: Dispatch<SetStateAction<string | null>>;
   setItemIdToEdit: Dispatch<SetStateAction<string | null>>;
+  removingItemIds: string[];
   onStatusChanged?: () => Promise<void> | void;
   availableToWithdraw: number;
   onOpenShamCashWithdraw: () => void;
@@ -373,6 +375,7 @@ const TabbedView = ({
               items={pagedItems}
               setItemIdToDelete={setItemIdToDelete}
               setItemIdToEdit={setItemIdToEdit}
+              removingItemIds={removingItemIds}
               onStatusChanged={onStatusChanged}
             />
 

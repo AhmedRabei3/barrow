@@ -7,6 +7,7 @@ import { attachExtrasBatch } from "../../items/functions/helpers";
 import { requireProfileEditTicket } from "../../utils/profileEditVerification";
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 import { withTimeout } from "../../lib/errors/dbGuard";
+import { buildListingDetailsPath } from "@/lib/listingSeo";
 
 const ITEM_RELATION_SELECT = {
   category: {
@@ -203,6 +204,7 @@ export async function GET(req: NextRequest) {
       model?: string | null;
       title?: string | null;
       name?: string | null;
+      location?: { city?: string | null; country?: string | null } | null;
       images?: { url: string }[];
     };
 
@@ -229,7 +231,15 @@ export async function GET(req: NextRequest) {
 
       itemMetaByKey.set(`${itemType}:${itemId}`, {
         title,
-        listingUrl: `/items/details/${itemId}`,
+        listingUrl: buildListingDetailsPath({
+          id: itemId,
+          title: item?.title,
+          name: item?.name,
+          brand: item?.brand,
+          model: item?.model,
+          city: item?.location?.city,
+          country: item?.location?.country,
+        }),
         imageUrl:
           typeof item?.images?.[0]?.url === "string"
             ? item.images[0].url
@@ -241,7 +251,7 @@ export async function GET(req: NextRequest) {
       const key = `${request.itemType}:${request.itemId}`;
       const itemSummary = itemMetaByKey.get(key) ?? {
         title: "Listing",
-        listingUrl: `/items/details/${request.itemId}`,
+        listingUrl: buildListingDetailsPath({ id: request.itemId, brand: "Listing" }),
         imageUrl: null,
       };
 

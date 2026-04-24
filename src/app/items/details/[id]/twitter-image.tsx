@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/seo";
+import { getListingDetailsById } from "@/server/services/listing-details.service";
 
 export const runtime = "nodejs";
 export const alt = "Listing preview";
@@ -8,8 +9,6 @@ export const size = {
   height: 630,
 };
 export const contentType = "image/png";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 export default async function TwitterImage({
   params,
@@ -21,26 +20,10 @@ export default async function TwitterImage({
   let title = `Listing on ${SITE_NAME}`;
 
   try {
-    const response = await fetch(`${SITE_URL}/api/items/details/${id}`, {
-      cache: "no-store",
-    });
+    const item = await getListingDetailsById(id);
 
-    if (response.ok) {
-      const data = (await response.json()) as {
-        item?: {
-          data?: {
-            title?: string;
-            name?: string;
-            brand?: string;
-          };
-        };
-      };
-
-      title =
-        data?.item?.data?.title ||
-        data?.item?.data?.name ||
-        data?.item?.data?.brand ||
-        title;
+    if (item) {
+      title = item.title;
     }
   } catch {
     // keep fallback text

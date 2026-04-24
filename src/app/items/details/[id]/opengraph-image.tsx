@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/seo";
+import { getListingDetailsById } from "@/server/services/listing-details.service";
 
 export const runtime = "nodejs";
 export const alt = "Listing preview";
@@ -8,8 +9,6 @@ export const size = {
   height: 630,
 };
 export const contentType = "image/png";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 const trimText = (value: string, max: number) =>
   value.length > max ? `${value.slice(0, max - 1)}…` : value;
@@ -26,37 +25,17 @@ export default async function OpengraphImage({
   let price = "";
 
   try {
-    const response = await fetch(`${SITE_URL}/api/items/details/${id}`, {
-      cache: "no-store",
-    });
+    const item = await getListingDetailsById(id);
 
-    if (response.ok) {
-      const data = (await response.json()) as {
-        item?: {
-          data?: {
-            title?: string;
-            name?: string;
-            brand?: string;
-            price?: number;
-          };
-          location?: {
-            city?: string;
-            country?: string;
-          };
-        };
-      };
-
-      const item = data.item;
-      const itemTitle =
-        item?.data?.title || item?.data?.name || item?.data?.brand || title;
-      const itemLocation = [item?.location?.city, item?.location?.country]
+    if (item) {
+      const itemLocation = [item.location?.city, item.location?.country]
         .filter(Boolean)
         .join(", ");
 
-      title = itemTitle;
+      title = item.title;
       subtitle = itemLocation || subtitle;
       price =
-        typeof item?.data?.price === "number"
+        typeof item.data.price === "number"
           ? `$${item.data.price.toFixed(0)}`
           : "";
     }

@@ -4,11 +4,12 @@ import {
   buildListingMetadata,
   getListingOrNull,
   renderListingDetailsPage,
-} from "../listingDetailsPage";
+} from "../../listingDetailsPage";
 
 interface PageProps {
   params: Promise<{
     id: string;
+    slug: string;
   }>;
 }
 
@@ -21,15 +22,16 @@ export async function generateMetadata({
   return buildListingMetadata(id, item);
 }
 
-async function itemDetailsPage({ params }: PageProps) {
-  const { id } = await params;
+export default async function ListingDetailsSlugPage({ params }: PageProps) {
+  const { id, slug } = await params;
   const item = await getListingOrNull(id);
 
   if (item?.canonicalPath) {
-    redirect(item.canonicalPath);
+    const canonicalSlug = item.canonicalPath.split("/").pop();
+    if (canonicalSlug && canonicalSlug !== slug) {
+      redirect(item.canonicalPath);
+    }
   }
 
   return renderListingDetailsPage(item);
 }
-
-export default itemDetailsPage;

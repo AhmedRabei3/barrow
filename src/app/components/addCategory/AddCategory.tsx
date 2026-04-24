@@ -16,6 +16,11 @@ import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useEffect, useMemo, useState } from "react";
 import { DynamicIcon } from "./IconSetter";
 import { FaRegEdit, FaTrashAlt } from "react-icons/fa";
+import {
+  DELETE_ANIMATION_MS,
+  dispatchInventoryInvalidated,
+  playDeleteFeedback,
+} from "@/app/utils/deleteFeedback";
 
 interface CategoryFormValues {
   type: $Enums.ItemType;
@@ -35,6 +40,27 @@ type CategoryRow = {
 
 type ActiveTab = "add" | "existing";
 
+const CATEGORY_TYPE_OPTIONS: Array<{
+  value: $Enums.ItemType;
+  label: { ar: string; en: string };
+}> = [
+  { value: "NEW_CAR", label: { ar: "سيارات جديدة", en: "New cars" } },
+  {
+    value: "USED_CAR",
+    label: { ar: "سيارات مستعملة", en: "Used cars" },
+  },
+  { value: "PROPERTY", label: { ar: "عقارات", en: "Real estate" } },
+  {
+    value: "HOME_FURNITURE",
+    label: { ar: "أثاث منزلي", en: "Home furniture" },
+  },
+  {
+    value: "MEDICAL_DEVICE",
+    label: { ar: "أجهزة طبية", en: "Medical devices" },
+  },
+  { value: "OTHER", label: { ar: "منوعات", en: "Other items" } },
+];
+
 export default function AddCategoryForm() {
   const { isArabic } = useAppPreferences();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
@@ -42,6 +68,8 @@ export default function AddCategoryForm() {
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [removingIds, setRemovingIds] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   const {
@@ -67,6 +95,35 @@ export default function AddCategoryForm() {
     [categories, editingId],
   );
 
+  const visibleCategories = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase();
+    if (!needle) {
+      return categories;
+    }
+
+    return categories.filter((category) => {
+      const searchableText = [
+        category.name,
+        category.nameAr,
+        category.nameEn,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(needle);
+    });
+  }, [categories, searchTerm]);
+
+  const groupedCategories = useMemo(
+    () =>
+      CATEGORY_TYPE_OPTIONS.map((option) => ({
+        ...option,
+        items: visibleCategories.filter((category) => category.type === option.value),
+      })).filter((group) => group.items.length > 0),
+    [visibleCategories],
+  );
+
   const loadCategories = async () => {
     setLoadingCategories(true);
     try {
@@ -80,6 +137,12 @@ export default function AddCategoryForm() {
   useEffect(() => {
     if (activeTab === "existing") {
       loadCategories();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "existing") {
+      setSearchTerm("");
     }
   }, [activeTab]);
 
@@ -183,11 +246,24 @@ export default function AddCategoryForm() {
 
       clearCategoriesCache();
       toast.success(result.message || t("تم حذف الفئة", "Category deleted"));
+      playDeleteFeedback();
+      dispatchInventoryInvalidated();
+      setRemovingIds((current) =>
+        current.includes(category.id) ? current : [...current, category.id],
+      );
       if (editingId === category.id) {
         setEditingId(null);
         resetEdit();
       }
-      await loadCategories();
+      window.setTimeout(() => {
+        setCategories((current) =>
+          current.filter((entry) => entry.id !== category.id),
+        );
+        setRemovingIds((current) =>
+          current.filter((entryId) => entryId !== category.id),
+        );
+      }, DELETE_ANIMATION_MS);
+      void loadCategories();
     } catch (error: unknown) {
       toast.error(
         error instanceof Error
@@ -347,6 +423,44 @@ export default function AddCategoryForm() {
         </form>
       ) : (
         <div className="space-y-4">
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  {t("فرز الفئات حسب النوع الرئيسي", "Browse categories by main type")}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t(
+                    "ابحث بالاسم العربي أو الإنكليزي، وستبقى النتائج مرتبة ضمن مجموعاتها.",
+                    "Search by Arabic or English name while keeping results grouped by their parent type.",
+                  )}
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+                {visibleCategories.length} {t("فئة ظاهرة", "visible categories")}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder={t("ابحث باسم الفئة...", "Search by category name...")}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-900/50"
+              />
+              {searchTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:text-white"
+                >
+                  {t("مسح", "Clear")}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
           {loadingCategories ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {t("جارِ تحميل الفئات...", "Loading categories...")}
@@ -355,52 +469,88 @@ export default function AddCategoryForm() {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {t("لا توجد فئات حالياً", "No categories yet")}
             </p>
+          ) : groupedCategories.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t(
+                "لا توجد نتائج مطابقة لبحثك الحالي",
+                "No categories match your current search",
+              )}
+            </p>
           ) : (
-            <div className="space-y-3">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 flex items-center justify-between gap-3"
+            <div className="space-y-5">
+              {groupedCategories.map((group) => (
+                <section
+                  key={group.value}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700"
                 >
-                  <div className="min-w-0 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200">
-                      <DynamicIcon
-                        iconName={category.icon ?? "FaTag"}
-                        size={18}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                        {isArabic
-                          ? category.nameAr || category.nameEn || category.name
-                          : category.nameEn || category.name || category.nameAr}
-                      </p>
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/40">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        {isArabic ? group.label.ar : group.label.en}
+                      </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {category.type}
+                        {group.value}
                       </p>
                     </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+                      {group.items.length} {t("فئة", "categories")}
+                    </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => startEdit(category)}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-500 transition"
-                  >
-                    <FaRegEdit size={14} />
-                    {t("تعديل", "Edit")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCategory(category)}
-                    disabled={deletingId === category.id}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <FaTrashAlt size={14} />
-                    {deletingId === category.id
-                      ? t("جارِ الحذف...", "Deleting...")
-                      : t("حذف", "Delete")}
-                  </button>
-                </div>
+                  <div className="space-y-3 p-3">
+                    {group.items.map((category) => (
+                      <div
+                        key={category.id}
+                        className={`rounded-xl border border-slate-200 dark:border-slate-700 p-3 flex items-center justify-between gap-3 transition-all duration-200 ${
+                          removingIds.includes(category.id)
+                            ? "pointer-events-none -translate-y-2 scale-[0.98] opacity-0"
+                            : "opacity-100"
+                        }`}
+                      >
+                        <div className="min-w-0 flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200">
+                            <DynamicIcon
+                              iconName={category.icon ?? "FaTag"}
+                              size={18}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                              {isArabic
+                                ? category.nameAr || category.nameEn || category.name
+                                : category.nameEn || category.name || category.nameAr}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {category.type}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(category)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-500 transition"
+                          >
+                            <FaRegEdit size={14} />
+                            {t("تعديل", "Edit")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(category)}
+                            disabled={deletingId === category.id}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FaTrashAlt size={14} />
+                            {deletingId === category.id
+                              ? t("جارِ الحذف...", "Deleting...")
+                              : t("حذف", "Delete")}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}
