@@ -129,9 +129,6 @@ const AdminAnalyticsDashboard = () => {
 
         const response = await fetch(
           `/api/admin/dashboard?${params.toString()}`,
-          {
-            cache: "no-store",
-          },
         );
         const body = (await response.json()) as DashboardResponse & {
           message?: string;
@@ -165,9 +162,7 @@ const AdminAnalyticsDashboard = () => {
   const loadVerificationRequests = useCallback(async () => {
     try {
       setVerificationLoading(true);
-      const response = await fetch("/api/admin/identity-verifications", {
-        cache: "no-store",
-      });
+      const response = await fetch("/api/admin/identity-verifications");
       const body = (await response.json()) as {
         requests?: IdentityVerificationRequestDto[];
         message?: string;
@@ -450,7 +445,7 @@ const AdminAnalyticsDashboard = () => {
   };
 
   return (
-    <section className="min-w-0 space-y-6">
+    <section className="min-w-0 space-y-6 w-full">
       <div className="admin-card min-w-0 overflow-hidden rounded-[28px] p-4 sm:p-5 lg:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -665,7 +660,7 @@ const AdminAnalyticsDashboard = () => {
 
       <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.55fr)] 2xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.5fr)]">
         <div className="admin-card min-w-0 rounded-[28px] p-4 sm:p-5 lg:p-6 w-full">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
             <div>
               <h3 className="text-lg font-bold text-white">
                 {t("حالة المشتركين", "Subscriber status")}
@@ -986,12 +981,12 @@ const AdminAnalyticsDashboard = () => {
           </div>
         </div>
 
-        <div className="admin-card min-w-0 w-fit rounded-[28px] p-5 sm:p-6">
+        <div className="admin-card min-w-0 w-full rounded-[28px] p-5 sm:p-6">
           <h3 className="text-lg font-bold text-white">
             {t("توزيع حالة المستخدمين", "User status distribution")}
           </h3>
 
-          <div className="mt-5 h-72 min-w-0 w-fit">
+          <div className="mt-5 h-72 min-w-0">
             <ResponsiveContainer width="100%" height={288} minWidth={0}>
               <PieChart>
                 <Pie

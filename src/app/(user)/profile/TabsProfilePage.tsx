@@ -134,7 +134,7 @@ const TabbedView = ({
     {
       key: "OTHER",
       label: isArabic ? "سلع" : "Items",
-      icon: "GiAmpleDress",
+      icon: "MdDevicesOther",
       count: otherItems.length,
     },
     {
@@ -375,8 +375,8 @@ const TabbedView = ({
               items={pagedItems}
               setItemIdToDelete={setItemIdToDelete}
               setItemIdToEdit={setItemIdToEdit}
-              removingItemIds={removingItemIds}
               onStatusChanged={onStatusChanged}
+              removingItemIds={removingItemIds}
             />
 
             <Pagination
