@@ -1,10 +1,59 @@
 import type { Metadata } from "next";
+import type { ComponentProps } from "react";
 import ItemDetails from "./ItemDetails";
-import { request } from "@/app/utils/axios";
 import { headers } from "next/headers";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+import { prisma } from "@/lib/prisma";
+import {
+  attachRelatedById,
+  findItemByType,
+  getItemTypeById,
+} from "@/app/api/items/functions/helpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+type ItemDetailsItem = ComponentProps<typeof ItemDetails>["item"];
+
+const getListingTitle = (item: Awaited<ReturnType<typeof getItem>>) => {
+  if (!item?.data) {
+    return "Item details";
+  }
+
+  const title = "title" in item.data ? item.data.title : undefined;
+  const name = "name" in item.data ? item.data.name : undefined;
+  const brand = "brand" in item.data ? item.data.brand : undefined;
+
+  return title || name || brand || "Item details";
+};
+
+const getListingBrand = (item: Awaited<ReturnType<typeof getItem>>) => {
+  if (!item?.data || !("brand" in item.data)) {
+    return undefined;
+  }
+
+  return item.data.brand || undefined;
+};
+
+const getListingCategoryName = (item: Awaited<ReturnType<typeof getItem>>) => {
+  if (!item?.data || !("category" in item.data)) {
+    return undefined;
+  }
+
+  const category = item.data.category as { name?: string } | null | undefined;
+  return category?.name || undefined;
+};
+
+const normalizeItemData = (
+  itemData: Awaited<ReturnType<typeof findItemByType>>,
+) => {
+  if (!itemData) {
+    return null;
+  }
+
+  return {
+    ...itemData,
+    price: "price" in itemData ? Number(itemData.price) : undefined,
+  };
+};
 
 interface PageProps {
   params: Promise<{
@@ -14,8 +63,46 @@ interface PageProps {
 
 const getItem = async (id: string) => {
   try {
-    const { data } = await request.get(`/api/items/details/${id}`);
-    return data?.item || null;
+    const { itemType } = await getItemTypeById(id);
+
+    const [location, itemData, related] = await Promise.all([
+      prisma.location.findFirst({
+        where: {
+          OR: [
+            { newCarId: id, isDeleted: false },
+            { oldCarId: id, isDeleted: false },
+            { propertyId: id, isDeleted: false },
+            { homeFurnitureId: id, isDeleted: false },
+            { medicalDeviceId: id, isDeleted: false },
+            { otherItemId: id, isDeleted: false },
+          ],
+        },
+      }),
+      findItemByType(itemType, id),
+      attachRelatedById(id),
+    ]);
+
+    const normalizedItemData = normalizeItemData(itemData);
+
+    if (!normalizedItemData || !location) {
+      return null;
+    }
+
+    return {
+      type: itemType,
+      data: normalizedItemData,
+      location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+        state: location.state,
+        city: location.city,
+        country: location.country,
+      },
+      images: related.images,
+      reviews: related.reviews,
+      transactions: related.transactions,
+    };
   } catch {
     return null;
   }
@@ -34,8 +121,7 @@ export async function generateMetadata({
     };
   }
 
-  const title =
-    item.data.title || item.data.name || item.data.brand || "Item details";
+  const title = getListingTitle(item);
   const priceText =
     typeof item.data.price === "number" ? ` - ${item.data.price}$` : "";
   const locationText = item.location
@@ -91,12 +177,12 @@ export async function generateMetadata({
 async function itemDetailsPage({ params }: PageProps) {
   const { id } = await params;
   const item = await getItem(id);
-    const acceptLanguage = (await headers()).get("accept-language") ?? "";
-    const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
-  
+  const acceptLanguage = (await headers()).get("accept-language") ?? "";
+  const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
 
-  const listingTitle =
-    item?.data?.title || item?.data?.name || item?.data?.brand || "Listing";
+  const listingTitle = item ? getListingTitle(item) : "Listing";
+  const listingBrand = item ? getListingBrand(item) : undefined;
+  const listingCategoryName = item ? getListingCategoryName(item) : undefined;
 
   const listingSchema = item
     ? (() => {
@@ -119,21 +205,26 @@ async function itemDetailsPage({ params }: PageProps) {
           name: listingTitle,
           image: itemImages,
           description: `${listingTitle} listing on ${SITE_NAME} marketplace${locationText ? ` in ${locationText}` : ""}`,
-          brand: item.data?.brand
+          brand: listingBrand
             ? {
                 "@type": "Brand",
-                name: item.data.brand,
+                name: listingBrand,
               }
             : undefined,
-          category: item.category?.name || undefined,
+          category: listingCategoryName,
           aggregateRating:
-            typeof item.averageRating === "number" &&
-            typeof item.reviewsCount === "number" &&
-            item.reviewsCount > 0
+            item.reviews.length > 0
               ? {
                   "@type": "AggregateRating",
-                  ratingValue: item.averageRating,
-                  reviewCount: item.reviewsCount,
+                  ratingValue: Number(
+                    (
+                      item.reviews.reduce(
+                        (sum, review) => sum + review.rate,
+                        0,
+                      ) / item.reviews.length
+                    ).toFixed(2),
+                  ),
+                  reviewCount: item.reviews.length,
                 }
               : undefined,
           offers: hasPrice
@@ -227,7 +318,7 @@ async function itemDetailsPage({ params }: PageProps) {
       )}
       <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         {item ? (
-          <ItemDetails item={item} />
+          <ItemDetails item={item as ItemDetailsItem} />
         ) : (
           <div className="market-panel rounded-[28px] px-6 py-12 text-center text-slate-200">
             <h2 className="text-xl font-bold">

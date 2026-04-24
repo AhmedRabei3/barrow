@@ -33,6 +33,8 @@ export async function GET(
           { newCarId: id, isDeleted: false },
           { oldCarId: id, isDeleted: false },
           { propertyId: id, isDeleted: false },
+          { homeFurnitureId: id, isDeleted: false },
+          { medicalDeviceId: id, isDeleted: false },
           { otherItemId: id, isDeleted: false },
         ],
       },

@@ -30,6 +30,8 @@ export function getModel(
     newCar: typeof prisma.newCar;
     oldCar: typeof prisma.oldCar;
     property: typeof prisma.property;
+    homeFurniture: typeof prisma.homeFurniture;
+    medicalDevice: typeof prisma.medicalDevice;
     otherItem: typeof prisma.otherItem;
   } = prisma,
 ) {
@@ -40,6 +42,10 @@ export function getModel(
       return client.oldCar;
     case $Enums.ItemType.PROPERTY:
       return client.property;
+    case $Enums.ItemType.HOME_FURNITURE:
+      return client.homeFurniture;
+    case $Enums.ItemType.MEDICAL_DEVICE:
+      return client.medicalDevice;
     case $Enums.ItemType.OTHER:
       return client.otherItem;
     default:
@@ -61,6 +67,16 @@ export async function findItemByType(type: $Enums.ItemType, id: string) {
 
     case $Enums.ItemType.PROPERTY:
       return prisma.property.findFirst({
+        where: { id, isDeleted: false, status: "AVAILABLE" },
+      });
+
+    case $Enums.ItemType.HOME_FURNITURE:
+      return prisma.homeFurniture.findFirst({
+        where: { id, isDeleted: false, status: "AVAILABLE" },
+      });
+
+    case $Enums.ItemType.MEDICAL_DEVICE:
+      return prisma.medicalDevice.findFirst({
         where: { id, isDeleted: false, status: "AVAILABLE" },
       });
 
@@ -101,6 +117,18 @@ export async function softDeleteByType(
         data,
       });
 
+    case $Enums.ItemType.HOME_FURNITURE:
+      return client.homeFurniture.updateMany({
+        where: { id, isDeleted: false },
+        data,
+      });
+
+    case $Enums.ItemType.MEDICAL_DEVICE:
+      return client.medicalDevice.updateMany({
+        where: { id, isDeleted: false },
+        data,
+      });
+
     case $Enums.ItemType.OTHER:
       return client.otherItem.updateMany({
         where: { id, isDeleted: false },
@@ -123,6 +151,8 @@ export async function getItemTypeById(itemId: string) {
         { newCarId: itemId, isDeleted: false },
         { oldCarId: itemId, isDeleted: false },
         { propertyId: itemId, isDeleted: false },
+        { homeFurnitureId: itemId, isDeleted: false },
+        { medicalDeviceId: itemId, isDeleted: false },
         { otherItemId: itemId, isDeleted: false },
       ],
     },
@@ -130,6 +160,8 @@ export async function getItemTypeById(itemId: string) {
       newCarId: true,
       oldCarId: true,
       propertyId: true,
+      homeFurnitureId: true,
+      medicalDeviceId: true,
       otherItemId: true,
     },
   });
@@ -143,7 +175,11 @@ export async function getItemTypeById(itemId: string) {
       ? $Enums.ItemType.USED_CAR
       : id.propertyId
         ? $Enums.ItemType.PROPERTY
-        : $Enums.ItemType.OTHER;
+        : id.homeFurnitureId
+          ? $Enums.ItemType.HOME_FURNITURE
+          : id.medicalDeviceId
+            ? $Enums.ItemType.MEDICAL_DEVICE
+            : $Enums.ItemType.OTHER;
 
   return { itemType };
 }
