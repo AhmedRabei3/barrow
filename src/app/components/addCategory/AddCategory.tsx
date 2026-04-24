@@ -7,6 +7,7 @@ import categoryFetcher, {
 import { useForm, SubmitHandler } from "react-hook-form";
 import {
   addNewCategoryAction,
+  deleteCategoryAction,
   updateCategoryAction,
 } from "@/actions/category.actions";
 import toast from "react-hot-toast";
@@ -14,7 +15,7 @@ import { $Enums } from "@prisma/client";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useEffect, useMemo, useState } from "react";
 import { DynamicIcon } from "./IconSetter";
-import { FaRegEdit } from "react-icons/fa";
+import { FaRegEdit, FaTrashAlt } from "react-icons/fa";
 
 interface CategoryFormValues {
   type: $Enums.ItemType;
@@ -40,6 +41,7 @@ export default function AddCategoryForm() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   const {
@@ -156,6 +158,47 @@ export default function AddCategoryForm() {
     }
   };
 
+  const handleDeleteCategory = async (category: CategoryRow) => {
+    const confirmed = window.confirm(
+      t(
+        "تأكيد حذف هذه الفئة؟ لن تظهر بعد الآن في القوائم.",
+        "Confirm deleting this category? It will no longer appear in category lists.",
+      ),
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(category.id);
+      const formData = new FormData();
+      formData.append("id", category.id);
+
+      const result = await deleteCategoryAction(formData);
+
+      if (!result.success) {
+        throw new Error(result.message || t("فشلت العملية", "Action failed"));
+      }
+
+      clearCategoriesCache();
+      toast.success(result.message || t("تم حذف الفئة", "Category deleted"));
+      if (editingId === category.id) {
+        setEditingId(null);
+        resetEdit();
+      }
+      await loadCategories();
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("فشل حذف الفئة", "Failed to delete category"),
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-md p-4 sm:p-6 max-w-4xl mx-auto flex flex-col gap-6">
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
@@ -205,10 +248,17 @@ export default function AddCategoryForm() {
                 }`}
               >
                 <option value="">{t("اختر النوع...", "Select type...")}</option>
-                <option value="NEW_CAR">
-                  {t("سيارة (جديدة ومستعملة)", "Cars (new & used)")}
+                <option value="NEW_CAR">{t("سيارة جديدة", "New car")}</option>
+                <option value="USED_CAR">
+                  {t("سيارة مستعملة", "Used car")}
                 </option>
                 <option value="PROPERTY">{t("عقار", "Real estate")}</option>
+                <option value="HOME_FURNITURE">
+                  {t("أثاث منزلي", "Home furniture")}
+                </option>
+                <option value="MEDICAL_DEVICE">
+                  {t("أجهزة طبية", "Medical devices")}
+                </option>
                 <option value="OTHER">{t("أخرى", "Other")}</option>
               </select>
               {errors.type && (
@@ -339,6 +389,17 @@ export default function AddCategoryForm() {
                     <FaRegEdit size={14} />
                     {t("تعديل", "Edit")}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(category)}
+                    disabled={deletingId === category.id}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <FaTrashAlt size={14} />
+                    {deletingId === category.id
+                      ? t("جارِ الحذف...", "Deleting...")
+                      : t("حذف", "Delete")}
+                  </button>
                 </div>
               ))}
             </div>
@@ -408,9 +469,18 @@ export default function AddCategoryForm() {
                     className="mt-1 p-2 border rounded-md bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-700"
                   >
                     <option value="NEW_CAR">
-                      {t("سيارة (جديدة ومستعملة)", "Cars (new & used)")}
+                      {t("سيارة جديدة", "New car")}
+                    </option>
+                    <option value="USED_CAR">
+                      {t("سيارة مستعملة", "Used car")}
                     </option>
                     <option value="PROPERTY">{t("عقار", "Real estate")}</option>
+                    <option value="HOME_FURNITURE">
+                      {t("أثاث منزلي", "Home furniture")}
+                    </option>
+                    <option value="MEDICAL_DEVICE">
+                      {t("أجهزة طبية", "Medical devices")}
+                    </option>
                     <option value="OTHER">{t("أخرى", "Other")}</option>
                   </select>
                 </div>

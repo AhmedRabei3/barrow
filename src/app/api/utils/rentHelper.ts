@@ -44,6 +44,24 @@ type RentClient = {
       data: { status: RentableItem["status"] };
     }) => Promise<unknown>;
   };
+  homeFurniture: {
+    findUnique: (args: {
+      where: { id: string };
+    }) => Promise<RentableItem | null>;
+    update: (args: {
+      where: { id: string };
+      data: { status: RentableItem["status"] };
+    }) => Promise<unknown>;
+  };
+  medicalDevice: {
+    findUnique: (args: {
+      where: { id: string };
+    }) => Promise<RentableItem | null>;
+    update: (args: {
+      where: { id: string };
+      data: { status: RentableItem["status"] };
+    }) => Promise<unknown>;
+  };
   otherItem: {
     findUnique: (args: {
       where: { id: string };
@@ -139,6 +157,10 @@ export async function getRentableItem(
       return tx.newCar.findUnique({ where: { id: itemId } });
     case "USED_CAR":
       return tx.oldCar.findUnique({ where: { id: itemId } });
+    case "HOME_FURNITURE":
+      return tx.homeFurniture.findUnique({ where: { id: itemId } });
+    case "MEDICAL_DEVICE":
+      return tx.medicalDevice.findUnique({ where: { id: itemId } });
     case "OTHER":
       return tx.otherItem.findUnique({ where: { id: itemId } });
   }
@@ -159,6 +181,18 @@ export async function updateItemStatus(
       return;
     case "USED_CAR":
       await tx.oldCar.update({ where: { id: itemId }, data: { status } });
+      return;
+    case "HOME_FURNITURE":
+      await tx.homeFurniture.update({
+        where: { id: itemId },
+        data: { status },
+      });
+      return;
+    case "MEDICAL_DEVICE":
+      await tx.medicalDevice.update({
+        where: { id: itemId },
+        data: { status },
+      });
       return;
     case "OTHER":
       await tx.otherItem.update({ where: { id: itemId }, data: { status } });

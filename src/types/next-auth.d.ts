@@ -11,6 +11,7 @@ declare module "next-auth" {
       isIdentityVerified: boolean;
       activeUntil: Date | null;
       pendingReferralEarnings: number;
+      preferredInterestOrder: string[];
       notifications: {
         id: string;
         title: string;
@@ -28,6 +29,7 @@ declare module "next-auth" {
     isIdentityVerified: boolean;
     activeUntil: Date | null;
     pendingReferralEarnings: number;
+    preferredInterestOrder: string[];
     notifications: {
       id: string;
       title: string;
@@ -46,6 +48,7 @@ declare module "next-auth/jwt" {
     isIdentityVerified: boolean;
     activeUntil: Date | null;
     pendingReferralEarnings: number;
+    preferredInterestOrder: string[];
     notifications: {
       id: string;
       title: string;

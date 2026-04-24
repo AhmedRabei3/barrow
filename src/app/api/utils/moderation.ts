@@ -32,6 +32,16 @@ export const resetItemModeration = async (
         where: { id: itemId },
         data: pendingReviewData,
       });
+    case ItemType.HOME_FURNITURE:
+      return client.homeFurniture.update({
+        where: { id: itemId },
+        data: pendingReviewData,
+      });
+    case ItemType.MEDICAL_DEVICE:
+      return client.medicalDevice.update({
+        where: { id: itemId },
+        data: pendingReviewData,
+      });
     case ItemType.OTHER:
       return client.otherItem.update({
         where: { id: itemId },
@@ -105,6 +115,42 @@ const buildModerationItemSnapshot = async (
     }
     case ItemType.OTHER: {
       const item = await prisma.otherItem.findUnique({
+        where: { id: itemId },
+        select: {
+          id: true,
+          name: true,
+          owner: { select: { id: true, name: true } },
+        },
+      });
+      return item
+        ? {
+            itemId: item.id,
+            title: item.name,
+            ownerId: item.owner.id,
+            ownerName: item.owner.name,
+          }
+        : null;
+    }
+    case ItemType.HOME_FURNITURE: {
+      const item = await prisma.homeFurniture.findUnique({
+        where: { id: itemId },
+        select: {
+          id: true,
+          name: true,
+          owner: { select: { id: true, name: true } },
+        },
+      });
+      return item
+        ? {
+            itemId: item.id,
+            title: item.name,
+            ownerId: item.owner.id,
+            ownerName: item.owner.name,
+          }
+        : null;
+    }
+    case ItemType.MEDICAL_DEVICE: {
+      const item = await prisma.medicalDevice.findUnique({
         where: { id: itemId },
         select: {
           id: true,

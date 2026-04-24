@@ -101,6 +101,35 @@ const otherItemSelect = {
   category: { select: categorySelect },
 } satisfies Prisma.OtherItemSelect;
 
+const homeFurnitureSelect = {
+  id: true,
+  name: true,
+  brand: true,
+  description: true,
+  price: true,
+  sellOrRent: true,
+  rentType: true,
+  status: true,
+  createdAt: true,
+  location: { select: locationSelect },
+  category: { select: categorySelect },
+} satisfies Prisma.HomeFurnitureSelect;
+
+const medicalDeviceSelect = {
+  id: true,
+  name: true,
+  manufacturer: true,
+  model: true,
+  description: true,
+  price: true,
+  sellOrRent: true,
+  rentType: true,
+  status: true,
+  createdAt: true,
+  location: { select: locationSelect },
+  category: { select: categorySelect },
+} satisfies Prisma.MedicalDeviceSelect;
+
 const getCachedCategoryIdByName = unstable_cache(
   async (name: string) => {
     const needle = name.trim();
@@ -135,6 +164,14 @@ export const itemSearchRepository = {
       case $Enums.ItemType.PROPERTY:
         return prisma.property.count({
           where: where as Prisma.PropertyWhereInput,
+        });
+      case $Enums.ItemType.HOME_FURNITURE:
+        return prisma.homeFurniture.count({
+          where: where as Prisma.HomeFurnitureWhereInput,
+        });
+      case $Enums.ItemType.MEDICAL_DEVICE:
+        return prisma.medicalDevice.count({
+          where: where as Prisma.MedicalDeviceWhereInput,
         });
       case $Enums.ItemType.OTHER:
         return prisma.otherItem.count({
@@ -204,6 +241,43 @@ export const itemSearchRepository = {
 
         return items.map((item) => ({
           ...item,
+          type,
+          price: Number(item.price),
+          sellOrRent: item.sellOrRent,
+          rentType: item.rentType,
+          status: item.status,
+        }));
+      }
+
+      case $Enums.ItemType.HOME_FURNITURE: {
+        const items = await prisma.homeFurniture.findMany({
+          where: where as Prisma.HomeFurnitureWhereInput,
+          select: homeFurnitureSelect,
+          orderBy: defaultOrderBy,
+          ...pagination,
+        });
+
+        return items.map((item) => ({
+          ...item,
+          type,
+          price: Number(item.price),
+          sellOrRent: item.sellOrRent,
+          rentType: item.rentType,
+          status: item.status,
+        }));
+      }
+
+      case $Enums.ItemType.MEDICAL_DEVICE: {
+        const items = await prisma.medicalDevice.findMany({
+          where: where as Prisma.MedicalDeviceWhereInput,
+          select: medicalDeviceSelect,
+          orderBy: defaultOrderBy,
+          ...pagination,
+        });
+
+        return items.map((item) => ({
+          ...item,
+          brand: item.manufacturer,
           type,
           price: Number(item.price),
           sellOrRent: item.sellOrRent,

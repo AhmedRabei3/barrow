@@ -11,6 +11,8 @@ import { useActivationCountdown } from "./useActivationCountdown";
 const ActivationCountdown = () => {
   const activationModal = useActivationModal();
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [shake, setShake] = useState(false);
   const pathname = usePathname();
   const { onOpen } = useInviteModal();
@@ -30,6 +32,37 @@ const ActivationCountdown = () => {
     }
   };
 
+  const handleToggleFromHandle = () => {
+    if (!isMobile) {
+      return;
+    }
+
+    setIsMobileExpanded((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const applyViewportState = (matches: boolean) => {
+      setIsMobile(matches);
+      if (!matches) {
+        setIsMobileExpanded(false);
+      }
+    };
+
+    applyViewportState(mediaQuery.matches);
+
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      applyViewportState(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleViewportChange);
+    return () => mediaQuery.removeEventListener("change", handleViewportChange);
+  }, []);
+
   useEffect(() => {
     const handleUpdate = () => {
       setShake(true);
@@ -43,6 +76,8 @@ const ActivationCountdown = () => {
 
   if (pathname !== "/") return null;
 
+  const isOpen = isMobile ? isMobileExpanded : isHovered;
+
   return (
     <>
       {user && (
@@ -50,12 +85,20 @@ const ActivationCountdown = () => {
           initial={{ opacity: 0, x: -120 }}
           animate={{
             opacity: 1,
-            x: isHovered ? 0 : -150,
-            ...(shake ? { x: isHovered ? [0, -4, 4, -4, 4, 0] : -150 } : {}),
+            x: isOpen ? 0 : -150,
+            ...(shake ? { x: isOpen ? [0, -4, 4, -4, 4, 0] : -150 } : {}),
           }}
           transition={{ duration: 0.35, ease: "easeInOut" }}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseEnter={() => {
+            if (!isMobile) {
+              setIsHovered(true);
+            }
+          }}
+          onMouseLeave={() => {
+            if (!isMobile) {
+              setIsHovered(false);
+            }
+          }}
           className="fixed left-0 bottom-6 z-50"
         >
           <div
@@ -145,7 +188,14 @@ const ActivationCountdown = () => {
             </div>
           </div>
 
-          <div
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleToggleFromHandle();
+            }}
+            aria-label="Toggle activation countdown"
+            aria-expanded={isOpen}
             className="
               absolute top-1/2 -translate-y-1/2 -right-4
               w-8 h-16 rounded-r-full
@@ -153,16 +203,15 @@ const ActivationCountdown = () => {
               shadow-xl border border-cyan-200/40
               flex items-center justify-center
             "
-            aria-hidden
           >
             <div className="w-4 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center">
               <DynamicIcon
-                iconName="MdChevronRight"
+                iconName={isOpen ? "MdChevronLeft" : "MdChevronRight"}
                 size={12}
                 className="text-white"
               />
             </div>
-          </div>
+          </button>
         </motion.aside>
       )}
     </>

@@ -1,13 +1,14 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
-import { MdOutlineRefresh } from "react-icons/md";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
 import MapWrapper from "./MyMap";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import Loader from "../category/Loader";
+import Tryagain from "../category/Tryagain";
 
 interface HomeBodyProps {
   items: FormattedItem[];
@@ -20,41 +21,6 @@ interface HomeBodyProps {
 const CONTENT_LAYOUT_CLASS =
   "relative mt-24 md:mt-6 flex flex-col md:flex-row gap-4 md:gap-5";
 
-interface EmptyStateProps {
-  isArabic: boolean;
-  onRefresh: () => void;
-}
-
-const EmptyState = ({ isArabic, onRefresh }: EmptyStateProps) => (
-  <div className="w-full mt-15 flex flex-col items-center justify-center py-6 text-neutral-500 gap-4">
-    <p>
-      {isArabic
-        ? "لا توجد عناصر لهذه الفئة"
-        : "No items found for this category"}
-    </p>
-    <button
-      type="button"
-      onClick={onRefresh}
-      className="px-4 py-2 rounded-md border border-neutral-300 hover:bg-neutral-100 text-neutral-700 inline-flex items-center gap-2"
-    >
-      <MdOutlineRefresh className="text-lg" />
-      {isArabic ? "إعادة المحاولة" : "Try again"}
-    </button>
-  </div>
-);
-
-interface LoadingStateProps {
-  isArabic: boolean;
-}
-
-const LoadingState = ({ isArabic }: LoadingStateProps) => (
-  <div className="w-full flex flex-col items-center justify-center py-8 text-neutral-500 gap-3">
-    <p className="loader"></p>
-    <p className="animate-pulse">
-      {isArabic ? "جاري تحميل العناصر..." : "Loading items..."}
-    </p>
-  </div>
-);
 
 const HomeBody = ({
   loading,
@@ -86,26 +52,17 @@ const HomeBody = ({
   }, [featuredIds, items, topFeaturedItems.length]);
 
   /** 🔹 الحالات الخاصة */
-  if (loading && !items.length) return <LoadingState isArabic={isArabic} />;
+  if (loading && !items.length) return <Loader isArabic={isArabic} />;
 
   if (!loading && !isRefreshing && !items.length) {
-    return <EmptyState isArabic={isArabic} onRefresh={onRefresh} />;
+    return <Tryagain isArabic={isArabic} refetch={onRefresh} />;
   }
 
   /** 🔹 المكون الرئيسي */
   return (
     <Container>
       {isRefreshing && items.length > 0 && (
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-xs text-neutral-600 shadow-sm backdrop-blur">
-          <span
-            className="h-2 w-2 
-              animate-pulse 
-              rounded-full bg-emerald-500"
-          />
-          <span>
-            {isArabic ? "يتم تحديث العناصر..." : "Refreshing listings..."}
-          </span>
-        </div>
+        <Loader isArabic={isArabic} />
       )}
 
       {topFeaturedItems.length > 0 && (

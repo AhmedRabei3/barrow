@@ -105,6 +105,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.pendingReferralEarnings = Number(
           user.pendingReferralEarnings ?? token.pendingReferralEarnings ?? 0,
         );
+        token.preferredInterestOrder =
+          user.preferredInterestOrder ?? token.preferredInterestOrder ?? [];
         token.notifications = user.notifications ?? token.notifications ?? [];
       }
 
@@ -117,6 +119,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.pendingReferralEarnings = Number(
         token.pendingReferralEarnings ?? 0,
       );
+      token.preferredInterestOrder = token.preferredInterestOrder ?? [];
       token.notifications = token.notifications ?? [];
 
       return token;
@@ -139,6 +142,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.pendingReferralEarnings = Number(
         token.pendingReferralEarnings ?? 0,
       );
+      session.user.preferredInterestOrder = token.preferredInterestOrder ?? [];
       session.user.notifications = token.notifications ?? [];
 
       try {
@@ -155,6 +159,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             isIdentityVerified: true,
             activeUntil: true,
             pendingReferralEarnings: true,
+            preferredInterestOrder: true,
             notifications: {
               where: { isRead: false },
               select: {
@@ -179,6 +184,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           dbUser?.pendingReferralEarnings ??
             session.user.pendingReferralEarnings,
         );
+        session.user.preferredInterestOrder =
+          dbUser?.preferredInterestOrder ?? session.user.preferredInterestOrder;
         session.user.notifications = dbUser?.notifications ?? [];
       } catch (error) {
         if (isDatabaseUnavailableError(error)) {

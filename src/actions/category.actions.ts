@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   createCategorySchema,
+  deleteCategorySchema,
   updateCategorySchema,
 } from "@/app/validations/categoryValidations";
 import { translateZodError } from "../app/api/lib/errors/zodTranslator";
@@ -155,6 +156,104 @@ export async function updateCategoryAction(
       success: true,
       message: "تم تحديث الفئة بنجاح",
       category: updated,
+    };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const { message } = translateZodError(err);
+      return { success: false, message };
+    }
+    console.error(err);
+    return { success: false, message: "حدث خطأ غير متوقع" };
+  }
+}
+
+export async function deleteCategoryAction(
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "يجب تسجيل الدخول" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, isAdmin: true },
+    });
+
+    if (!user || !user.isAdmin) {
+      return { success: false, message: "غير مصرح" };
+    }
+
+    const parsed = deleteCategorySchema.parse({
+      id: formData.get("id"),
+    });
+
+    const category = await prisma.category.findUnique({
+      where: { id: parsed.id },
+      select: { id: true, isDeleted: true },
+    });
+
+    if (!category) {
+      return { success: false, message: "الفئة غير موجودة" };
+    }
+
+    if (category.isDeleted) {
+      return { success: false, message: "الفئة محذوفة مسبقًا" };
+    }
+
+    const [
+      properties,
+      newCars,
+      oldCars,
+      homeFurnitureItems,
+      medicalDevices,
+      otherItems,
+    ] = await prisma.$transaction([
+      prisma.property.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+      prisma.newCar.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+      prisma.oldCar.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+      prisma.homeFurniture.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+      prisma.medicalDevice.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+      prisma.otherItem.count({
+        where: { categoryId: parsed.id, isDeleted: false },
+      }),
+    ]);
+
+    const linkedItemsCount =
+      properties +
+      newCars +
+      oldCars +
+      homeFurnitureItems +
+      medicalDevices +
+      otherItems;
+
+    if (linkedItemsCount > 0) {
+      return {
+        success: false,
+        message: `لا يمكن حذف فئة مرتبطة حاليًا بـ ${linkedItemsCount} عنصر/عناصر نشطة`,
+      };
+    }
+
+    const deletedCategory = await prisma.category.update({
+      where: { id: parsed.id },
+      data: { isDeleted: true },
+    });
+
+    return {
+      success: true,
+      message: "تم حذف الفئة بنجاح",
+      category: deletedCategory,
     };
   } catch (err) {
     if (err instanceof z.ZodError) {

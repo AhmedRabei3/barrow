@@ -215,16 +215,6 @@ const UserMenu = () => {
     now.getTime() >= activeUntilDate!.getTime() &&
     now.getTime() <= graceEndDate!.getTime();
 
-  const pendingEarnings = Number(user?.pendingReferralEarnings ?? 0);
-  const readyEarnings = Number(user?.balance ?? 0);
-  const remainingActiveDays = activeUntilDate
-    ? Math.max(
-        0,
-        Math.ceil(
-          (activeUntilDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
-        ),
-      )
-    : 0;
   const shouldShowRenewAlert = isInGracePeriod;
   const showMenuIndicator = shouldShowRenewAlert;
 
@@ -384,41 +374,7 @@ const UserMenu = () => {
               width={24}
               height={24}
             />
-
-            {user ? (
-              <span className="pointer-events-none absolute top-full right-0 z-70 mt-2 hidden min-w-72 rounded-xl border border-slate-200 bg-white p-3 text-left text-xs text-slate-600 shadow-xl md:group-hover:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                <div className="font-semibold text-slate-800 dark:text-slate-100">
-                  {isArabic ? "ملخص الأرباح" : "Earnings summary"}
-                </div>
-                <div className="mt-2 space-y-1">
-                  <div>
-                    {isArabic ? "الأرباح المعلقة:" : "Pending earnings:"}{" "}
-                    <span className="font-bold">
-                      {pendingEarnings.toFixed(2)} $
-                    </span>
-                  </div>
-                  <div>
-                    {isArabic ? "الأرباح الجاهزة:" : "Ready earnings:"}{" "}
-                    <span className="font-bold">
-                      {readyEarnings.toFixed(2)} $
-                    </span>
-                  </div>
-                  <div>
-                    {isArabic
-                      ? "الأيام المتبقية للتفعيل:"
-                      : "Activation days left:"}{" "}
-                    <span className="font-bold">{remainingActiveDays}</span>
-                  </div>
-                </div>
-                {shouldShowRenewAlert ? (
-                  <div className="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-                    {isArabic
-                      ? `قم بتجديد الاشتراك لتحصل على أرباحك المعلقة (${pendingEarnings.toFixed(2)} $)`
-                      : `Renew your subscription to unlock pending earnings (${pendingEarnings.toFixed(2)} $)`}
-                  </div>
-                ) : null}
-              </span>
-            ) : null}
+            
           </button>
 
           {/* Desktop dropdown */}

@@ -159,6 +159,26 @@ const getDistinctCategoryIds = async (
     return rows.map((row) => row.categoryId);
   }
 
+  if (type === ItemType.HOME_FURNITURE) {
+    const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
+      SELECT DISTINCT "categoryId"
+      FROM "HomeFurniture"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+    `;
+
+    return rows.map((row) => row.categoryId);
+  }
+
+  if (type === ItemType.MEDICAL_DEVICE) {
+    const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
+      SELECT DISTINCT "categoryId"
+      FROM "MedicalDevice"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+    `;
+
+    return rows.map((row) => row.categoryId);
+  }
+
   const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
     SELECT DISTINCT "categoryId"
     FROM (
@@ -172,6 +192,14 @@ const getDistinctCategoryIds = async (
       UNION
       SELECT "categoryId"
       FROM "Property"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+      UNION
+      SELECT "categoryId"
+      FROM "HomeFurniture"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+      UNION
+      SELECT "categoryId"
+      FROM "MedicalDevice"
       WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
       UNION
       SELECT "categoryId"

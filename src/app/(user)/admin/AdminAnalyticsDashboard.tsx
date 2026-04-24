@@ -251,7 +251,8 @@ const AdminAnalyticsDashboard = () => {
         | "NOTIFY"
         | "REWARD"
         | "MAKE_ADMIN"
-        | "REMOVE_ADMIN",
+        | "REMOVE_ADMIN"
+        | "FREE_ACTIVATION",
       user: DashboardUser,
       payload?: { message?: string; amount?: number },
     ) => {
@@ -370,6 +371,21 @@ const AdminAnalyticsDashboard = () => {
     }
 
     await handleAdminAction(nextAction, user);
+  };
+
+  const handleFreeActivation = async (user: DashboardUser) => {
+    const confirmed = window.confirm(
+      t(
+        "تأكيد منح هذا المستخدم تفعيلًا مجانيًا لمدة 30 يومًا؟",
+        "Confirm granting this user a free 30-day activation?",
+      ),
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await handleAdminAction("FREE_ACTIVATION", user);
   };
 
   const handleVerificationDecision = async (
@@ -741,6 +757,14 @@ const AdminAnalyticsDashboard = () => {
                           <div className="font-semibold text-slate-100">
                             {user.name}
                           </div>
+                          {user.freeActivationGrantedByAdminName ? (
+                            <div className="mt-1 text-xs text-emerald-300">
+                              {t("30 يوم مجاني بواسطة", "Free 30 days by")}:{" "}
+                              <span className="font-semibold">
+                                {user.freeActivationGrantedByAdminName}
+                              </span>
+                            </div>
+                          ) : null}
                           <div className="mt-1 text-xs text-zinc-500">
                             {user.email}
                           </div>
@@ -797,6 +821,12 @@ const AdminAnalyticsDashboard = () => {
                               ? `${formatCurrency(user.latestPaymentAmount)} - ${formatDate(user.latestPaymentCreatedAt)}`
                               : t("غير موثقة", "Untracked")}
                           </div>
+                          {user.freeActivationGrantedAt ? (
+                            <div className="mt-1 text-xs text-emerald-300">
+                              {t("آخر تفعيل مجاني", "Last free activation")}:{" "}
+                              {formatDate(user.freeActivationGrantedAt)}
+                            </div>
+                          ) : null}
                           <div className="mt-1 text-xs text-zinc-500">
                             {user.repeatedSubscription
                               ? t("مشترك متكرر", "Repeated subscriber")
@@ -833,6 +863,22 @@ const AdminAnalyticsDashboard = () => {
                             {t("إجمالي المدفوع", "Total charged")}:{" "}
                             {formatCurrency(user.totalCharged)}
                           </div>
+                          <div className="mt-2 text-xs text-zinc-500">
+                            {t("إجمالي العناصر", "Total listings")}:{" "}
+                            <span className="font-semibold text-slate-200">
+                              {user.totalListingsCount}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {t("عقار", "Properties")}: {user.propertiesCount} ·{" "}
+                            {t("جديد", "New")}: {user.newCarsCount} ·{" "}
+                            {t("مستعمل", "Used")}: {user.oldCarsCount}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {t("أثاث", "Furniture")}: {user.homeFurnitureCount}{" "}
+                            · {t("طبي", "Medical")}: {user.medicalDevicesCount}{" "}
+                            · {t("أخرى", "Other")}: {user.otherItemsCount}
+                          </div>
                           <div className="mt-1 break-all text-xs dark:text-slate-100 text-zinc-500">
                             {user.id}
                           </div>
@@ -855,6 +901,18 @@ const AdminAnalyticsDashboard = () => {
                             >
                               {t("مكافأة", "Reward")}
                             </button>
+                            {!user.isOwner ? (
+                              <button
+                                type="button"
+                                onClick={() => handleFreeActivation(user)}
+                                disabled={
+                                  actionLoadingId === user.id || user.isDeleted
+                                }
+                                className="rounded-xl border border-emerald-500/25 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {t("30 يوم مجاني", "Free 30 days")}
+                              </button>
+                            ) : null}
                             {isOwnerViewer && !user.isOwner ? (
                               <button
                                 type="button"

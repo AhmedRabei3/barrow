@@ -2,6 +2,18 @@
 import { FieldErrors, FieldValues, UseFormRegister } from "react-hook-form";
 import Input from "../../inputs/Input";
 import PasswordHintsPanel from "../../inputs/PasswordHintsPanel";
+import {
+  DEFAULT_USER_INTEREST_ORDER,
+  type UserInterestKey,
+} from "@/lib/primaryCategories";
+
+const INTEREST_LABELS: Record<UserInterestKey, { ar: string; en: string }> = {
+  PROPERTY: { ar: "العقارات", en: "Real estate" },
+  CARS: { ar: "السيارات", en: "Cars" },
+  HOME_FURNITURE: { ar: "الأثاث المنزلي", en: "Home furniture" },
+  MEDICAL_DEVICES: { ar: "الأجهزة الطبية", en: "Medical devices" },
+  OTHER: { ar: "أشياء أخرى", en: "Other things" },
+};
 
 interface RegisterCalssicProps {
   register: UseFormRegister<FieldValues>;
@@ -9,6 +21,8 @@ interface RegisterCalssicProps {
   isArabic: boolean;
   isLoading: boolean;
   passwordValue: string;
+  interestOrder: UserInterestKey[];
+  onMoveInterest: (index: number, direction: "up" | "down") => void;
 }
 
 const RegisterCalssic = ({
@@ -17,6 +31,8 @@ const RegisterCalssic = ({
   isArabic,
   isLoading,
   passwordValue,
+  interestOrder,
+  onMoveInterest,
 }: RegisterCalssicProps) => {
   return (
     <>
@@ -58,6 +74,60 @@ const RegisterCalssic = ({
       />
 
       <PasswordHintsPanel value={passwordValue} />
+
+      <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {isArabic ? "رتّب اهتماماتك" : "Order your interests"}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {isArabic
+              ? "ستظهر لك الفئات الأقرب لاهتماماتك أولاً في الصفحة الرئيسية."
+              : "Your homepage will prioritize the categories closest to your interests."}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          {(interestOrder.length
+            ? interestOrder
+            : DEFAULT_USER_INTEREST_ORDER
+          ).map((interest, index, array) => (
+            <div
+              key={interest}
+              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 dark:bg-sky-500/20 dark:text-sky-200">
+                  {index + 1}
+                </span>
+                <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                  {isArabic
+                    ? INTEREST_LABELS[interest].ar
+                    : INTEREST_LABELS[interest].en}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isLoading || index === 0}
+                  onClick={() => onMoveInterest(index, "up")}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"
+                >
+                  {isArabic ? "أعلى" : "Up"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoading || index === array.length - 1}
+                  onClick={() => onMoveInterest(index, "down")}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"
+                >
+                  {isArabic ? "أسفل" : "Down"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <Input
         id="confirmPassword"

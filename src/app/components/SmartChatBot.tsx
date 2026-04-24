@@ -19,6 +19,7 @@ import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { SMART_CHAT_EN_MAP, SMART_CHAT_TEXT } from "@/app/i18n/smartChat";
 import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "@/app/i18n/brand";
 import { DynamicIcon } from "./addCategory/IconSetter";
+import ImageUpload from "./imageUploader/ImageUpload";
 
 type ItemType = $Enums.ItemType;
 
@@ -28,6 +29,11 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+};
+
+type EditFieldEntry = Question & {
+  index: number;
+  displayValue: string;
 };
 
 type QuestionKind =
@@ -139,6 +145,8 @@ const ITEM_TYPE_OPTIONS: QuestionOption[] = [
   { label: "🚗 سيارات جديدة", value: $Enums.ItemType.NEW_CAR },
   { label: "🚙 سيارات مستعملة", value: $Enums.ItemType.USED_CAR },
   { label: "🏠 عقارات", value: $Enums.ItemType.PROPERTY },
+  { label: "🛋️ أثاث منزلي", value: $Enums.ItemType.HOME_FURNITURE },
+  { label: "🩺 أجهزة طبية", value: $Enums.ItemType.MEDICAL_DEVICE },
   { label: "📦 أشياء أخرى", value: $Enums.ItemType.OTHER },
 ];
 
@@ -146,6 +154,8 @@ const ITEM_TYPE_LABELS: Record<ItemType, { ar: string; en: string }> = {
   NEW_CAR: { ar: "سيارة جديدة", en: "New car" },
   USED_CAR: { ar: "سيارة مستعملة", en: "Used car" },
   PROPERTY: { ar: "عقار", en: "Property" },
+  HOME_FURNITURE: { ar: "أثاث منزلي", en: "Home furniture" },
+  MEDICAL_DEVICE: { ar: "جهاز طبي", en: "Medical device" },
   OTHER: { ar: "عنصر آخر", en: "Other item" },
 };
 
@@ -197,6 +207,8 @@ const ROUTE_BY_TYPE: Record<ItemType, string> = {
   NEW_CAR: "/api/cars",
   USED_CAR: "/api/cars/used_car",
   PROPERTY: "/api/realestate",
+  HOME_FURNITURE: "/api/homeFurniture",
+  MEDICAL_DEVICE: "/api/medicalDevices",
   OTHER: "/api/otherItems",
 };
 
@@ -204,6 +216,8 @@ const EDIT_ROUTE_BY_TYPE: Record<ItemType, string> = {
   NEW_CAR: "/api/cars/new_car",
   USED_CAR: "/api/cars/used_car",
   PROPERTY: "/api/realestate",
+  HOME_FURNITURE: "/api/homeFurniture",
+  MEDICAL_DEVICE: "/api/medicalDevices",
   OTHER: "/api/otherItems",
 };
 
@@ -211,6 +225,8 @@ const SCHEMA_BY_TYPE = {
   NEW_CAR: createNewCarSchema,
   USED_CAR: createUsedCarSchema,
   PROPERTY: createPropertySchema,
+  HOME_FURNITURE: createOtherItemSchema,
+  MEDICAL_DEVICE: createOtherItemSchema,
   OTHER: createOtherItemSchema,
 } as const;
 
@@ -506,6 +522,188 @@ const getQuestionsByType = (
     ];
   }
 
+  if (itemType === $Enums.ItemType.HOME_FURNITURE) {
+    return [
+      ...sharedStart,
+      { key: "name", label: "اسم قطعة الأثاث", type: "text", required: true },
+      {
+        key: "brand",
+        label: "العلامة التجارية أو الورشة (اختياري)",
+        type: "text",
+        required: false,
+      },
+      { key: "price", label: "السعر", type: "number", required: true },
+      {
+        key: "sellOrRent",
+        label: "نوع الإعلان",
+        type: "select",
+        required: true,
+        options: RENT_OPTIONS,
+      },
+      {
+        key: "rentType",
+        label: "نوع الإيجار",
+        type: "select",
+        required: true,
+        options: RENT_TYPE_OPTIONS,
+        condition: (answers) => answers.sellOrRent === "RENT",
+      },
+      {
+        key: "condition",
+        label: "حالة الأثاث",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "material",
+        label: "الخامة",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "roomType",
+        label: "الغرفة المناسبة",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "dimensions",
+        label: "الأبعاد",
+        type: "text",
+        required: false,
+      },
+      { key: "color", label: "اللون", type: "text", required: false },
+      {
+        key: "assemblyIncluded",
+        label: "هل يشمل التركيب؟",
+        type: "boolean",
+        required: false,
+        options: BOOLEAN_OPTIONS,
+      },
+      {
+        key: "isUsed",
+        label: "هل الأثاث مستعمل؟",
+        type: "boolean",
+        required: true,
+        options: BOOLEAN_OPTIONS,
+      },
+      {
+        key: "status",
+        label: "حالة الإعلان",
+        type: "select",
+        required: true,
+        options: STATUS_OPTIONS,
+      },
+      {
+        key: "description",
+        label: "الوصف (اختياري)",
+        type: "text",
+        required: false,
+      },
+      ...locationQuestions,
+    ];
+  }
+
+  if (itemType === $Enums.ItemType.MEDICAL_DEVICE) {
+    return [
+      ...sharedStart,
+      { key: "name", label: "اسم الجهاز", type: "text", required: true },
+      {
+        key: "manufacturer",
+        label: "الشركة الصانعة",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "model",
+        label: "الموديل أو الرقم المرجعي",
+        type: "text",
+        required: false,
+      },
+      { key: "price", label: "السعر", type: "number", required: true },
+      {
+        key: "sellOrRent",
+        label: "نوع الإعلان",
+        type: "select",
+        required: true,
+        options: RENT_OPTIONS,
+      },
+      {
+        key: "rentType",
+        label: "نوع الإيجار",
+        type: "select",
+        required: true,
+        options: RENT_TYPE_OPTIONS,
+        condition: (answers) => answers.sellOrRent === "RENT",
+      },
+      {
+        key: "deviceClass",
+        label: "فئة الجهاز",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "condition",
+        label: "حالة الجهاز",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "manufacturerCountry",
+        label: "بلد التصنيع",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "isUsed",
+        label: "هل الجهاز مستعمل؟",
+        type: "boolean",
+        required: true,
+        options: BOOLEAN_OPTIONS,
+      },
+      {
+        key: "warrantyMonths",
+        label: "مدة الضمان بالأشهر",
+        type: "number",
+        required: false,
+      },
+      {
+        key: "usageHours",
+        label: "ساعات الاستخدام",
+        type: "number",
+        required: false,
+      },
+      {
+        key: "requiresPrescription",
+        label: "هل يتطلب وصفة أو تصريحًا؟",
+        type: "boolean",
+        required: false,
+        options: BOOLEAN_OPTIONS,
+      },
+      {
+        key: "maintenanceRecordAvailable",
+        label: "هل سجل الصيانة متوفر؟",
+        type: "boolean",
+        required: false,
+        options: BOOLEAN_OPTIONS,
+      },
+      {
+        key: "status",
+        label: "حالة الإعلان",
+        type: "select",
+        required: true,
+        options: STATUS_OPTIONS,
+      },
+      {
+        key: "description",
+        label: "الوصف (اختياري)",
+        type: "text",
+        required: false,
+      },
+      ...locationQuestions,
+    ];
+  }
+
   return [
     ...sharedStart,
     { key: "name", label: "اسم العنصر", type: "text", required: true },
@@ -752,6 +950,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [selectedEditableFieldKey, setSelectedEditableFieldKey] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -910,6 +1111,105 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       });
   }, [answers, editItemId, isReadyToSubmit, questions]);
 
+  const getQuestionAnswerDisplay = useCallback(
+    (question: Question, sourceAnswers: FieldValues) => {
+      const emptyValueText = t(
+        "لم يتم تحديد قيمة بعد",
+        "No value selected yet",
+      );
+
+      if (question.type === "location") {
+        const address = String(sourceAnswers.address || "").trim();
+        const latitude = sourceAnswers.latitude;
+        const longitude = sourceAnswers.longitude;
+
+        if (address) {
+          return `📍 ${address}`;
+        }
+
+        if (latitude !== undefined && longitude !== undefined) {
+          return `📍 ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`;
+        }
+
+        return emptyValueText;
+      }
+
+      const rawValue = sourceAnswers[question.key];
+
+      if (
+        rawValue === undefined ||
+        rawValue === null ||
+        (typeof rawValue === "string" && rawValue.trim() === "")
+      ) {
+        if (question.type === "files") {
+          return selectedImages.length > 0
+            ? t(
+                `${selectedImages.length} صورة مرفقة`,
+                `${selectedImages.length} attached image${selectedImages.length === 1 ? "" : "s"}`,
+              )
+            : emptyValueText;
+        }
+
+        return emptyValueText;
+      }
+
+      if (question.type === "boolean") {
+        return rawValue ? t("نعم", "Yes") : t("لا", "No");
+      }
+
+      if (question.type === "select") {
+        return (
+          question.options?.find((option) => option.value === String(rawValue))
+            ?.label ?? String(rawValue)
+        );
+      }
+
+      if (question.type === "multiselect") {
+        if (!Array.isArray(rawValue) || rawValue.length === 0) {
+          return emptyValueText;
+        }
+
+        return rawValue
+          .map(
+            (value) =>
+              question.options?.find((option) => option.value === String(value))
+                ?.label ?? String(value),
+          )
+          .join(isArabic ? "، " : ", ");
+      }
+
+      if (question.type === "files") {
+        const imageCount = Array.isArray(rawValue) ? rawValue.length : 0;
+        if (imageCount === 0) {
+          return emptyValueText;
+        }
+
+        return t(
+          `${imageCount} صورة مرفقة`,
+          `${imageCount} attached image${imageCount === 1 ? "" : "s"}`,
+        );
+      }
+
+      return String(rawValue);
+    },
+    [isArabic, selectedImages.length, t],
+  );
+
+  const editFieldEntries = useMemo<EditFieldEntry[]>(() => {
+    if (!editItemId || !isReadyToSubmit) return [];
+
+    return editFieldOptions.map((field) => ({
+      ...field,
+      displayValue: getQuestionAnswerDisplay(field, answers),
+    }));
+  }, [
+    answers,
+    editFieldOptions,
+    editItemId,
+    getQuestionAnswerDisplay,
+    isReadyToSubmit,
+  ]);
+
   useEffect(() => {
     if (!itemType) {
       setCategories([]);
@@ -926,6 +1226,12 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       },
     });
   }, [itemType]);
+
+  useEffect(() => {
+    if (!isReadyToSubmit) {
+      setSelectedEditableFieldKey(null);
+    }
+  }, [isReadyToSubmit]);
 
   useEffect(() => {
     if (isReadyToSubmit) return;
@@ -1108,6 +1414,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     setItemType(null);
     setAssistantMode("home");
     setEditItemId(null);
+    setSelectedEditableFieldKey(null);
     setCategories([]);
     setAnswers({});
     setSelectedImages([]);
@@ -1269,12 +1576,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     if (currentQuestion.type === "location") {
       const picked = rawValue as LocationSelection;
 
-      pushUserMessage(
-        picked.address
-          ? `📍 ${picked.address}`
-          : `📍 ${picked.lat.toFixed(5)}, ${picked.lng.toFixed(5)}`,
-      );
-
       nextAnswers = {
         ...nextAnswers,
         latitude: picked.lat,
@@ -1284,24 +1585,16 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
         state: picked.state || nextAnswers.state || "",
         country: picked.country || nextAnswers.country || "",
       };
+      pushUserMessage(getQuestionAnswerDisplay(currentQuestion, nextAnswers));
       setSelectedLocation(picked);
     } else {
       const normalized = normalizeAnswer(currentQuestion, rawValue);
-      const displayValue =
-        currentQuestion.type === "boolean"
-          ? normalized
-            ? t("نعم", "Yes")
-            : t("لا", "No")
-          : Array.isArray(normalized)
-            ? normalized.join(", ")
-            : String(normalized);
-
-      pushUserMessage(displayValue);
-
       nextAnswers = {
         ...nextAnswers,
         [currentQuestion.key]: normalized,
       };
+
+      pushUserMessage(getQuestionAnswerDisplay(currentQuestion, nextAnswers));
 
       if (currentQuestion.key === "images") {
         setSelectedImages(rawValue as File[]);
@@ -1360,6 +1653,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   };
 
   const handleSelectEditField = (questionIndex: number, fieldLabel: string) => {
+    setSelectedEditableFieldKey(null);
     pushUserMessage(fieldLabel);
     setMessages((prev) => [
       ...prev,
@@ -1740,15 +2034,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
         {itemType && currentQuestion?.type === "files" && !isReadyToSubmit && (
           <div className="space-y-2">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              className="block w-full text-xs text-neutral-600 file:mr-2 file:px-3 file:py-1.5 file:border file:border-neutral-300 file:rounded file:bg-neutral-50"
-              onChange={(event) => {
-                const files = Array.from(event.target.files || []);
-                setSelectedImages(files);
-              }}
+            <ImageUpload
+              selectedImages={selectedImages}
+              setSelectedImages={setSelectedImages}
             />
             <button
               type="button"
@@ -1873,30 +2161,68 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               <div className="space-y-2">
                 <p className="text-xs text-neutral-600">
                   {t(
-                    "ما الحقل الذي تود تعديله؟ اختر اسم الحقل:",
-                    "What would you like to edit? Choose a field:",
+                    "اضغط على الإجابة التي تريد تعديلها، ثم اضغط على زر التعديل الذي يظهر لها:",
+                    "Tap the answer you want to edit, then use the edit button that appears for it:",
                   )}
                 </p>
                 <motion.div
-                  className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto"
+                  className="space-y-2 max-h-56 overflow-y-auto"
                   variants={staggerContainerVariants}
                   initial="hidden"
                   animate="visible"
                 >
-                  {editFieldOptions.map((field) => (
-                    <motion.button
-                      key={`edit-field-btn-${field.key}`}
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() =>
-                        handleSelectEditField(field.index, field.label)
-                      }
-                      variants={staggerItemVariants}
-                      className={`${chipButtonClass} disabled:opacity-50`}
-                    >
-                      {field.label}
-                    </motion.button>
-                  ))}
+                  {editFieldEntries.map((field) => {
+                    const isSelected = selectedEditableFieldKey === field.key;
+
+                    return (
+                      <motion.div
+                        key={`edit-field-msg-${field.key}`}
+                        variants={staggerItemVariants}
+                        className="space-y-1"
+                      >
+                        <div className={`flex ${userMessageWrapClass}`}>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() =>
+                              setSelectedEditableFieldKey((current) =>
+                                current === field.key ? null : field.key,
+                              )
+                            }
+                            className={`max-w-[92%] w-full text-start rounded-2xl px-3 py-2 bg-linear-to-r from-blue-600 to-teal-600 text-white shadow-md transition-all ${userBubbleClass} ${
+                              isSelected
+                                ? "ring-2 ring-blue-200 dark:ring-blue-400/60"
+                                : "hover:shadow-lg"
+                            } disabled:opacity-50`}
+                          >
+                            <div className="text-[11px] text-white/75">
+                              {field.label}
+                            </div>
+                            <div className="text-sm whitespace-pre-line leading-relaxed">
+                              {field.displayValue}
+                            </div>
+                          </button>
+                        </div>
+                        {isSelected && (
+                          <div className={`flex ${userMessageWrapClass}`}>
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() =>
+                                handleSelectEditField(field.index, field.label)
+                              }
+                              className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-50 dark:border-blue-500/40 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-800 disabled:opacity-50"
+                            >
+                              <span aria-hidden="true">✎</span>
+                              <span>
+                                {t("تعديل هذه الإجابة", "Edit this answer")}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               </div>
             )}

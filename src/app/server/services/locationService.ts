@@ -22,7 +22,11 @@ export async function saveLocation(
         ? { oldCarId: itemId }
         : itemType === "PROPERTY"
           ? { propertyId: itemId }
-          : { otherItemId: itemId };
+          : itemType === "HOME_FURNITURE"
+            ? { homeFurnitureId: itemId }
+            : itemType === "MEDICAL_DEVICE"
+              ? { medicalDeviceId: itemId }
+              : { otherItemId: itemId };
 
   return prisma.location.create({
     data: {

@@ -11,7 +11,6 @@ import {
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
 
-
 interface Params {
   params: Promise<{ id: string }>;
 }

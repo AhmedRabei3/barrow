@@ -10,9 +10,13 @@ type AdminAction =
   | "UNBLOCK"
   | "MAKE_ADMIN"
   | "REMOVE_ADMIN"
+  | "FREE_ACTIVATION"
   | "NOTIFY"
   | "REWARD"
   | "RANDOM_LOW_REWARD";
+
+const FREE_ACTIVATION_DAYS = 30;
+const FREE_ACTIVATION_MS = FREE_ACTIVATION_DAYS * 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
@@ -169,8 +173,11 @@ export async function POST(req: NextRequest) {
       where: { id: targetUserId },
       select: {
         id: true,
+        name: true,
         isAdmin: true,
         isOwner: true,
+        isActive: true,
+        activeUntil: true,
         isDeleted: true,
         deletedAt: true,
       },
@@ -260,6 +267,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body.action === "FREE_ACTIVATION") {
+      if (user.isDeleted) {
+        return NextResponse.json(
+          {
+            message: t(
+              "لا يمكن تفعيل حساب محظور قبل رفع الحظر عنه",
+              "A blocked user must be unblocked before activation",
+            ),
+          },
+          { status: 400 },
+        );
+      }
+
+      const now = new Date();
+      const startsFrom =
+        user.activeUntil && user.activeUntil.getTime() > now.getTime()
+          ? user.activeUntil
+          : now;
+      const newActiveUntil = new Date(
+        startsFrom.getTime() + FREE_ACTIVATION_MS,
+      );
+      const actingAdminLabel = actingAdmin.name || actingAdmin.email || "Admin";
+
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: targetUserId },
+          data: {
+            isActive: true,
+            activeUntil: newActiveUntil,
+            freeActivationGrantedAt: now,
+            freeActivationGrantedByAdminId: actingAdmin.id,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: targetUserId,
+            title: t(
+              "🎁 تم منحك تفعيل مجاني",
+              "🎁 You received a free activation",
+            ),
+            message: t(
+              `قام ${actingAdminLabel} بتفعيل حسابك مجاناً لمدة ${FREE_ACTIVATION_DAYS} يوماً حتى ${newActiveUntil.toISOString().slice(0, 10)}.`,
+              `${actingAdminLabel} activated your account for free for ${FREE_ACTIVATION_DAYS} days until ${newActiveUntil.toISOString().slice(0, 10)}.`,
+            ),
+            type: NotificationType.INFO,
+          },
+        });
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: t(
+            `تم منح ${user.name} تفعيلًا مجانيًا لمدة ${FREE_ACTIVATION_DAYS} يومًا.`,
+            `${user.name} received a free ${FREE_ACTIVATION_DAYS}-day activation.`,
+          ),
+          activeUntil: newActiveUntil.toISOString(),
+        },
+        { status: 200 },
+      );
+    }
+
     if (body.action === "BLOCK") {
       const blockResult = await prisma.$transaction(async (tx) => {
         const deletedAt = new Date();
@@ -269,6 +339,8 @@ export async function POST(req: NextRequest) {
           properties,
           newCars,
           oldCars,
+          homeFurnitureItems,
+          medicalDevices,
           otherItems,
           notification,
         ] = await Promise.all([
@@ -294,6 +366,14 @@ export async function POST(req: NextRequest) {
             where: { ownerId: targetUserId, isDeleted: false },
             data: { isDeleted: true, deletedAt },
           }),
+          tx.homeFurniture.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
+          tx.medicalDevice.updateMany({
+            where: { ownerId: targetUserId, isDeleted: false },
+            data: { isDeleted: true, deletedAt },
+          }),
           tx.otherItem.updateMany({
             where: { ownerId: targetUserId, isDeleted: false },
             data: { isDeleted: true, deletedAt },
@@ -314,7 +394,12 @@ export async function POST(req: NextRequest) {
         return {
           userId: updatedUser.id,
           hiddenListings:
-            properties.count + newCars.count + oldCars.count + otherItems.count,
+            properties.count +
+            newCars.count +
+            oldCars.count +
+            homeFurnitureItems.count +
+            medicalDevices.count +
+            otherItems.count,
           notificationId: notification.id,
         };
       });
@@ -341,6 +426,8 @@ export async function POST(req: NextRequest) {
           properties,
           newCars,
           oldCars,
+          homeFurnitureItems,
+          medicalDevices,
           otherItems,
           notification,
         ] = await Promise.all([
@@ -377,6 +464,22 @@ export async function POST(req: NextRequest) {
             },
             data: { isDeleted: false, deletedAt: null },
           }),
+          tx.homeFurniture.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
+          tx.medicalDevice.updateMany({
+            where: {
+              ownerId: targetUserId,
+              isDeleted: true,
+              ...(matchingDeletedAt ? { deletedAt: matchingDeletedAt } : {}),
+            },
+            data: { isDeleted: false, deletedAt: null },
+          }),
           tx.otherItem.updateMany({
             where: {
               ownerId: targetUserId,
@@ -401,7 +504,12 @@ export async function POST(req: NextRequest) {
         return {
           userId: updatedUser.id,
           restoredListings:
-            properties.count + newCars.count + oldCars.count + otherItems.count,
+            properties.count +
+            newCars.count +
+            oldCars.count +
+            homeFurnitureItems.count +
+            medicalDevices.count +
+            otherItems.count,
           notificationId: notification.id,
         };
       });

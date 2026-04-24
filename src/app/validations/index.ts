@@ -2,6 +2,8 @@ export * from "./usedCarValidations";
 export * from "./commentValidations";
 export * from "./itemImageValidations";
 export * from "./locationValidations";
+export * from "./homeFurnitureValidations";
+export * from "./medicalDeviceValidations";
 export * from "./otherItemValidations";
 export * from "./paymentValidations";
 export * from "./propertyValidations";

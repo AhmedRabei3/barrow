@@ -20,6 +20,7 @@ import ShamCashModal from "./ShamCashModal";
 const SUCCESS_SOUND =
   "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3";
 const DEFAULT_SUBSCRIPTION_AMOUNT = 30;
+const ACTIVATION_PENDING_KEY = "barrow:activation-celebration-pending";
 
 type PaymentMethod = "PAYPAL" | "CARD" | "SHAMCASH";
 type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
@@ -110,6 +111,10 @@ const ActivationModal = () => {
 
         // 🔁 تحديث الجلسة
         await update();
+
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+        }
 
         // 🔔 إبلاغ العداد ليعيد الحساب ويهتز
         dispatchEvent(new Event("activation-updated"));
@@ -267,6 +272,9 @@ const ActivationModal = () => {
 
               new Audio(SUCCESS_SOUND).play();
               await update();
+              if (typeof window !== "undefined") {
+                window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+              }
               dispatchEvent(new Event("activation-updated"));
               setShowShamCashModal(false);
               return;

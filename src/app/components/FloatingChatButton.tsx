@@ -15,6 +15,7 @@ import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { ASSISTANT_NAME_AR, ASSISTANT_NAME_EN } from "@/app/i18n/brand";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { OPEN_SMART_CHAT_ON_HOME_KEY } from "./ActivationWelcomeOverlay";
 
 const SmartChatBot = lazy(async () => {
   const importedModule = await import("./SmartChatBot.lazy.js");
@@ -54,6 +55,22 @@ const FloatingChatButton = () => {
       window.removeEventListener("open-smart-chat", handleOpenSmartChat);
     };
   }, []);
+
+  useEffect(() => {
+    if (!shouldRender || typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      if (window.sessionStorage.getItem(OPEN_SMART_CHAT_ON_HOME_KEY) !== "1") {
+        return;
+      }
+
+      window.sessionStorage.removeItem(OPEN_SMART_CHAT_ON_HOME_KEY);
+      setOpen(true);
+      setWaveKey((prev) => prev + 1);
+    } catch {}
+  }, [shouldRender]);
 
   useEffect(() => {
     if (!open) return;

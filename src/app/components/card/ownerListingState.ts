@@ -26,6 +26,8 @@ export const endpointByType: Record<ItemType, string> = {
   NEW_CAR: "/api/cars/new_car",
   USED_CAR: "/api/cars/used_car",
   PROPERTY: "/api/realestate",
+  HOME_FURNITURE: "/api/homeFurniture",
+  MEDICAL_DEVICE: "/api/medicalDevices",
   OTHER: "/api/otherItems",
 };
 

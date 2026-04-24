@@ -1,112 +1,78 @@
 "use client";
 
-import { $Enums } from "@prisma/client";
 import { memo, useId } from "react";
 import {
-  MdOutlineBallot,
   MdOutlineRealEstateAgent,
   MdCarCrash,
   MdDevicesOther,
+  MdOutlineChair,
 } from "react-icons/md";
-import { FaCarSide } from "react-icons/fa";
+import { FaCarSide, FaStethoscope } from "react-icons/fa";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { useSession } from "next-auth/react";
+import {
+  getOrderedPrimaryCategoryTabs,
+  getPrimaryCategoryKey,
+  type PrimaryCategoryKey,
+} from "@/lib/primaryCategories";
+import MainCatList from "./MainCatList";
 
 const TAB_ICONS = {
   MdOutlineRealEstateAgent,
   FaCarSide,
   MdCarCrash,
   MdDevicesOther,
-  MdOutlineBallot,
+  MdOutlineChair,
+  FaStethoscope,
 } as const;
 
 interface HomeTabsProps {
-  setType: (t: $Enums.ItemType) => void;
-  type: $Enums.ItemType | undefined;
+  onSelectTab: (key: PrimaryCategoryKey) => void;
+  type: string | undefined;
   compact?: boolean;
 }
 
-const HomeTab = ({ setType, type, compact = false }: HomeTabsProps) => {
+const HomeTab = ({
+  onSelectTab,
+  type,
+  compact = false,
+}: HomeTabsProps) => {
   const { isArabic } = useAppPreferences();
+  const { data: session } = useSession();
   const mainCategoryId = useId();
 
-  const tabsList: {
-    nameAr: string;
-    nameEn: string;
-    type: $Enums.ItemType | "ALL";
-    icon: string;
-  }[] = [
-    {
-      nameAr: "عقارات",
-      nameEn: "Real Estate",
-      type: "PROPERTY" as $Enums.ItemType,
-      icon: "MdOutlineRealEstateAgent",
-    },
-    {
-      nameAr: "سيارة جديدة",
-      nameEn: "New Car",
-      type: "NEW_CAR" as $Enums.ItemType,
-      icon: "FaCarSide",
-    },
-    {
-      nameAr: "سيارة مستعملة",
-      nameEn: "Used Car",
-      type: "USED_CAR" as $Enums.ItemType,
-      icon: "MdCarCrash",
-    },
-    {
-      nameAr: "أخرى",
-      nameEn: "Other",
-      type: "OTHER" as $Enums.ItemType,
-      icon: "MdDevicesOther",
-    },
-    { nameAr: "الكل", nameEn: "All", type: "ALL", icon: "MdOutlineBallot" },
-  ];
-
-  const selectedType = type ?? ("ALL" as $Enums.ItemType);
+  const tabsList = getOrderedPrimaryCategoryTabs(
+    session?.user?.preferredInterestOrder,
+  );
+  const selectedType = getPrimaryCategoryKey(type as never) ?? tabsList[0]?.key;
 
   const handleSelectType = (value: string) => {
-    setType(value as $Enums.ItemType);
+    onSelectTab(value as PrimaryCategoryKey);
   };
 
   return (
     <>
-      <div className={compact ? "w-full" : "w-full md:hidden"}>
-        <label htmlFor={mainCategoryId} className="sr-only">
-          {isArabic ? "التصنيف الرئيسي" : "Main category"}
-        </label>
-        <div className="relative w-full">
-          <select
-            id={mainCategoryId}
-            name="mainCategory"
-            value={selectedType}
-            onChange={(event) => handleSelectType(event.target.value)}
-            className="
-              w-full rounded-xl border border-indigo-200 bg-white
-              px-2.5 py-2 text-xs font-medium text-slate-800 shadow-sm
-              focus:outline-none focus:ring-2 focus:ring-indigo-500
-              dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100
-            "
-          >
-            {tabsList.map((item) => (
-              <option key={item.type} value={item.type}>
-                {isArabic ? item.nameAr : item.nameEn}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
+    {/* Main category list */}
+      <MainCatList
+        compact={compact}
+        isArabic={isArabic}
+        mainCategoryId={mainCategoryId}
+        selectedType={selectedType}
+        tabsList={tabsList}
+        handleSelectType={handleSelectType}
+      />
+      {/* Category tabs */}
       <div className={compact ? "hidden" : "hidden md:block"}>
         <div className="relative mx-auto my-2 flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white/80 p-1.5 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/80">
           {tabsList.map((item) => {
-            const isActive = selectedType === item.type;
+            const isActive = selectedType === item.key;
             const Icon = TAB_ICONS[item.icon as keyof typeof TAB_ICONS];
 
             return (
               <button
-                key={item.type}
+                key={item.key}
                 type="button"
-                onClick={() => setType(item.type as $Enums.ItemType)}
+                onClick={() => onSelectTab(item.key)}
                 className={`
                   group relative mx-0.5 flex cursor-pointer select-none items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-all duration-300 xl:px-4
                   ${isActive ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white shadow-md" : "text-gray-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300"}

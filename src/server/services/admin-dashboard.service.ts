@@ -137,6 +137,24 @@ const buildUserStats = (
       isDeleted: user.isDeleted,
       createdAt: user.createdAt,
       activeUntil: user.activeUntil,
+      freeActivationGrantedAt: user.freeActivationGrantedAt,
+      freeActivationGrantedByAdminName:
+        user.freeActivationGrantedByAdmin?.name ??
+        user.freeActivationGrantedByAdmin?.email ??
+        null,
+      propertiesCount: user._count.properties,
+      newCarsCount: user._count.newCars,
+      oldCarsCount: user._count.oldCars,
+      homeFurnitureCount: user._count.homeFurnitureItems,
+      medicalDevicesCount: user._count.medicalDevices,
+      otherItemsCount: user._count.otherItems,
+      totalListingsCount:
+        user._count.properties +
+        user._count.newCars +
+        user._count.oldCars +
+        user._count.homeFurnitureItems +
+        user._count.medicalDevices +
+        user._count.otherItems,
       activatedSince,
       activeForDays,
       balance: Number(user.balance ?? 0),
@@ -179,6 +197,15 @@ const toDashboardUser = (
   isDeleted: user.isDeleted,
   createdAt: user.createdAt.toISOString(),
   activeUntil: user.activeUntil?.toISOString() ?? null,
+  freeActivationGrantedAt: user.freeActivationGrantedAt?.toISOString() ?? null,
+  freeActivationGrantedByAdminName: user.freeActivationGrantedByAdminName,
+  propertiesCount: user.propertiesCount,
+  newCarsCount: user.newCarsCount,
+  oldCarsCount: user.oldCarsCount,
+  homeFurnitureCount: user.homeFurnitureCount,
+  medicalDevicesCount: user.medicalDevicesCount,
+  otherItemsCount: user.otherItemsCount,
+  totalListingsCount: user.totalListingsCount,
   activatedSince: user.activatedSince?.toISOString() ?? null,
   activeForDays: user.activeForDays,
   balance: user.balance,
@@ -507,6 +534,8 @@ export async function getAdminDashboard(
         properties,
         newCars,
         oldCars,
+        homeFurniture,
+        medicalDevices,
         otherItems,
         recentPayments,
         recentChargingLogs,
@@ -561,8 +590,16 @@ export async function getAdminDashboard(
           properties,
           newCars,
           oldCars,
+          homeFurniture,
+          medicalDevices,
           otherItems,
-          totalActive: properties + newCars + oldCars + otherItems,
+          totalActive:
+            properties +
+            newCars +
+            oldCars +
+            homeFurniture +
+            medicalDevices +
+            otherItems,
         },
         recentPayments: recentPayments.map((payment) => ({
           ...payment,

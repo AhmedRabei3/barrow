@@ -45,6 +45,7 @@ export interface RealEstateFormData {
 export interface OtherItemFormData {
   itemType: typeof $Enums.ItemType.OTHER;
   categoryId: string;
+  name: string;
   brand: string;
   price: number;
   description: string;

@@ -4,9 +4,19 @@ export const createCategorySchema = z.object({
   nameAr: z.string().trim().min(2, "Arabic category name is too short"),
   nameEn: z.string().trim().min(2, "English category name is too short"),
   icon: z.string(),
-  type: z.enum(["NEW_CAR", "USED_CAR", "PROPERTY", "OTHER"], {
-    message: "Category type is required",
-  }),
+  type: z.enum(
+    [
+      "NEW_CAR",
+      "USED_CAR",
+      "PROPERTY",
+      "HOME_FURNITURE",
+      "MEDICAL_DEVICE",
+      "OTHER",
+    ],
+    {
+      message: "Category type is required",
+    },
+  ),
 });
 
 export const updateCategorySchema = z.object({
@@ -14,7 +24,16 @@ export const updateCategorySchema = z.object({
   nameAr: z.string().trim().min(2).optional(),
   nameEn: z.string().trim().min(2).optional(),
   icon: z.string().trim().optional(),
-  type: z.enum(["NEW_CAR", "USED_CAR", "PROPERTY", "OTHER"]).optional(),
+  type: z
+    .enum([
+      "NEW_CAR",
+      "USED_CAR",
+      "PROPERTY",
+      "HOME_FURNITURE",
+      "MEDICAL_DEVICE",
+      "OTHER",
+    ])
+    .optional(),
 });
 
 export const deleteCategorySchema = z.object({

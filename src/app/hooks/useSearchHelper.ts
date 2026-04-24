@@ -1,6 +1,10 @@
 import { $Enums } from "@prisma/client";
 import { startTransition, useCallback } from "react";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
+import {
+  getPrimaryCategoryFilters,
+  type PrimaryCategoryKey,
+} from "@/lib/primaryCategories";
 
 export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
   const { setFilters } = useSearchFilters();
@@ -18,6 +22,13 @@ export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
   const handleSetType = useCallback(
     (type: $Enums.ItemType) => {
       update({ type, catName: "All" });
+    },
+    [update],
+  );
+
+  const handleSelectPrimaryTab = useCallback(
+    (key: PrimaryCategoryKey) => {
+      update(getPrimaryCategoryFilters(key));
     },
     [update],
   );
@@ -78,6 +89,7 @@ export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
 
   return {
     handleSetType,
+    handleSelectPrimaryTab,
     handleSetMinPrice,
     handleSetMaxPrice,
     handleSetCity,

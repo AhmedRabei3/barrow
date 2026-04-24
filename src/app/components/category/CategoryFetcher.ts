@@ -62,14 +62,15 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
     const normalizedType =
       typeof type === "string" && type.trim().length > 0 ? type : undefined;
     const cacheKey = `${normalizedType ?? "ALL"}:${withItemsOnly ? "WITH_ITEMS" : "ANY"}`;
-    const cached = categoriesCache.get(cacheKey);
+    const useLocalCache = !withItemsOnly;
+    const cached = useLocalCache ? categoriesCache.get(cacheKey) : undefined;
 
     if (cached) {
       setList?.(cached as TCategory[]);
       return cached as TCategory[];
     }
 
-    const persisted = readPersistedCategories(cacheKey);
+    const persisted = useLocalCache ? readPersistedCategories(cacheKey) : null;
     if (persisted?.length) {
       categoriesCache.set(cacheKey, persisted);
       setList?.(persisted as TCategory[]);
@@ -97,8 +98,10 @@ const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({
             : false,
       }));
 
-      categoriesCache.set(cacheKey, formatted);
-      persistCategories(cacheKey, formatted);
+      if (useLocalCache) {
+        categoriesCache.set(cacheKey, formatted);
+        persistCategories(cacheKey, formatted);
+      }
       setList?.(formatted as TCategory[]);
       return formatted as TCategory[];
     }

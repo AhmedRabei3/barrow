@@ -9,7 +9,7 @@ import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 const googleClientId =
   process.env.AUTH_GOOGLE_ID ??
   process.env.GOOGLE_CLIENT_ID ??
-  process.env.AUTH_GOOGLE_CLIENT_ID;
+  process.env.AUTH_GOOGLE_CLIENT_ID; 
 
 const googleClientSecret =
   process.env.AUTH_GOOGLE_SECRET ??
@@ -54,6 +54,7 @@ export default (<NextAuthConfig>{
           isIdentityVerified: user.isIdentityVerified,
           activeUntil: user.activeUntil,
           pendingReferralEarnings: Number(user.pendingReferralEarnings),
+          preferredInterestOrder: user.preferredInterestOrder,
           notifications: [],
         };
       },

@@ -1,4 +1,5 @@
 import { loginAction, registerAction } from "../src/actions/auth.actions";
+import { DEFAULT_USER_INTEREST_ORDER } from "../src/lib/primaryCategories";
 import { cookies } from "next/headers";
 
 const run = async () => {
@@ -20,6 +21,7 @@ const run = async () => {
       name: "QA User",
       email,
       password: "StrongPass1!",
+      interestOrder: DEFAULT_USER_INTEREST_ORDER,
       acceptPrivacyPolicy: true,
     },
     isArabic,

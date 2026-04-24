@@ -15,7 +15,13 @@ type LocationInput = {
 type CreateItemWithLocationParams<T> = {
   location: LocationInput;
   images: CloudinaryUploadResult[];
-  itemType: "USED_CAR" | "NEW_CAR" | "PROPERTY" | "OTHER";
+  itemType:
+    | "USED_CAR"
+    | "NEW_CAR"
+    | "PROPERTY"
+    | "HOME_FURNITURE"
+    | "MEDICAL_DEVICE"
+    | "OTHER";
   createItem: (tx: TxClient) => Promise<T>;
 };
 
@@ -45,6 +51,8 @@ export async function createItemWithLocation<T extends { id: string }>({
           ...(itemType === "PROPERTY" && { propertyId: item.id }),
           ...(itemType === "NEW_CAR" && { newCarId: item.id }),
           ...(itemType === "USED_CAR" && { oldCarId: item.id }),
+          ...(itemType === "HOME_FURNITURE" && { homeFurnitureId: item.id }),
+          ...(itemType === "MEDICAL_DEVICE" && { medicalDeviceId: item.id }),
         },
       });
 

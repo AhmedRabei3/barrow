@@ -8,6 +8,8 @@ const ITEM_TYPES = [
   ItemType.PROPERTY,
   ItemType.NEW_CAR,
   ItemType.USED_CAR,
+  ItemType.HOME_FURNITURE,
+  ItemType.MEDICAL_DEVICE,
   ItemType.OTHER,
 ] as const;
 
@@ -242,6 +244,92 @@ const listPendingByType = async (
         imageUrls: imageMap[row.id] || [],
       }));
     }
+    case ItemType.HOME_FURNITURE: {
+      const rows = await prisma.homeFurniture.findMany({
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          owner: { select: { id: true, name: true, email: true } },
+          category: { select: { name: true } },
+          location: { select: { city: true, country: true, address: true } },
+        },
+      });
+      const moderatorNames = await loadModeratorNames(
+        rows.map((row) => row.moderatedById),
+      );
+      const images = await prisma.itemImage.findMany({
+        where: { itemType, itemId: { in: rows.map((row) => row.id) } },
+        select: { itemId: true, url: true },
+      });
+      const imageMap = images.reduce<Record<string, string[]>>((acc, image) => {
+        (acc[image.itemId] ||= []).push(image.url);
+        return acc;
+      }, {});
+      return rows.map((row) => ({
+        id: row.id,
+        type: itemType,
+        title: row.name,
+        status: row.status,
+        createdAt: row.createdAt.toISOString(),
+        moderationAction: row.moderationAction,
+        moderationNote: row.moderationNote,
+        moderatedAt: row.moderatedAt?.toISOString() ?? null,
+        moderatedByName: row.moderatedById
+          ? (moderatorNames.get(row.moderatedById) ?? null)
+          : null,
+        owner: row.owner,
+        categoryName: row.category.name,
+        locationLabel: buildLocationLabel(row.location),
+        imageUrls: imageMap[row.id] || [],
+      }));
+    }
+    case ItemType.MEDICAL_DEVICE: {
+      const rows = await prisma.medicalDevice.findMany({
+        where: {
+          isDeleted: false,
+          status: "PENDING_REVIEW",
+          ...(focusItemId ? { id: focusItemId } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          owner: { select: { id: true, name: true, email: true } },
+          category: { select: { name: true } },
+          location: { select: { city: true, country: true, address: true } },
+        },
+      });
+      const moderatorNames = await loadModeratorNames(
+        rows.map((row) => row.moderatedById),
+      );
+      const images = await prisma.itemImage.findMany({
+        where: { itemType, itemId: { in: rows.map((row) => row.id) } },
+        select: { itemId: true, url: true },
+      });
+      const imageMap = images.reduce<Record<string, string[]>>((acc, image) => {
+        (acc[image.itemId] ||= []).push(image.url);
+        return acc;
+      }, {});
+      return rows.map((row) => ({
+        id: row.id,
+        type: itemType,
+        title: row.name,
+        status: row.status,
+        createdAt: row.createdAt.toISOString(),
+        moderationAction: row.moderationAction,
+        moderationNote: row.moderationNote,
+        moderatedAt: row.moderatedAt?.toISOString() ?? null,
+        moderatedByName: row.moderatedById
+          ? (moderatorNames.get(row.moderatedById) ?? null)
+          : null,
+        owner: row.owner,
+        categoryName: row.category.name,
+        locationLabel: buildLocationLabel(row.location),
+        imageUrls: imageMap[row.id] || [],
+      }));
+    }
   }
 };
 
@@ -264,6 +352,16 @@ const getItemOwner = async (itemType: ItemType, itemId: string) => {
       });
     case ItemType.OTHER:
       return prisma.otherItem.findUnique({
+        where: { id: itemId },
+        select: { ownerId: true, name: true },
+      });
+    case ItemType.HOME_FURNITURE:
+      return prisma.homeFurniture.findUnique({
+        where: { id: itemId },
+        select: { ownerId: true, name: true },
+      });
+    case ItemType.MEDICAL_DEVICE:
+      return prisma.medicalDevice.findUnique({
         where: { id: itemId },
         select: { ownerId: true, name: true },
       });
@@ -412,6 +510,18 @@ export async function POST(req: NextRequest) {
           break;
         case ItemType.OTHER:
           await tx.otherItem.update({
+            where: { id: body.itemId },
+            data: moderationData,
+          });
+          break;
+        case ItemType.HOME_FURNITURE:
+          await tx.homeFurniture.update({
+            where: { id: body.itemId },
+            data: moderationData,
+          });
+          break;
+        case ItemType.MEDICAL_DEVICE:
+          await tx.medicalDevice.update({
             where: { id: body.itemId },
             data: moderationData,
           });

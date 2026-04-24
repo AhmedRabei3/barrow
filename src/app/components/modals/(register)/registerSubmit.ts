@@ -5,6 +5,10 @@ import { SubmitHandler, FieldValues } from "react-hook-form";
 
 import { RegisterUserInput } from "@/app/validations/userValidations";
 import { registerAction } from "@/actions/auth.actions";
+import {
+  normalizeUserInterestOrder,
+  PENDING_INTEREST_ORDER_STORAGE_KEY,
+} from "@/lib/primaryCategories";
 import toast from "react-hot-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
@@ -63,6 +67,19 @@ export default async function registerFunc({
         persistReferrer(undefined);
       }
 
+      cleanData.interestOrder = normalizeUserInterestOrder(
+        Array.isArray(cleanData.interestOrder)
+          ? cleanData.interestOrder.map(String)
+          : [],
+      );
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          PENDING_INTEREST_ORDER_STORAGE_KEY,
+          JSON.stringify(cleanData.interestOrder),
+        );
+      }
+
       const result = await registerAction(
         cleanData as RegisterUserInput,
         isArabic,
@@ -92,6 +109,9 @@ export default async function registerFunc({
         setExistingUserEmail(null);
         setPendingVerificationEmail(null);
         persistReferrer(undefined);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(PENDING_INTEREST_ORDER_STORAGE_KEY);
+        }
         toast.success(result.message);
         registerModal.onClose();
         loginModal.onOpen();

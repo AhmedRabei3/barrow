@@ -44,6 +44,16 @@ export type GrandItem = {
     mileage?: number | null;
     repainted?: boolean | null;
     reAssembled?: boolean | null;
+    furnitureCondition?: string | null;
+    furnitureMaterial?: string | null;
+    furnitureRoomType?: string | null;
+    furnitureDimensions?: string | null;
+    furnitureAssemblyIncluded?: boolean | null;
+    medicalCondition?: string | null;
+    medicalManufacturerCountry?: string | null;
+    medicalWarrantyMonths?: number | null;
+    medicalUsageHours?: number | null;
+    medicalRequiresPrescription?: boolean | null;
   };
   ownerId?: string | null;
   itemImages: { url: string | null }[];

@@ -22,6 +22,12 @@ import {
   requestExistingUserPasswordResetAction,
   resendVerificationEmailAction,
 } from "@/actions/auth.actions";
+import {
+  DEFAULT_USER_INTEREST_ORDER,
+  normalizeUserInterestOrder,
+  PENDING_INTEREST_ORDER_STORAGE_KEY,
+  type UserInterestKey,
+} from "@/lib/primaryCategories";
 
 const REFERRAL_STORAGE_KEY = "pending-referrer-id";
 const PENDING_VERIFICATION_EMAIL_KEY = "pending-verification-email";
@@ -76,6 +82,17 @@ const persistPendingVerificationEmail = (value?: string | null) => {
   window.localStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
 };
 
+const persistPendingInterestOrder = (interestOrder: string[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    PENDING_INTEREST_ORDER_STORAGE_KEY,
+    JSON.stringify(interestOrder),
+  );
+};
+
 const RegisterModal = () => {
   const registerModal = useRegisterModal();
   const loginModal = useLoginModal();
@@ -116,6 +133,7 @@ const RegisterModal = () => {
       email: "",
       password: "",
       confirmPassword: "",
+      interestOrder: DEFAULT_USER_INTEREST_ORDER,
       acceptPrivacyPolicy: false,
       referredBy: registerModal.referredBy || undefined,
     },
@@ -131,7 +149,7 @@ const RegisterModal = () => {
     if (registerModal.isOpen) {
       const storedPendingVerificationEmail = readPendingVerificationEmail();
       setIsPolicyDialogOpen(false);
-      setIsClassicOpen(false);
+      setIsClassicOpen(true);
       setExistingUserEmail(null);
       setPendingVerificationEmail(storedPendingVerificationEmail);
       setResetInfoMessage(null);
@@ -140,6 +158,7 @@ const RegisterModal = () => {
         email: "",
         password: "",
         confirmPassword: "",
+        interestOrder: DEFAULT_USER_INTEREST_ORDER,
         acceptPrivacyPolicy: false,
         referredBy: resolvedReferrer,
       });
@@ -261,6 +280,44 @@ const RegisterModal = () => {
   }, [loginModal, registerModal]);
 
   const passwordValue = String(watch("password") ?? "");
+  const interestOrder = normalizeUserInterestOrder(
+    Array.isArray(watch("interestOrder"))
+      ? (watch("interestOrder") as string[])
+      : DEFAULT_USER_INTEREST_ORDER,
+  );
+
+  const handleMoveInterest = useCallback(
+    (index: number, direction: "up" | "down") => {
+      const nextIndex = direction === "up" ? index - 1 : index + 1;
+
+      if (nextIndex < 0 || nextIndex >= interestOrder.length) {
+        return;
+      }
+
+      const nextOrder = [...interestOrder] as UserInterestKey[];
+      [nextOrder[index], nextOrder[nextIndex]] = [
+        nextOrder[nextIndex],
+        nextOrder[index],
+      ];
+
+      setValue("interestOrder", nextOrder, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [interestOrder, setValue],
+  );
+
+  const handleGoogleBeforeContinue = useCallback(async () => {
+    const accepted = await ensurePolicyAccepted();
+
+    if (!accepted) {
+      return false;
+    }
+
+    persistPendingInterestOrder(interestOrder);
+    return true;
+  }, [ensurePolicyAccepted, interestOrder]);
 
   const bodyContent = (
     <>
@@ -292,7 +349,7 @@ const RegisterModal = () => {
           disabled={isLoading || isSendingReset}
           callbackUrl="/"
           showDivider={false}
-          beforeContinue={ensurePolicyAccepted}
+          beforeContinue={handleGoogleBeforeContinue}
         />
 
         <button
@@ -324,6 +381,8 @@ const RegisterModal = () => {
               isArabic={isArabic}
               isLoading={isLoading}
               passwordValue={passwordValue}
+              interestOrder={interestOrder}
+              onMoveInterest={handleMoveInterest}
             />
           </div>
         ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import ChunkErrorRecovery from "./ChunkErrorRecovery";
+import ActivationWelcomeOverlay from "./ActivationWelcomeOverlay";
 import FloatingChatButton from "./FloatingChatButton";
 import ScrollToTopButton from "./ScrollToTopButton";
 import Countdown from "./countdown/Countdown";
@@ -25,6 +26,7 @@ export default function ActualGlobalOverlays() {
       <ScrollToTopButton />
       <SearchModal />
       <ActivationModal />
+      <ActivationWelcomeOverlay />
       <Countdown />
     </>
   );

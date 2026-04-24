@@ -45,7 +45,14 @@ export async function requireAdminUser() {
   const user = await authHelper();
   const admin = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, isAdmin: true, isOwner: true, isDeleted: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      isAdmin: true,
+      isOwner: true,
+      isDeleted: true,
+    },
   });
 
   if (!admin || admin.isDeleted || !admin.isAdmin) {

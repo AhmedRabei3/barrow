@@ -7,7 +7,7 @@ import Pagination from "./components/home/Pagination";
 import SiteFooter from "./components/footer/SiteFooter";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchHelper } from "./hooks/useSearchHelper";
 import { request } from "@/app/utils/axios";
 import {
@@ -16,16 +16,30 @@ import {
   RawItem,
 } from "./components/home/getItems";
 import { useStaleResource } from "@/app/hooks/useStaleResource";
+import { useSession } from "next-auth/react";
+import { updatePreferredInterestOrderAction } from "@/actions/auth.actions";
+import { useAppPreferences } from "./components/providers/AppPreferencesProvider";
+import {
+  getOrderedPrimaryCategoryTabs,
+  normalizeUserInterestOrder,
+  PENDING_INTEREST_ORDER_STORAGE_KEY,
+} from "@/lib/primaryCategories";
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
   const [currentPage, setCurrentPage] = useState(1);
+  const { data: session, status, update } = useSession();
+  const { isArabic } = useAppPreferences();
   const limit = 50;
   const { items, totalItems, loading, isRefreshing, refetch } = useItems({
     page: currentPage,
     limit,
   });
   const helper = useSearchHelper(setCurrentPage);
+  const orderedTabs = useMemo(
+    () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
+    [session?.user?.preferredInterestOrder],
+  );
   const minPrice = useMemo(
     () =>
       typeof filters.minPrice === "string"
@@ -62,6 +76,65 @@ const HomePageClient = () => {
     cacheKey: "items:featured:top-8",
     fetcher: fetchFeaturedItems,
   });
+
+  const hasExplicitFilters =
+    filters.type !== undefined ||
+    filters.catName !== "All" ||
+    Boolean(filters.q) ||
+    Boolean(filters.city) ||
+    Boolean(filters.action) ||
+    Boolean(filters.minPrice) ||
+    Boolean(filters.maxPrice);
+
+  useEffect(() => {
+    if (status === "loading" || hasExplicitFilters || !orderedTabs[0]) {
+      return;
+    }
+
+    helper.handleSelectPrimaryTab(orderedTabs[0].key);
+  }, [hasExplicitFilters, helper, orderedTabs, status]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || status !== "authenticated") {
+      return;
+    }
+
+    const rawValue = window.localStorage.getItem(
+      PENDING_INTEREST_ORDER_STORAGE_KEY,
+    );
+    if (!rawValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(rawValue);
+      const pendingOrder = normalizeUserInterestOrder(
+        Array.isArray(parsed) ? parsed.map(String) : [],
+      );
+      const currentOrder = Array.isArray(session?.user?.preferredInterestOrder)
+        ? session.user.preferredInterestOrder
+        : [];
+
+      if (currentOrder.length > 0) {
+        const normalizedCurrent = normalizeUserInterestOrder(currentOrder);
+        if (normalizedCurrent.join("|") === pendingOrder.join("|")) {
+          window.localStorage.removeItem(PENDING_INTEREST_ORDER_STORAGE_KEY);
+        }
+        return;
+      }
+
+      void updatePreferredInterestOrderAction(pendingOrder, isArabic).then(
+        async (result) => {
+          if (result.success) {
+            window.localStorage.removeItem(PENDING_INTEREST_ORDER_STORAGE_KEY);
+            await update();
+          }
+        },
+      );
+    } catch {
+      window.localStorage.removeItem(PENDING_INTEREST_ORDER_STORAGE_KEY);
+    }
+  }, [isArabic, session?.user?.preferredInterestOrder, status, update]);
 
   return (
     <div>

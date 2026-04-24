@@ -6,13 +6,14 @@ import Modal from "./Modal";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import FormNewCar from "./body/FormNewCar";
 import categoryFetcher from "../category/CategoryFetcher";
-import { $Enums, Category } from "@prisma/client";
+import { $Enums } from "@prisma/client";
 import submitMethod from "@/app/utils/submiteMethod";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { memo } from "react";
 import { useAddNewCarForm } from "../../hooks/useAddUsedCarForm";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import type { CategoryItem } from "../category/types";
 
 type DraftImage = {
   name: string;
@@ -32,7 +33,7 @@ const AddCarModal = () => {
   const { isArabic } = useAppPreferences();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [step, setStep] = useState(0);
 
   const type = $Enums.ItemType.NEW_CAR;

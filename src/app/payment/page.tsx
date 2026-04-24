@@ -9,6 +9,7 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 
 type PaymentState = "loading" | "success" | "cancelled" | "error";
+const ACTIVATION_PENDING_KEY = "barrow:activation-celebration-pending";
 
 export default function PaymentPage() {
   const searchParams = useSearchParams();
@@ -67,6 +68,9 @@ export default function PaymentPage() {
         });
 
         await update();
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+        }
         dispatchEvent(new Event("activation-updated"));
 
         setState("success");

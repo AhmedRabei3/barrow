@@ -16,6 +16,7 @@ import GoBackBtn from "@/app/components/GoBackBtn";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import ProfileAccountEditor from "./ProfileAccountEditor";
 import IdentityVerificationEditor from "./IdentityVerificationEditor";
+import ProfileInterestOrderEditor from "./ProfileInterestOrderEditor";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import Link from "next/link";
@@ -816,6 +817,8 @@ const Profile = () => {
               <div className="absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
             </section>
           </div>
+
+          <ProfileInterestOrderEditor />
 
           <div ref={listingsSectionRef}>
             <TabbedView

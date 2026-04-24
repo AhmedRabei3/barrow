@@ -103,6 +103,7 @@ const OwnerListingStateControl = ({
 }: OwnerListingStateControlProps) => {
   const { isArabic } = useAppPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentSellOrRent, setCurrentSellOrRent] = useState(
     sellOrRent ?? null,
@@ -137,6 +138,26 @@ const OwnerListingStateControl = ({
     };
   }, [menuOpen, onMenuOpenChange]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const applyViewportState = (matches: boolean) => {
+      setIsMobile(matches);
+    };
+
+    applyViewportState(mediaQuery.matches);
+
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      applyViewportState(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleViewportChange);
+    return () => mediaQuery.removeEventListener("change", handleViewportChange);
+  }, []);
+
   const rentalPreviewDate = useMemo(() => {
     const parsedPeriods = Number(manualRentalPeriods);
     if (
@@ -161,6 +182,7 @@ const OwnerListingStateControl = ({
   const badgeSizeClass = isHero
     ? "px-3.5 py-1.5 text-xs sm:text-sm"
     : "px-2.5 py-1 text-[10px]";
+  const renderAsMobileSheet = isMobile && !isHero;
 
   const toggleMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -299,6 +321,100 @@ const OwnerListingStateControl = ({
     }
   };
 
+  const menuContent = (
+    <>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+        {isArabic ? "حالة العنصر" : "Listing state"}
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {OWNER_ACTION_OPTIONS.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => setSelectedAction(option.key)}
+            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+              selectedAction === option.key
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-slate-200 text-slate-600 hover:border-primary/30 hover:text-primary dark:border-slate-700 dark:text-slate-300"
+            }`}
+          >
+            {isArabic ? option.labelAr : option.labelEn}
+          </button>
+        ))}
+      </div>
+
+      {(selectedAction === "RENT" || selectedAction === "RENTED") && (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-300">
+              {isArabic ? "نوع الإيجار" : "Rent type"}
+            </label>
+            <select
+              value={selectedRentType}
+              onChange={(event) =>
+                setSelectedRentType(event.target.value as RentTypeKey)
+              }
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            >
+              {RENT_TYPE_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {isArabic ? option.labelAr : option.labelEn}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedAction === "RENTED" ? (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-300">
+                {isArabic ? "مدة الإيجار" : "Rental duration"}
+              </label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={manualRentalPeriods}
+                onChange={(event) => setManualRentalPeriods(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                placeholder={isArabic ? "مثال: 3" : "e.g. 3"}
+              />
+              {rentalPreviewDate ? (
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  {isArabic ? "ينتهي الإيجار في" : "Rental will end on"}{" "}
+                  {formatEndDate(rentalPreviewDate, isArabic)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(false)}
+          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+        >
+          {isArabic ? "إلغاء" : "Cancel"}
+        </button>
+        <button
+          type="button"
+          onClick={saveOwnerAction}
+          disabled={isSaving}
+          className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {isSaving
+            ? isArabic
+              ? "جارٍ الحفظ..."
+              : "Saving..."
+            : isArabic
+              ? "حفظ"
+              : "Save"}
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative">
       <button
@@ -319,7 +435,7 @@ const OwnerListingStateControl = ({
         </p>
       ) : null}
 
-      {isOwner && menuOpen ? (
+      {isOwner && menuOpen && !renderAsMobileSheet ? (
         <div
           className={`absolute bottom-full z-40 mb-2 w-64 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-2xl dark:border-slate-700 dark:bg-slate-900 ${menuPositionClass}`}
           onClick={(event) => {
@@ -327,96 +443,29 @@ const OwnerListingStateControl = ({
             event.stopPropagation();
           }}
         >
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-            {isArabic ? "حالة العنصر" : "Listing state"}
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {OWNER_ACTION_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setSelectedAction(option.key)}
-                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  selectedAction === option.key
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-slate-200 text-slate-600 hover:border-primary/30 hover:text-primary dark:border-slate-700 dark:text-slate-300"
-                }`}
-              >
-                {isArabic ? option.labelAr : option.labelEn}
-              </button>
-            ))}
-          </div>
+          {menuContent}
+        </div>
+      ) : null}
 
-          {(selectedAction === "RENT" || selectedAction === "RENTED") && (
-            <div className="mt-3 space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-300">
-                  {isArabic ? "نوع الإيجار" : "Rent type"}
-                </label>
-                <select
-                  value={selectedRentType}
-                  onChange={(event) =>
-                    setSelectedRentType(event.target.value as RentTypeKey)
-                  }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                >
-                  {RENT_TYPE_OPTIONS.map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {isArabic ? option.labelAr : option.labelEn}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedAction === "RENTED" ? (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-300">
-                    {isArabic ? "مدة الإيجار" : "Rental duration"}
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={manualRentalPeriods}
-                    onChange={(event) =>
-                      setManualRentalPeriods(event.target.value)
-                    }
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                    placeholder={isArabic ? "مثال: 3" : "e.g. 3"}
-                  />
-                  {rentalPreviewDate ? (
-                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      {isArabic ? "ينتهي الإيجار في" : "Rental will end on"}{" "}
-                      {formatEndDate(rentalPreviewDate, isArabic)}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300"
-            >
-              {isArabic ? "إلغاء" : "Cancel"}
-            </button>
-            <button
-              type="button"
-              onClick={saveOwnerAction}
-              disabled={isSaving}
-              className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {isSaving
-                ? isArabic
-                  ? "جارٍ الحفظ..."
-                  : "Saving..."
-                : isArabic
-                  ? "حفظ"
-                  : "Save"}
-            </button>
+      {isOwner && menuOpen && renderAsMobileSheet ? (
+        <div
+          className="fixed inset-0 z-120"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setMenuOpen(false);
+          }}
+        >
+          <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" />
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-t-[28px] border border-b-0 border-slate-200 bg-white p-4 pb-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-700" />
+            {menuContent}
           </div>
         </div>
       ) : null}

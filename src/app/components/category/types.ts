@@ -1,4 +1,10 @@
-export type ItemType = "NEW_CAR" | "USED_CAR" | "PROPERTY" | "OTHER";
+export type ItemType =
+  | "NEW_CAR"
+  | "USED_CAR"
+  | "PROPERTY"
+  | "HOME_FURNITURE"
+  | "MEDICAL_DEVICE"
+  | "OTHER";
 
 export interface CategoryItem {
   id: string;

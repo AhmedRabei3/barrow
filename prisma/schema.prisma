@@ -132,6 +132,8 @@ enum ItemType {
   PROPERTY
   NEW_CAR
   USED_CAR
+  HOME_FURNITURE
+  MEDICAL_DEVICE
   OTHER
 }
 
@@ -197,34 +199,39 @@ enum PlatformProfitLedgerType {
  */
 
 model User {
-  id                      String    @id @default(cuid())
-  email                   String    @unique
-  phone                   String?   @unique
-  name                    String
-  password                String?
-  image                   String?
-  profileImage            String?
-  isActive                Boolean   @default(false)
-  isAdmin                 Boolean   @default(false)
-  isOwner                 Boolean   @default(false)
-  isIdentityVerified      Boolean   @default(false)
-  emailVerified           DateTime?
-  balance                 Decimal   @default(0) @db.Decimal(12, 2)
-  activeUntil             DateTime?
-  pendingReferralEarnings Decimal   @default(0) @db.Decimal(12, 2)
-  failedLoginAttempts     Int       @default(0)
-  lastFailedLoginAt       DateTime?
-  failedLoginAlertSentAt  DateTime?
+  id                             String    @id @default(cuid())
+  email                          String    @unique
+  phone                          String?   @unique
+  name                           String
+  password                       String?
+  image                          String?
+  profileImage                   String?
+  isActive                       Boolean   @default(false)
+  isAdmin                        Boolean   @default(false)
+  isOwner                        Boolean   @default(false)
+  isIdentityVerified             Boolean   @default(false)
+  emailVerified                  DateTime?
+  balance                        Decimal   @default(0) @db.Decimal(12, 2)
+  activeUntil                    DateTime?
+  freeActivationGrantedAt        DateTime?
+  freeActivationGrantedByAdminId String?
+  pendingReferralEarnings        Decimal   @default(0) @db.Decimal(12, 2)
+  preferredInterestOrder         String[]  @default([])
+  failedLoginAttempts            Int       @default(0)
+  lastFailedLoginAt              DateTime?
+  failedLoginAlertSentAt         DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  properties Property[]
-  newCars    NewCar[]
-  oldCars    OldCar[]
-  otherItems OtherItem[]
+  properties         Property[]
+  newCars            NewCar[]
+  oldCars            OldCar[]
+  homeFurnitureItems HomeFurniture[]
+  medicalDevices     MedicalDevice[]
+  otherItems         OtherItem[]
 
   ownedTransactions  Transaction[] @relation("OwnerTransactions")
   clientTransactions Transaction[] @relation("ClientTransactions")
@@ -253,8 +260,12 @@ model User {
   sessions                      Session[]
   shamCashActivationRequests    ShamCashActivationRequest[]
   platformProfitLedgerEntries   PlatformProfitLedger[]
+  freeActivationGrantedByAdmin  User?                         @relation("FreeAdminActivations", fields: [freeActivationGrantedByAdminId], references: [id])
+  grantedFreeActivations        User[]                        @relation("FreeAdminActivations")
   identityVerificationRequest   IdentityVerificationRequest?  @relation("IdentityVerificationUser")
   reviewedIdentityVerifications IdentityVerificationRequest[] @relation("IdentityVerificationReviewedBy")
+
+  @@index([freeActivationGrantedByAdminId])
 }
 
 model Account {
@@ -311,10 +322,12 @@ model Category {
   icon      String?
   isDeleted Boolean  @default(false)
 
-  properties Property[]
-  newCars    NewCar[]
-  oldCars    OldCar[]
-  otherItems OtherItem[]
+  properties         Property[]
+  newCars            NewCar[]
+  oldCars            OldCar[]
+  homeFurnitureItems HomeFurniture[]
+  medicalDevices     MedicalDevice[]
+  otherItems         OtherItem[]
 
   @@unique([name, type])
   @@index([type, isDeleted])
@@ -340,15 +353,19 @@ model Location {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  propertyId  String? @unique
-  newCarId    String? @unique
-  oldCarId    String? @unique
-  otherItemId String? @unique
+  propertyId      String? @unique
+  newCarId        String? @unique
+  oldCarId        String? @unique
+  homeFurnitureId String? @unique
+  medicalDeviceId String? @unique
+  otherItemId     String? @unique
 
-  property  Property?  @relation(fields: [propertyId], references: [id])
-  newCar    NewCar?    @relation(fields: [newCarId], references: [id])
-  oldCar    OldCar?    @relation(fields: [oldCarId], references: [id])
-  otherItem OtherItem? @relation(fields: [otherItemId], references: [id])
+  property      Property?      @relation(fields: [propertyId], references: [id])
+  newCar        NewCar?        @relation(fields: [newCarId], references: [id])
+  oldCar        OldCar?        @relation(fields: [oldCarId], references: [id])
+  homeFurniture HomeFurniture? @relation(fields: [homeFurnitureId], references: [id])
+  medicalDevice MedicalDevice? @relation(fields: [medicalDeviceId], references: [id])
+  otherItem     OtherItem?     @relation(fields: [otherItemId], references: [id])
 
   @@index([city, country])
 }
@@ -467,7 +484,7 @@ model OldCar {
   @@index([ownerId, isDeleted, createdAt])
 }
 
-model OtherItem {
+model HomeFurniture {
   id               String          @id @default(cuid())
   name             String
   brand            String?
@@ -478,10 +495,95 @@ model OtherItem {
   status           Availability    @default(AVAILABLE)
   ownerId          String
   categoryId       String
+  furnitureType    String?
+  condition        String?
+  material         String?
+  roomType         String?
+  dimensions       String?
+  color            String?
+  assemblyIncluded Boolean         @default(false)
+  isUsed           Boolean         @default(false)
   moderationAction String?
   moderationNote   String?
   moderatedAt      DateTime?
   moderatedById    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
+}
+
+model MedicalDevice {
+  id                         String          @id @default(cuid())
+  name                       String
+  manufacturer               String?
+  model                      String?
+  description                String?
+  price                      Decimal         @db.Decimal(12, 2)
+  sellOrRent                 TransactionType
+  rentType                   RentType?
+  status                     Availability    @default(AVAILABLE)
+  ownerId                    String
+  categoryId                 String
+  deviceClass                String?
+  condition                  String?
+  manufacturerCountry        String?
+  isUsed                     Boolean         @default(false)
+  warrantyMonths             Int?
+  usageHours                 Int?
+  requiresPrescription       Boolean         @default(false)
+  maintenanceRecordAvailable Boolean         @default(false)
+  moderationAction           String?
+  moderationNote             String?
+  moderatedAt                DateTime?
+  moderatedById              String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  location Location?
+
+  @@index([isDeleted, status, categoryId, sellOrRent, createdAt])
+  @@index([ownerId, isDeleted, createdAt])
+}
+
+model OtherItem {
+  id                          String          @id @default(cuid())
+  name                        String
+  brand                       String?
+  description                 String?
+  furnitureCondition          String?
+  furnitureMaterial           String?
+  furnitureRoomType           String?
+  furnitureDimensions         String?
+  furnitureAssemblyIncluded   Boolean?
+  medicalCondition            String?
+  medicalManufacturerCountry  String?
+  medicalWarrantyMonths       Int?
+  medicalUsageHours           Int?
+  medicalRequiresPrescription Boolean?
+  price                       Decimal         @db.Decimal(12, 2)
+  sellOrRent                  TransactionType
+  rentType                    RentType?
+  status                      Availability    @default(AVAILABLE)
+  ownerId                     String
+  categoryId                  String
+  moderationAction            String?
+  moderationNote              String?
+  moderatedAt                 DateTime?
+  moderatedById               String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

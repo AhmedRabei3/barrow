@@ -185,7 +185,11 @@ const Navbar = ({
             <Logo />
           </div>
           <div className="min-w-0 px-0.5">
-            <HomeTabs setType={helper.handleSetType} type={type} compact />
+            <HomeTabs
+              onSelectTab={helper.handleSelectPrimaryTab}
+              type={type}
+              compact
+            />
           </div>
           <div className="flex items-center justify-end gap-1">
             <Suspense fallback={null}>
@@ -218,7 +222,7 @@ const Navbar = ({
           className={`${TABS_ROW_CLASS} overflow-hidden transition-all duration-300 ease-in-out`}
           style={tabsStyle}
         >
-          <HomeTabs setType={helper.handleSetType} type={type} />
+          <HomeTabs onSelectTab={helper.handleSelectPrimaryTab} type={type} />
         </div>
       </Container>
     </div>

@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { phoneSchema } from "./purchaseValidations";
+import {
+  DEFAULT_USER_INTEREST_ORDER,
+  normalizeUserInterestOrder,
+  USER_INTEREST_KEYS,
+} from "@/lib/primaryCategories";
 
 // اسم افتراضي guest + رقم عشوائي
 const generateGuestName = () =>
@@ -46,6 +51,14 @@ export const registerUserSchema = z.object({
     }),
   profileImage: z.string().url().optional(),
   referredBy: z.string().cuid().optional(),
+  interestOrder: z
+    .array(z.enum(USER_INTEREST_KEYS))
+    .default(DEFAULT_USER_INTEREST_ORDER)
+    .refine(
+      (value) => new Set(value).size === USER_INTEREST_KEYS.length,
+      "رتّب جميع الاهتمامات مرة واحدة بدون تكرار",
+    )
+    .transform((value) => normalizeUserInterestOrder(value)),
   acceptPrivacyPolicy: z.boolean().refine((value) => value === true, {
     message: "يجب الموافقة على شروط التسجيل وسياسة الخصوصية لإكمال التسجيل",
   }),

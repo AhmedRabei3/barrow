@@ -7,7 +7,7 @@ import ShamCashBtn from "./ShamCashBtn";
 import useActivationModal from "@/app/hooks/useActivationModal";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import { request } from "@/app/utils/axios";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
 
@@ -20,11 +20,42 @@ interface PaymentsBtnProps {
   isShamCashSubmitting: boolean;
   setRequestingSupportCode: React.Dispatch<React.SetStateAction<boolean>>;
   requestActivationCodeViaSupport: () => Promise<void>;
-  setRedirectingMethod: Dispatch<SetStateAction<RedirectPaymentMethod | null>>
+  setRedirectingMethod: Dispatch<SetStateAction<RedirectPaymentMethod | null>>;
   setShowShamCashModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 type PaymentMethod = "PAYPAL" | "CARD" | "SHAMCASH";
+const PAYPAL_UNSUPPORTED_REGION_CODES = new Set(["SY"]);
+
+const detectBrowserRegion = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const localeCandidates = [
+    window.navigator.language,
+    ...(window.navigator.languages ?? []),
+    Intl.DateTimeFormat().resolvedOptions().locale,
+  ].filter(Boolean);
+
+  for (const localeCandidate of localeCandidates) {
+    const locale = String(localeCandidate);
+
+    try {
+      const region = new Intl.Locale(locale).region;
+      if (region) {
+        return region.toUpperCase();
+      }
+    } catch {}
+
+    const match = locale.match(/[-_](\w{2})\b/);
+    if (match?.[1]) {
+      return match[1].toUpperCase();
+    }
+  }
+
+  return null;
+};
 
 const PaymentsBtn = ({
   isLoading,
@@ -39,6 +70,15 @@ const PaymentsBtn = ({
   setShowShamCashModal,
 }: PaymentsBtnProps) => {
   const ActivationModal = useActivationModal();
+  const [isPaypalHiddenForRegion, setIsPaypalHiddenForRegion] = useState(false);
+
+  useEffect(() => {
+    const region = detectBrowserRegion();
+    setIsPaypalHiddenForRegion(
+      Boolean(region && PAYPAL_UNSUPPORTED_REGION_CODES.has(region)),
+    );
+  }, []);
+
   const startPaidSubscription = async (method: PaymentMethod) => {
     try {
       if (method === "SHAMCASH") {
@@ -84,14 +124,22 @@ const PaymentsBtn = ({
   };
   return (
     <div className="flex flex-col gap-2">
-      <PaypalBtn
-        isLoading={isLoading}
-        redirectingMethod={redirectingMethod}
-        requestingSupportCode={requestingSupportCode}
-        startPaidSubscription={() => startPaidSubscription("PAYPAL")}
-        subscriptionAmount={subscriptionAmount}
-        isArabic={isArabic}
-      />
+      {isPaypalHiddenForRegion ? (
+        <div className="rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-100">
+          {isArabic
+            ? "تم إخفاء التفعيل عبر PayPal لأن منطقة المتصفح الحالية تبدو من الدول التي لا تدعمها PayPal. يمكنك استخدام شام كاش أو طلب كود تفعيل."
+            : "PayPal activation is hidden because your current browser region appears to be in a country where PayPal is not supported. Use ShamCash or request an activation code instead."}
+        </div>
+      ) : (
+        <PaypalBtn
+          isLoading={isLoading}
+          redirectingMethod={redirectingMethod}
+          requestingSupportCode={requestingSupportCode}
+          startPaidSubscription={() => startPaidSubscription("PAYPAL")}
+          subscriptionAmount={subscriptionAmount}
+          isArabic={isArabic}
+        />
+      )}
       {/* لا حقاً يتم إضافة الدفع عبر البطاقات الائتمانية */}
       <ShamCashBtn
         isLoading={isLoading}

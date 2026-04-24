@@ -11,6 +11,8 @@ const ITEM_TYPES: $Enums.ItemType[] = [
   $Enums.ItemType.NEW_CAR,
   $Enums.ItemType.USED_CAR,
   $Enums.ItemType.PROPERTY,
+  $Enums.ItemType.HOME_FURNITURE,
+  $Enums.ItemType.MEDICAL_DEVICE,
   $Enums.ItemType.OTHER,
 ];
 
@@ -77,6 +79,26 @@ const buildSearchCondition = (type: $Enums.ItemType, q: string) => {
     case $Enums.ItemType.PROPERTY:
       return {
         OR: [{ title: contains }, { description: contains }],
+      };
+    case $Enums.ItemType.HOME_FURNITURE:
+      return {
+        OR: [
+          { name: contains },
+          { brand: contains },
+          { description: contains },
+          { material: contains },
+          { roomType: contains },
+        ],
+      };
+    case $Enums.ItemType.MEDICAL_DEVICE:
+      return {
+        OR: [
+          { name: contains },
+          { manufacturer: contains },
+          { model: contains },
+          { description: contains },
+          { deviceClass: contains },
+        ],
       };
     case $Enums.ItemType.OTHER:
       return {

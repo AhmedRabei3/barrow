@@ -31,6 +31,16 @@ type EditableItem = {
     reAssembled?: boolean | null;
     repainted?: boolean | null;
     mileage?: number | null;
+    furnitureCondition?: string | null;
+    furnitureMaterial?: string | null;
+    furnitureRoomType?: string | null;
+    furnitureDimensions?: string | null;
+    furnitureAssemblyIncluded?: boolean | null;
+    medicalCondition?: string | null;
+    medicalManufacturerCountry?: string | null;
+    medicalWarrantyMonths?: number | null;
+    medicalUsageHours?: number | null;
+    medicalRequiresPrescription?: boolean | null;
     guests?: number | null;
     livingrooms?: number | null;
     bathrooms?: number | null;
@@ -138,6 +148,23 @@ export function buildEditDataByType(itemToEdit: EditableItem) {
       sellOrRent: itemToEdit.item?.sellOrRent ?? undefined,
       rentType: itemToEdit.item?.rentType ?? undefined,
       status: itemToEdit.item?.status ?? undefined,
+      furnitureCondition: itemToEdit.item?.furnitureCondition ?? undefined,
+      furnitureMaterial: itemToEdit.item?.furnitureMaterial ?? undefined,
+      furnitureRoomType: itemToEdit.item?.furnitureRoomType ?? undefined,
+      furnitureDimensions: itemToEdit.item?.furnitureDimensions ?? undefined,
+      furnitureAssemblyIncluded:
+        itemToEdit.item?.furnitureAssemblyIncluded ?? undefined,
+      medicalCondition: itemToEdit.item?.medicalCondition ?? undefined,
+      medicalManufacturerCountry:
+        itemToEdit.item?.medicalManufacturerCountry ?? undefined,
+      medicalWarrantyMonths: toNumberOrUndefined(
+        itemToEdit.item?.medicalWarrantyMonths,
+      ),
+      medicalUsageHours: toNumberOrUndefined(
+        itemToEdit.item?.medicalUsageHours,
+      ),
+      medicalRequiresPrescription:
+        itemToEdit.item?.medicalRequiresPrescription ?? undefined,
       description: itemToEdit.item?.description ?? undefined,
       ...baseLocationData,
     };

@@ -7,12 +7,13 @@ import {
 } from "@/app/i18n/errorMessages";
 import { parseItemSearchQuery } from "@/lib/validators/item-search";
 import { searchItems } from "@/server/services/item-search.service";
-import { withTimeout } from "@/app/api/lib/errors/dbGuard";
+import { RequestTimeoutError, withTimeout } from "@/app/api/lib/errors/dbGuard";
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
+  const query = parseItemSearchQuery(req.nextUrl.searchParams);
+
   try {
-    const query = parseItemSearchQuery(req.nextUrl.searchParams);
     const response = await withTimeout(
       searchItems(query),
       7000,
@@ -42,6 +43,29 @@ export async function GET(req: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    if (
+      err instanceof RequestTimeoutError &&
+      query.userLat !== null &&
+      query.userLng !== null
+    ) {
+      const fallbackResponse = await withTimeout(
+        searchItems({
+          ...query,
+          userLat: null,
+          userLng: null,
+        }),
+        7000,
+        "Item search timed out",
+      );
+
+      return NextResponse.json(fallbackResponse, {
+        headers: {
+          "Cache-Control": "private, no-store",
+          "X-Search-Fallback": "non-geo",
+        },
+      });
     }
 
     return handleApiError(err, req);

@@ -22,8 +22,38 @@ export const adminDashboardRepository = {
         isDeleted: true,
         createdAt: true,
         activeUntil: true,
+        freeActivationGrantedAt: true,
+        freeActivationGrantedByAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         balance: true,
         pendingReferralEarnings: true,
+        _count: {
+          select: {
+            properties: {
+              where: { isDeleted: false },
+            },
+            newCars: {
+              where: { isDeleted: false },
+            },
+            oldCars: {
+              where: { isDeleted: false },
+            },
+            homeFurnitureItems: {
+              where: { isDeleted: false },
+            },
+            medicalDevices: {
+              where: { isDeleted: false },
+            },
+            otherItems: {
+              where: { isDeleted: false },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -201,6 +231,12 @@ export const adminDashboardRepository = {
       prisma.property.count({ where: { ownerId: userId, isDeleted: false } }),
       prisma.newCar.count({ where: { ownerId: userId, isDeleted: false } }),
       prisma.oldCar.count({ where: { ownerId: userId, isDeleted: false } }),
+      prisma.homeFurniture.count({
+        where: { ownerId: userId, isDeleted: false },
+      }),
+      prisma.medicalDevice.count({
+        where: { ownerId: userId, isDeleted: false },
+      }),
       prisma.otherItem.count({ where: { ownerId: userId, isDeleted: false } }),
       prisma.payment.findMany({
         where: { payerId: userId },

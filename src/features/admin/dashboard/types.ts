@@ -40,6 +40,15 @@ export type DashboardUser = {
   isDeleted: boolean;
   createdAt: string;
   activeUntil: string | null;
+  freeActivationGrantedAt: string | null;
+  freeActivationGrantedByAdminName: string | null;
+  propertiesCount: number;
+  newCarsCount: number;
+  oldCarsCount: number;
+  homeFurnitureCount: number;
+  medicalDevicesCount: number;
+  otherItemsCount: number;
+  totalListingsCount: number;
   activatedSince?: string | null;
   activeForDays?: number;
   balance: number;
@@ -119,6 +128,8 @@ export type AdminDashboardSelectedUserDetails = {
     properties: number;
     newCars: number;
     oldCars: number;
+    homeFurniture: number;
+    medicalDevices: number;
     otherItems: number;
     totalActive: number;
   };

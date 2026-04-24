@@ -23,6 +23,16 @@ type ItemDetailsData = {
   mileage?: number;
   repainted?: boolean;
   reAssembled?: boolean;
+  furnitureCondition?: string;
+  furnitureMaterial?: string;
+  furnitureRoomType?: string;
+  furnitureDimensions?: string;
+  furnitureAssemblyIncluded?: boolean;
+  medicalCondition?: string;
+  medicalManufacturerCountry?: string;
+  medicalWarrantyMonths?: number;
+  medicalUsageHours?: number;
+  medicalRequiresPrescription?: boolean;
   // Property-specific
   bedrooms?: number;
   bathrooms?: number;
@@ -218,6 +228,56 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
   const otherSpecs =
     !isProperty && !isCar
       ? [
+          data.furnitureCondition
+            ? {
+                label: isArabic ? "حالة الأثاث" : "Furniture condition",
+                value: data.furnitureCondition,
+              }
+            : null,
+          data.furnitureMaterial
+            ? {
+                label: isArabic ? "الخامة" : "Material",
+                value: data.furnitureMaterial,
+              }
+            : null,
+          data.furnitureRoomType
+            ? {
+                label: isArabic ? "الغرفة المناسبة" : "Room type",
+                value: data.furnitureRoomType,
+              }
+            : null,
+          data.furnitureDimensions
+            ? {
+                label: isArabic ? "الأبعاد" : "Dimensions",
+                value: data.furnitureDimensions,
+              }
+            : null,
+          data.medicalCondition
+            ? {
+                label: isArabic ? "حالة الجهاز" : "Device condition",
+                value: data.medicalCondition,
+              }
+            : null,
+          data.medicalManufacturerCountry
+            ? {
+                label: isArabic ? "بلد التصنيع" : "Manufacturer country",
+                value: data.medicalManufacturerCountry,
+              }
+            : null,
+          data.medicalWarrantyMonths != null
+            ? {
+                label: isArabic ? "مدة الضمان" : "Warranty",
+                value: isArabic
+                  ? `${data.medicalWarrantyMonths} شهر`
+                  : `${data.medicalWarrantyMonths} months`,
+              }
+            : null,
+          data.medicalUsageHours != null
+            ? {
+                label: isArabic ? "ساعات الاستخدام" : "Usage hours",
+                value: String(data.medicalUsageHours),
+              }
+            : null,
           data.status
             ? { label: isArabic ? "الحالة" : "Status", value: data.status }
             : null,
@@ -298,6 +358,23 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
             <BoolBadge
               value={data.reAssembled}
               label={isArabic ? "معاد تجميعه" : "Re-assembled"}
+            />
+          </ul>
+        )}
+
+        {!isProperty && !isCar && (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <BoolBadge
+              value={data.furnitureAssemblyIncluded}
+              label={isArabic ? "يشمل التركيب" : "Assembly included"}
+            />
+            <BoolBadge
+              value={data.medicalRequiresPrescription}
+              label={
+                isArabic
+                  ? "يتطلب وصفة أو تصريحاً"
+                  : "Requires prescription or approval"
+              }
             />
           </ul>
         )}

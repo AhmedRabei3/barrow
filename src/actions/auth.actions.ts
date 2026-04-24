@@ -6,8 +6,10 @@ import {
   RegisterUserInput,
   LoginUserInput,
 } from "@/app/validations/userValidations";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import {
   createEmailVerification,
   sendEmailVerificationMail,
@@ -17,6 +19,10 @@ import {
   notifyFailedLoginThreshold,
   requestPasswordReset,
 } from "@/lib/authSecurity";
+import {
+  normalizeUserInterestOrder,
+  USER_INTEREST_KEYS,
+} from "@/lib/primaryCategories";
 
 /** login user */
 export const loginAction = async (data: LoginUserInput, isArabic: boolean) => {
@@ -131,7 +137,7 @@ export const registerAction = async (
         validations.error.issues[0].message ||
         (isArabic ? "بيانات التسجيل غير صحيحة" : "Invalid registration data"),
     };
-  const { name, password, referredBy } = validations.data;
+  const { name, password, referredBy, interestOrder } = validations.data;
   const email = validations.data.email.trim().toLowerCase();
 
   const exisstingUser = await prisma.user.findUnique({
@@ -171,6 +177,7 @@ export const registerAction = async (
           name,
           email,
           password: hashedPassword,
+          preferredInterestOrder: interestOrder,
         },
       });
 
@@ -371,4 +378,43 @@ export const resendVerificationEmailAction = async (
             : "Failed to resend verification email",
     };
   }
+};
+
+export const updatePreferredInterestOrderAction = async (
+  interestOrder: string[],
+  isArabic: boolean,
+) => {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      message: isArabic ? "يجب تسجيل الدخول أولاً" : "You must sign in first",
+    };
+  }
+
+  const validation = z
+    .array(z.enum(USER_INTEREST_KEYS))
+    .safeParse(interestOrder);
+
+  if (!validation.success) {
+    return {
+      success: false,
+      message: isArabic
+        ? "ترتيب الاهتمامات غير صالح"
+        : "Invalid interest order",
+    };
+  }
+
+  const preferredInterestOrder = normalizeUserInterestOrder(validation.data);
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { preferredInterestOrder },
+  });
+
+  return {
+    success: true,
+    preferredInterestOrder,
+  };
 };
