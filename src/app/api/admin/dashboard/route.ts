@@ -9,6 +9,9 @@ import {
 import { parseAdminDashboardQuery } from "@/lib/validators/admin-dashboard";
 import { getAdminDashboard } from "@/server/services/admin-dashboard.service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
 
@@ -18,7 +21,14 @@ export async function GET(req: NextRequest) {
     const query = parseAdminDashboardQuery(req.nextUrl.searchParams);
     const response = await getAdminDashboard(query);
 
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

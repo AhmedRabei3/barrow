@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     await requireAdminUser();
@@ -29,7 +32,18 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ requests }, { status: 200 });
+    return NextResponse.json(
+      { requests },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      },
+    );
   } catch (error) {
     return handleApiError(error, req);
   }

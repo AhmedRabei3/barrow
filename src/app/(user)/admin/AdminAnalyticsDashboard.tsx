@@ -129,6 +129,9 @@ const AdminAnalyticsDashboard = () => {
 
         const response = await fetch(
           `/api/admin/dashboard?${params.toString()}`,
+          {
+            cache: "no-store",
+          },
         );
         const body = (await response.json()) as DashboardResponse & {
           message?: string;
@@ -162,7 +165,9 @@ const AdminAnalyticsDashboard = () => {
   const loadVerificationRequests = useCallback(async () => {
     try {
       setVerificationLoading(true);
-      const response = await fetch("/api/admin/identity-verifications");
+      const response = await fetch("/api/admin/identity-verifications", {
+        cache: "no-store",
+      });
       const body = (await response.json()) as {
         requests?: IdentityVerificationRequestDto[];
         message?: string;
@@ -981,12 +986,12 @@ const AdminAnalyticsDashboard = () => {
           </div>
         </div>
 
-        <div className="admin-card min-w-0 w-full rounded-[28px] p-5 sm:p-6">
+        <div className="admin-card min-w-0 w-fit rounded-[28px] p-5 sm:p-6">
           <h3 className="text-lg font-bold text-white">
             {t("توزيع حالة المستخدمين", "User status distribution")}
           </h3>
 
-          <div className="mt-5 h-72 min-w-0">
+          <div className="mt-5 h-72 min-w-0 w-fit">
             <ResponsiveContainer width="100%" height={288} minWidth={0}>
               <PieChart>
                 <Pie

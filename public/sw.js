@@ -1,5 +1,13 @@
-const CACHE_NAME = "mashhoor-shell-v1";
+const CACHE_NAME = "mashhoor-shell-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/images/logo.png"];
+
+const CACHEABLE_DESTINATIONS = new Set([
+  "style",
+  "script",
+  "image",
+  "font",
+  "manifest",
+]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,8 +36,23 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+  const url = new URL(request.url);
 
   if (request.method !== "GET") {
+    return;
+  }
+
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  const isApiRequest = url.pathname.startsWith("/api/");
+  const isDocumentRequest =
+    request.mode === "navigate" || request.destination === "document";
+  const isCacheableAsset = CACHEABLE_DESTINATIONS.has(request.destination);
+
+  if (isApiRequest || isDocumentRequest || !isCacheableAsset) {
+    event.respondWith(fetch(request));
     return;
   }
 
