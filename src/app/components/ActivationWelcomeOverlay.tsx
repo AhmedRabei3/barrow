@@ -118,6 +118,7 @@ const ActivationWelcomeOverlay = () => {
   const router = useRouter();
   const initializedRef = useRef(false);
   const [mode, setMode] = useState<OverlayMode>(null);
+  const [isTiersExpanded, setIsTiersExpanded] = useState(false);
 
   const user = session?.user;
   const userId = user?.id ?? null;
@@ -168,8 +169,27 @@ const ActivationWelcomeOverlay = () => {
     if (!initializedRef.current) {
       initializedRef.current = true;
 
+      if (isCurrentlyActive && activeUntilIso && pendingCelebration) {
+        if (lastSeenActivation !== activeUntilIso) {
+          safeSet(seenKey, activeUntilIso);
+          safeRemove(dismissedKey);
+          safeSessionRemove(ACTIVATION_PENDING_KEY);
+          setIsTiersExpanded(false);
+          setMode("success");
+          return;
+        }
+        safeSessionRemove(ACTIVATION_PENDING_KEY);
+      }
+
       if (isCurrentlyActive && activeUntilIso) {
         safeSet(seenKey, activeUntilIso);
+      }
+
+      if (!user?.isActive) {
+        const dismissed = safeGet(dismissedKey) === "1";
+        if (!dismissed) {
+          setMode("inactive");
+        }
       }
 
       return;
@@ -180,6 +200,7 @@ const ActivationWelcomeOverlay = () => {
         safeSet(seenKey, activeUntilIso);
         safeRemove(dismissedKey);
         safeSessionRemove(ACTIVATION_PENDING_KEY);
+        setIsTiersExpanded(false);
         setMode("success");
         return;
       }
@@ -211,6 +232,7 @@ const ActivationWelcomeOverlay = () => {
     if (mode === "inactive" && userId) {
       safeSet(`${INACTIVE_PROMPT_DISMISSED_PREFIX}${userId}`, "1");
     }
+    setIsTiersExpanded(false);
     setMode(null);
   }, [mode, userId]);
 
@@ -229,6 +251,7 @@ const ActivationWelcomeOverlay = () => {
 
   const openPublishAssistant = useCallback(() => {
     setMode(null);
+    setIsTiersExpanded(false);
 
     if (pathname !== "/") {
       safeSessionSet(OPEN_SMART_CHAT_ON_HOME_KEY, "1");
@@ -253,6 +276,10 @@ const ActivationWelcomeOverlay = () => {
     "Activate your account and unlock momentum",
   );
 
+  const toggleTiers = () => {
+    setIsTiersExpanded((current) => !current);
+  };
+
   return (
     <div
       className="activation-spotlight-overlay"
@@ -269,49 +296,82 @@ const ActivationWelcomeOverlay = () => {
             <>
               <p className="activation-spotlight-copy">
                 {t(
-                  "أصبحت الآن قادراً على النشر، بناء الثقة مع المشترين، واستثمار فترة التفعيل في تنمية دخلك عبر نظام الدعوات الذكي.",
-                  "You can now publish listings, build buyer trust, and use this activation window to grow your income through the referral system.",
+                  "يمكنك الآن دعوة الآخرين للانضمام والاستفادة من مكافآت تصل حتى 60% من اشتراكات أول 10 مستخدمين فعليين تدعوهم شهرياً، وذلك حسب ",
+                  "You can now invite others and earn rewards of up to 60% from the monthly subscriptions of the first 10 real users you activate, based on the tier system ",
+                )}
+                <button
+                  type="button"
+                  className="activation-spotlight-inline-link"
+                  onClick={toggleTiers}
+                  aria-expanded={isTiersExpanded}
+                >
+                  {t("نظام الشرائح", "tier system")}
+                </button>
+                {t(
+                  ". استثمر هذه الفترة لتعزيز أرباحك، وبناء حضور أقوى داخل المنصة.",
+                  ". Use this activation window to grow your income and strengthen your presence across the platform.",
                 )}
               </p>
 
               <div className="activation-spotlight-tier-card">
-                <div className="activation-spotlight-tier-title">
-                  {t(
-                    "كيف تربح من نظام الشرائح؟",
-                    "How the referral tiers reward you",
-                  )}
+                <button
+                  type="button"
+                  className="activation-spotlight-accordion-trigger"
+                  onClick={toggleTiers}
+                  aria-expanded={isTiersExpanded}
+                >
+                  <span className="activation-spotlight-tier-title">
+                    {t("شرح نظام الشرائح", "Tier system breakdown")}
+                  </span>
+                  <span
+                    className="activation-spotlight-accordion-icon"
+                    aria-hidden="true"
+                  >
+                    {isTiersExpanded ? "−" : "+"}
+                  </span>
+                </button>
+                <div
+                  className={`activation-spotlight-accordion-panel${isTiersExpanded ? " is-open" : ""}`}
+                >
+                  <div className="activation-spotlight-tier-grid">
+                    <div>
+                      <strong>60%</strong>
+                      <span>
+                        {t(
+                          "لأول 10 مستخدمين فعليين يتم تفعيلهم من خلالك",
+                          "for the first 10 real users activated through your link",
+                        )}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>40%</strong>
+                      <span>
+                        {t("للمستخدمين من 11 إلى 20", "for users 11 to 20")}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>30%</strong>
+                      <span>
+                        {t("للمستخدمين من 21 إلى 30", "for users 21 to 30")}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>20%</strong>
+                      <span>
+                        {t(
+                          "لأي مستخدم فعلي بعد ذلك",
+                          "for every real user after that",
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="activation-spotlight-tier-note">
+                    {t(
+                      "يُحتسب العائد عند تفعيل المدعو لاشتراكه ووجود نشاط حقيقي له داخل المنصة، ثم تُضاف الأرباح إلى رصيدك المعلق وفق آلية النظام المعتمدة.",
+                      "Rewards are counted when the invited user activates a subscription and shows real activity on the platform, then the earnings are added to your pending balance according to the platform rules.",
+                    )}
+                  </p>
                 </div>
-                <div className="activation-spotlight-tier-grid">
-                  <div>
-                    <strong>60%</strong>
-                    <span>
-                      {t(
-                        "لأول 10 دعوات مفعّلة",
-                        "for the first 10 activated invites",
-                      )}
-                    </span>
-                  </div>
-                  <div>
-                    <strong>40%</strong>
-                    <span>{t("للدعوات 11-20", "for invites 11-20")}</span>
-                  </div>
-                  <div>
-                    <strong>30%</strong>
-                    <span>{t("للدعوات 21-30", "for invites 21-30")}</span>
-                  </div>
-                  <div>
-                    <strong>20%</strong>
-                    <span>
-                      {t("لما بعد 30 دعوة", "for every invite after 30")}
-                    </span>
-                  </div>
-                </div>
-                <p className="activation-spotlight-tier-note">
-                  {t(
-                    "كلما فعّل المدعوون حساباتهم وبدأ لديهم نشاط حقيقي في المنصة، تتحول الدعوات إلى أرباح معلّقة ثم إلى رصيد جاهز عند الاستحقاق.",
-                    "When invited users activate and show real listing activity, your referrals turn into pending earnings and then into ready balance.",
-                  )}
-                </p>
               </div>
 
               <div className="activation-spotlight-actions">

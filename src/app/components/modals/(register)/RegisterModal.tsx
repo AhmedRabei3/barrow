@@ -253,8 +253,8 @@ const RegisterModal = () => {
       setPendingVerificationEmail(null);
       toast(
         isArabic
-          ? "افتح التسجيل بطريقة أخرى لإدخال بيانات الحساب"
-          : "Open the other registration method to enter your account details",
+          ? "افتح تسجيل جديد لإدخال بيانات الحساب"
+          : "Open new registration to enter your account details",
       );
       return;
     }
@@ -363,9 +363,7 @@ const RegisterModal = () => {
           className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           aria-expanded={isClassicOpen}
         >
-          <span>
-            {isArabic ? "التسجيل بطريقة أخرى" : "Register another way"}
-          </span>
+          <span>{isArabic ? "تسجيل جديد" : "New registration"}</span>
           <span
             className={`text-lg transition ${isClassicOpen ? "rotate-180" : ""}`}
           >

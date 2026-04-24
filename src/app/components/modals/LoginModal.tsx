@@ -213,7 +213,14 @@ const LoginModal = () => {
         />
       ) : null}
 
-      <GoogleSignInButton disabled={isLoading} callbackUrl="/" />
+      <GoogleSignInButton
+        disabled={isLoading}
+        callbackUrl="/"
+        showDivider={false}
+        label={
+          isArabic ? "الدخول باستخدام حساب غوغل" : "Sign in with Google account"
+        }
+      />
     </div>
   );
 

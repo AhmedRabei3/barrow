@@ -10,6 +10,7 @@ interface GoogleSignInButtonProps {
   callbackUrl?: string;
   showDivider?: boolean;
   beforeContinue?: () => boolean | Promise<boolean>;
+  label?: string;
 }
 
 export default function GoogleSignInButton({
@@ -17,6 +18,7 @@ export default function GoogleSignInButton({
   callbackUrl = "/",
   showDivider = true,
   beforeContinue,
+  label,
 }: GoogleSignInButtonProps) {
   const { isArabic } = useAppPreferences();
 
@@ -104,7 +106,8 @@ export default function GoogleSignInButton({
             />
           </svg>
           <span>
-            {tText(isArabic, "التسجيل عبر غوغل", "Continue with Google")}
+            {label ??
+              tText(isArabic, "التسجيل عبر غوغل", "Continue with Google")}
           </span>
         </span>
       </button>

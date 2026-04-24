@@ -73,7 +73,46 @@ const RegisterCalssic = ({
         allowPasswordToggle
       />
 
-      <PasswordHintsPanel value={passwordValue} />
+      <Input
+        id="confirmPassword"
+        label={isArabic ? "تأكيد كلمة المرور" : "Confirm password"}
+        type="password"
+        disabled={isLoading}
+        register={register}
+        errors={errors}
+        required
+        iconName="MdOutlineVerifiedUser"
+        inputDir="ltr"
+        textAlign="left"
+        allowPasswordToggle
+        registerOptions={{
+          validate: (value, formValues) =>
+            value === formValues.password ||
+            (isArabic
+              ? "تأكيد كلمة المرور غير مطابق"
+              : "Passwords do not match"),
+        }}
+      />
+
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50/70 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {isArabic ? "أمان الحساب" : "Account security"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {isArabic
+                ? "اختر كلمة مرور قوية ثم أكّدها مباشرة قبل متابعة التسجيل."
+                : "Choose a strong password, then confirm it before continuing registration."}
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
+            {isArabic ? "مهم" : "Important"}
+          </span>
+        </div>
+
+        <PasswordHintsPanel value={passwordValue} />
+      </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/40">
         <div className="mb-3">
@@ -128,27 +167,6 @@ const RegisterCalssic = ({
           ))}
         </div>
       </div>
-
-      <Input
-        id="confirmPassword"
-        label={isArabic ? "تأكيد كلمة المرور" : "Confirm password"}
-        type="password"
-        disabled={isLoading}
-        register={register}
-        errors={errors}
-        required
-        iconName="MdOutlineVerifiedUser"
-        inputDir="ltr"
-        textAlign="left"
-        allowPasswordToggle
-        registerOptions={{
-          validate: (value, formValues) =>
-            value === formValues.password ||
-            (isArabic
-              ? "تأكيد كلمة المرور غير مطابق"
-              : "Passwords do not match"),
-        }}
-      />
     </>
   );
 };
