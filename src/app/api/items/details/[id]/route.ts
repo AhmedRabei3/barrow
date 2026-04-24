@@ -27,8 +27,6 @@ export async function GET(
     // if (!itemData || !location) {
     //   throw Errors.NOT_FOUND();
     // }
-      throw Errors.NOT_FOUND();
-    }
 
     /**
      * 4️⃣ Response
