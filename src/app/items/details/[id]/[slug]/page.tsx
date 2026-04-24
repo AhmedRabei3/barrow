@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import {
   buildListingMetadata,
   getListingOrNull,
@@ -23,15 +22,8 @@ export async function generateMetadata({
 }
 
 export default async function ListingDetailsSlugPage({ params }: PageProps) {
-  const { id, slug } = await params;
+  const { id } = await params;
   const item = await getListingOrNull(id);
-
-  if (item?.canonicalPath) {
-    const canonicalSlug = item.canonicalPath.split("/").pop();
-    if (canonicalSlug && canonicalSlug !== slug) {
-      redirect(item.canonicalPath);
-    }
-  }
 
   return renderListingDetailsPage(item);
 }
