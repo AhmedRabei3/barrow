@@ -8,6 +8,7 @@ import {
 } from "@/app/validations/userValidations";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { NotificationType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import {
@@ -178,6 +179,17 @@ export const registerAction = async (
           email,
           password: hashedPassword,
           preferredInterestOrder: interestOrder,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: newUser.id,
+          title: isArabic ? "🎉 مرحبًا بك في Barrow" : "🎉 Welcome to Barrow",
+          message: isArabic
+            ? "تم إنشاء حسابك بنجاح. فعّل بريدك الإلكتروني أولاً، ثم فعّل اشتراكك للاستفادة من النشر والدعوات والأرباح."
+            : "Your account was created successfully. Verify your email first, then activate your subscription to unlock publishing, referrals, and earnings.",
+          type: NotificationType.INFO,
         },
       });
 

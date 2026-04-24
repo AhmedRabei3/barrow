@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter } from "next-auth/adapters";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { NotificationType, Prisma } from "@prisma/client";
 import {
   getSessionCookieName,
   shouldUseSecureAuthCookie,
@@ -48,6 +48,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
+  events: {
+    async createUser({ user }) {
+      if (!user.id) {
+        return;
+      }
+
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: "🎉 Welcome to Barrow | مرحبًا بك في Barrow",
+          message:
+            "Your account is ready. Verify your email if needed, then activate your subscription to unlock publishing and earnings. | حسابك أصبح جاهزًا. أكمل التحقق من البريد إن لزم، ثم فعّل اشتراكك لبدء النشر والاستفادة من الأرباح.",
+          type: NotificationType.INFO,
+        },
+      });
+    },
+  },
   cookies: {
     sessionToken: {
       name: getSessionCookieName(),

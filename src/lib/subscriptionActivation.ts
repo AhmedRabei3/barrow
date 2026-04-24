@@ -94,6 +94,7 @@ export const applySubscriptionActivation = async (
 
   const now = new Date();
   const activeUntil = user.activeUntil ? new Date(user.activeUntil) : null;
+  const isFirstActivation = !activeUntil;
 
   if (activeUntil && now < activeUntil) {
     throw new Error("Renewal is only allowed during the grace period");
@@ -274,8 +275,12 @@ export const applySubscriptionActivation = async (
   await tx.notification.create({
     data: {
       userId: activatedUserId,
-      title: `✅ تم تجديد الاشتراك عبر ${sourceLabel}`,
-      message: `تم تفعيل حسابك حتى ${newActiveUntil.toISOString().slice(0, 10)}.`,
+      title: isFirstActivation
+        ? "🎉 مرحبًا بك في اشتراك Barrow"
+        : `✅ تم تجديد الاشتراك عبر ${sourceLabel}`,
+      message: isFirstActivation
+        ? `تم تفعيل اشتراكك لأول مرة بنجاح حتى ${newActiveUntil.toISOString().slice(0, 10)}. يمكنك الآن النشر والاستفادة من برنامج الدعوات والأرباح.`
+        : `تم تجديد اشتراكك بنجاح حتى ${newActiveUntil.toISOString().slice(0, 10)}.`,
     },
   });
 
