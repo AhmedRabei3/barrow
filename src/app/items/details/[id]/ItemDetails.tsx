@@ -14,23 +14,40 @@ import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/own
 import { FaGoogle, FaExternalLinkAlt } from "react-icons/fa";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
+type ItemDetailsData = ItemDetailsProps["item"]["data"];
+
+const normalizeItemDetailsData = (data: ItemDetailsData) => ({
+  ...data,
+  brand: data.brand ?? undefined,
+  title: data.title ?? undefined,
+  name: data.name ?? undefined,
+  model: data.model ?? undefined,
+  status: data.status ?? undefined,
+  description: data.description ?? undefined,
+  sellOrRent: data.sellOrRent ?? undefined,
+  rentType: data.rentType ?? undefined,
+  color: data.color ?? undefined,
+  fuelType: data.fuelType ?? undefined,
+  gearType: data.gearType ?? undefined,
+});
+
 interface ItemDetailsProps {
   item: {
     data: {
       id: string;
-      brand?: string;
-      title?: string;
-      name?: string;
-      model?: string;
+      brand?: string | null;
+      title?: string | null;
+      name?: string | null;
+      model?: string | null;
       price?: number;
-      status?: string;
-      description?: string;
-      sellOrRent?: string;
-      rentType?: string;
+      status?: string | null;
+      description?: string | null;
+      sellOrRent?: string | null;
+      rentType?: string | null;
       ownerId?: string | null;
-      color?: string;
-      fuelType?: string;
-      gearType?: string;
+      color?: string | null;
+      fuelType?: string | null;
+      gearType?: string | null;
       year?: number;
       mileage?: number;
       repainted?: boolean;
@@ -71,7 +88,7 @@ interface ItemDetailsProps {
       state: string;
       city: string;
       country: string;
-    };
+    } | null;
   };
 }
 
@@ -79,15 +96,24 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
   const { data: session } = useSession();
     const { isArabic } = useAppPreferences();
   const { data, images, type, location, reviews } = item;
-  const title = data?.title || data?.name || data?.brand || "Listing";
-  const subtitle = [data?.model, location?.city, location?.country]
+  const normalizedData = normalizeItemDetailsData(data);
+  const normalizedLocation = location ?? {
+    latitude: 0,
+    longitude: 0,
+    address: "",
+    state: "",
+    city: "",
+    country: "",
+  };
+  const title = normalizedData.title || normalizedData.name || normalizedData.brand || "Listing";
+  const subtitle = [normalizedData.model, location?.city, location?.country]
     .filter(Boolean)
     .join(" • ");
-  const priceLabel = Number(data?.price ?? 0).toLocaleString("en-US");
-  const isOwner = Boolean(data?.ownerId && session?.user?.id === data.ownerId);
+  const priceLabel = Number(normalizedData.price ?? 0).toLocaleString("en-US");
+  const isOwner = Boolean(normalizedData.ownerId && session?.user?.id === normalizedData.ownerId);
   const manualRentalEndsAt = getManualRentalEndsAtFromTransactions(
     item.transactions,
-    data.ownerId,
+    normalizedData.ownerId,
   );
   const mapsQuery =
     location?.latitude !== undefined && location?.longitude !== undefined
@@ -116,9 +142,9 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
               <OwnerListingStateControl
                 itemId={data.id}
                 itemType={type}
-                sellOrRent={data.sellOrRent}
-                status={data.status}
-                rentType={data.rentType}
+                sellOrRent={normalizedData.sellOrRent}
+                status={normalizedData.status}
+                rentType={normalizedData.rentType}
                 initialManualRentalEndsAt={manualRentalEndsAt}
                 isOwner={isOwner}
                 align="right"
@@ -141,7 +167,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
             <div className="market-panel rounded-[26px] p-4 sm:p-5">
               <DetailImages images={images} />
             </div>
-            <ElementPropereties data={data} type={type} location={location} />
+            <ElementPropereties
+              data={normalizedData}
+              type={type}
+              location={normalizedLocation}
+            />
             <RatingSection
               itemId={data.id}
               itemType={type}
@@ -188,7 +218,7 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                       <Map
                         latitude={location?.latitude}
                         longitude={location?.longitude}
-                        name={data?.brand || data?.title || data?.name}
+                          name={normalizedData.brand || normalizedData.title || normalizedData.name}
                       />
                     </div>
                   </div>
@@ -198,12 +228,16 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
               itemType={type}
               data={{
                 id: data.id,
-                price: data.price ?? 0,
-                status: data.status as
+                price: normalizedData.price ?? 0,
+                status: normalizedData.status as
                   | import("@prisma/client").Availability
                   | undefined,
-                title: data.title ?? data.name ?? data.brand,
-                sellOrRent: data.sellOrRent,
+                title:
+                  normalizedData.title ??
+                  normalizedData.name ??
+                  normalizedData.brand ??
+                  undefined,
+                sellOrRent: normalizedData.sellOrRent ?? undefined,
               }}
             />
           </div>

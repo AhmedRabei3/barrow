@@ -19,11 +19,14 @@ import { useStaleResource } from "@/app/hooks/useStaleResource";
 import { useSession } from "next-auth/react";
 import { updatePreferredInterestOrderAction } from "@/actions/auth.actions";
 import { useAppPreferences } from "./components/providers/AppPreferencesProvider";
+import { clearItemsCache } from "@/app/hooks/useItem";
+import { clearCachedResourcesByPrefix } from "@/app/hooks/useStaleResource";
 import {
   getOrderedPrimaryCategoryTabs,
   normalizeUserInterestOrder,
   PENDING_INTEREST_ORDER_STORAGE_KEY,
 } from "@/lib/primaryCategories";
+import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
@@ -72,10 +75,11 @@ const HomePageClient = () => {
 
   const paginationVisible = totalItems > limit;
 
-  const { data: featuredItems } = useStaleResource<FormattedItem[]>({
-    cacheKey: "items:featured:top-8",
-    fetcher: fetchFeaturedItems,
-  });
+  const { data: featuredItems, refetch: refetchFeaturedItems } =
+    useStaleResource<FormattedItem[]>({
+      cacheKey: "items:featured:top-8",
+      fetcher: fetchFeaturedItems,
+    });
 
   const hasExplicitFilters =
     filters.type !== undefined ||
@@ -135,6 +139,31 @@ const HomePageClient = () => {
       window.localStorage.removeItem(PENDING_INTEREST_ORDER_STORAGE_KEY);
     }
   }, [isArabic, session?.user?.preferredInterestOrder, status, update]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleInventoryInvalidated = () => {
+      clearItemsCache();
+      clearCachedResourcesByPrefix("items:featured:");
+      void refetch();
+      void refetchFeaturedItems();
+    };
+
+    window.addEventListener(
+      INVENTORY_INVALIDATED_EVENT,
+      handleInventoryInvalidated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        INVENTORY_INVALIDATED_EVENT,
+        handleInventoryInvalidated,
+      );
+    };
+  }, [refetch, refetchFeaturedItems]);
 
   return (
     <div>

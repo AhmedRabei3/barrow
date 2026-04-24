@@ -51,6 +51,26 @@ const persistCategories = (cacheKey: string, categories: CategoryItem[]) => {
 
 export const clearCategoriesCache = () => {
   categoriesCache.clear();
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(CATEGORY_STORAGE_PREFIX)) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach((key) => {
+      window.sessionStorage.removeItem(key);
+    });
+  } catch {
+    // Ignore storage access failures.
+  }
 };
 
 const categoryFetcher = async <TCategory extends CategoryItem = CategoryItem>({

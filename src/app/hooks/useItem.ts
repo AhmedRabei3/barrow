@@ -188,6 +188,11 @@ const clearFallbackCacheIndex = () => {
   fallbackCacheIndex.clear();
 };
 
+export const clearItemsCache = () => {
+  itemsCache.clear();
+  clearFallbackCacheIndex();
+};
+
 const useItems = ({ page, limit }: { page: number; limit: number }) => {
   const { filters } = useSearchFilters(); // ← جلب الفلاتر
 

@@ -55,11 +55,13 @@ export const PreviewGrid = ({
   items,
   setItemIdToDelete,
   setItemIdToEdit,
+  removingItemIds,
   onStatusChanged,
 }: {
   items: Array<GrandItem | Record<string, unknown>>;
   setItemIdToDelete: React.Dispatch<React.SetStateAction<string | null>>;
   setItemIdToEdit: React.Dispatch<React.SetStateAction<string | null>>;
+  removingItemIds: string[];
   onStatusChanged?: () => Promise<void> | void;
 }) => (
   <motion.div
@@ -67,7 +69,33 @@ export const PreviewGrid = ({
     className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
   >
     {items.map((it, idx: number) => (
-      <div key={(it as { id?: string })?.id || idx} className="w-full">
+      <motion.div
+        key={(it as { id?: string; item?: { id?: string } })?.item?.id || (it as { id?: string })?.id || idx}
+        layout
+        animate={
+          removingItemIds.includes(
+            String(
+              (it as { item?: { id?: string }; id?: string })?.item?.id ||
+                (it as { id?: string })?.id ||
+                "",
+            ),
+          )
+            ? {
+                opacity: 0,
+                scale: 0.98,
+                y: -12,
+                filter: "blur(4px)",
+              }
+            : {
+                opacity: 1,
+                scale: 1,
+                y: 0,
+                filter: "blur(0px)",
+              }
+        }
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className="w-full"
+      >
         <Card
           grandItem={
             "item" in (it as Record<string, unknown>)
@@ -80,7 +108,7 @@ export const PreviewGrid = ({
           setItemIdToEdit={setItemIdToEdit}
           onStatusChanged={onStatusChanged}
         />
-      </div>
+      </motion.div>
     ))}
   </motion.div>
 );

@@ -6,6 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useRouter } from "next/navigation";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { buildListingDetailsPath } from "@/lib/listingSeo";
 
 const FitBounds = ({ items }) => {
   const map = useMap();
@@ -64,7 +65,16 @@ const MapClient = ({ setShowMap, items }) => {
             <Popup>
               <div
                 className="cursor-pointer"
-                onClick={() => router.push(`/items/details/${item.id}`)}
+                onClick={() =>
+                  router.push(
+                    buildListingDetailsPath({
+                      id: item.id,
+                      name: item.name,
+                      city: item.city,
+                      country: item.country,
+                    }),
+                  )
+                }
               >
                 <img
                   src={item.image}

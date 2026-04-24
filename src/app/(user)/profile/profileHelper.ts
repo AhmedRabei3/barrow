@@ -1,5 +1,7 @@
 import toast from "react-hot-toast";
 
+type DeleteSuccessHandler = () => Promise<void> | void;
+
 type RawProfileItem = {
   id?: string;
   brand?: string;
@@ -87,6 +89,7 @@ export const handleConfirmDelete = async (
   setDeleting: (value: boolean) => void,
   refetch: () => Promise<void>,
   setItemIdToDelete: (value: string | null) => void,
+  onDeleteSuccess?: DeleteSuccessHandler,
 ) => {
   if (!itemIdToDelete) return;
 
@@ -101,6 +104,7 @@ export const handleConfirmDelete = async (
       toast.error("فشل حذف العنصر");
     } else {
       toast.success("تم الحذف بنجاح");
+      await onDeleteSuccess?.();
       await refetch();
     }
   } catch (err) {

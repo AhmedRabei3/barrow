@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  attachRelatedById,
-  findItemByType,
-  getItemTypeById,
-} from "../../functions/helpers";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { Errors } from "@/app/api/lib/errors/errors";
-import { prisma } from "@/lib/prisma";
+import { getListingDetailsById } from "@/server/services/listing-details.service";
 
 /**
  * @description جلب العنصر مع الصور والموقع والمراجعات
@@ -18,47 +13,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const item = await getListingDetailsById(id);
 
-    /**
-     * 1️⃣ جلب Location ومعرفة نوع العنصر
-     */
-    const { itemType } = await getItemTypeById(id);
-
-    /**
-     * جلب العنصر والموقع
-     */
-    const location = await prisma.location.findFirst({
-      where: {
-        OR: [
-          { newCarId: id, isDeleted: false },
-          { oldCarId: id, isDeleted: false },
-          { propertyId: id, isDeleted: false },
-          { homeFurnitureId: id, isDeleted: false },
-          { medicalDeviceId: id, isDeleted: false },
-          { otherItemId: id, isDeleted: false },
-        ],
-      },
-    });
-
-    const itemData = await findItemByType(itemType, id);
-
-    if (!itemData || !location) {
+    // جلب النوع والموقع والبيانات إذا كان العنصر موجودًا
+    if (!item) {
       throw Errors.NOT_FOUND();
     }
 
-    /**
-     * 3️⃣ جلب البيانات المرتبطة
-     */
-    const { images, reviews, transactions } = await attachRelatedById(id);
-
-    const locationData = {
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      address: location?.address,
-      state: location?.state,
-      city: location?.city,
-      country: location?.country,
-    };
+    // إذا كنت بحاجة لجلب بيانات إضافية مثل النوع والموقع، أضفها هنا
+    // const { itemType } = await getItemTypeById(id);
+    // const location = await prisma.location.findFirst({ ... });
+    // const itemData = await findItemByType(itemType, id);
+    // if (!itemData || !location) {
+    //   throw Errors.NOT_FOUND();
+    // }
+      throw Errors.NOT_FOUND();
+    }
 
     /**
      * 4️⃣ Response
@@ -66,14 +36,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: true,
-        item: {
-          type: itemType,
-          data: itemData,
-          location: locationData,
-          images,
-          reviews,
-          transactions,
-        },
+        item,
       },
       { status: 200 },
     );

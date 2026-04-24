@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import CategoryList from "./CategoryList";
 import categoryFetcher from "./CategoryFetcher";
 import Container from "../Container";
@@ -9,6 +9,7 @@ import type { CategoryItem, ItemType } from "./types";
 import { useStaleResource } from "@/app/hooks/useStaleResource";
 import Loader from "./Loader";
 import Tryagain from "./Tryagain";
+import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
 
 interface CategorySliderProps {
   type?: ItemType | null;
@@ -35,6 +36,28 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
     cacheKey,
     fetcher: fetchCategories,
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleInventoryInvalidated = () => {
+      void refetch();
+    };
+
+    window.addEventListener(
+      INVENTORY_INVALIDATED_EVENT,
+      handleInventoryInvalidated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        INVENTORY_INVALIDATED_EVENT,
+        handleInventoryInvalidated,
+      );
+    };
+  }, [refetch]);
 
   const list = data ?? [];
 

@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { Availability } from "@prisma/client";
 
-export type SitemapModelKey = "property" | "newCar" | "oldCar" | "otherItem";
+export type SitemapModelKey =
+  | "property"
+  | "newCar"
+  | "oldCar"
+  | "homeFurniture"
+  | "medicalDevice"
+  | "category"
+  | "otherItem";
 
 export interface SitemapModelShardMeta {
   model: SitemapModelKey;
@@ -10,16 +17,35 @@ export interface SitemapModelShardMeta {
 
 export const SITEMAP_CHUNK_SIZE = 5000;
 
-const MODELS: SitemapModelKey[] = ["property", "newCar", "oldCar", "otherItem"];
+const MODELS: SitemapModelKey[] = [
+  "property",
+  "newCar",
+  "oldCar",
+  "homeFurniture",
+  "medicalDevice",
+  "category",
+  "otherItem",
+];
 
 export const getSitemapShardMeta = async (): Promise<
   SitemapModelShardMeta[]
 > => {
-  const [propertyCount, newCarCount, oldCarCount, otherItemCount] =
+  const [
+    propertyCount,
+    newCarCount,
+    oldCarCount,
+    homeFurnitureCount,
+    medicalDeviceCount,
+    categoryCount,
+    otherItemCount,
+  ] =
     await Promise.all([
       prisma.property.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
       prisma.newCar.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
       prisma.oldCar.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.homeFurniture.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.medicalDevice.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
+      prisma.category.count({ where: { isDeleted: false } }),
       prisma.otherItem.count({ where: { isDeleted: false, status: Availability.AVAILABLE } }),
     ]);
 
@@ -27,6 +53,9 @@ export const getSitemapShardMeta = async (): Promise<
     property: propertyCount,
     newCar: newCarCount,
     oldCar: oldCarCount,
+    homeFurniture: homeFurnitureCount,
+    medicalDevice: medicalDeviceCount,
+    category: categoryCount,
     otherItem: otherItemCount,
   };
 

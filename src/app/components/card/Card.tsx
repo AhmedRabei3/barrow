@@ -13,11 +13,14 @@ import { GrandItem } from "@/app/types/index";
 import { FormattedItem } from "../home/getItems";
 import { $Enums } from "@prisma/client";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { buildListingDetailsPath } from "@/lib/listingSeo";
 
 type CardItem = {
   item: {
     id?: string;
     type?: $Enums.ItemType | string | null;
+    name?: string | null;
+    title?: string | null;
     brand?: string | null;
     model?: string | null;
     isNew?: boolean;
@@ -28,7 +31,11 @@ type CardItem = {
     rentType?: string | null;
   };
   itemImages: Array<{ url?: string | null }>;
-  itemLocation: Array<{ state?: string | null } | null | undefined>;
+  itemLocation: Array<
+    | { state?: string | null; city?: string | null; country?: string | null }
+    | null
+    | undefined
+  >;
   averageRating: number | null;
   totalReviews?: number;
   ownerId?: string | null;
@@ -107,12 +114,44 @@ const Card: FC<CardProps> = ({
     "moderationNote" in item ? item.moderationNote : undefined;
   const moderatedAt = "moderatedAt" in item ? item.moderatedAt : undefined;
   const status = "status" in item ? item.status : undefined;
+  const seoItem = item as {
+    id?: string;
+    name?: string | null;
+    brand?: string | null;
+    model?: string | null;
+  };
   const detailCardItem = {
     item,
     averageRating:
       "averageRating" in grandItem ? grandItem.averageRating : null,
     totalReviews: "totalReviews" in grandItem ? grandItem.totalReviews : 0,
-    itemLocation: "itemLocation" in grandItem ? grandItem.itemLocation : [],
+    itemLocation:
+      "itemLocation" in grandItem
+        ? grandItem.itemLocation.map((location) => {
+            const normalizedLocation = location as
+              | {
+                  state?: string | null;
+                  city?: string | null;
+                  address?: string | null;
+                }
+              | null
+              | undefined;
+
+            return normalizedLocation
+              ? {
+                  state: normalizedLocation.state ?? undefined,
+                  city:
+                    typeof normalizedLocation.city === "string"
+                      ? normalizedLocation.city
+                      : undefined,
+                  address:
+                    typeof normalizedLocation.address === "string"
+                      ? normalizedLocation.address
+                      : undefined,
+                }
+              : normalizedLocation;
+          })
+        : [],
   };
 
   const handleDotClick = (index: number) => setCurrentIndex(index);
@@ -131,7 +170,19 @@ const Card: FC<CardProps> = ({
       | "OTHER"
       | undefined);
 
-  const detailHref = item.id ? `items/details/${item.id}` : "#";
+  const primaryLocation = (detailCardItem.itemLocation[0] ?? undefined) as
+    | { city?: string | null; country?: string | null }
+    | undefined;
+  const detailHref = seoItem.id
+    ? buildListingDetailsPath({
+        id: seoItem.id,
+        name: seoItem.name,
+        brand: seoItem.brand,
+        model: seoItem.model,
+        city: primaryLocation?.city,
+        country: primaryLocation?.country,
+      })
+    : "#";
   const itemLabel = [brand, model].filter(Boolean).join(" ") || "listing";
   const moderationLabel =
     moderationAction === "REJECT"
