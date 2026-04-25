@@ -423,6 +423,16 @@ const ActivationWelcomeOverlay = () => {
                   )}
                   <br />
                   {t(
+                    "- مكافآت وفعاليات حصرية للمشتركين",
+                    "- Exclusive rewards and events for subscribers",
+                  )}
+                  <br />
+                  {t(
+                    "- عدم نشر الإعلانات التي تعرض صوراً منافية للحشمة ",
+                    "- We are committed to not publishing listings that display immodest images",
+                  )}
+                  <br />
+                  {t(
                     "- طرق دفع متعددة وآمنة مع دعم مباشر من فريقنا",
                     "- Multiple secure payment methods with direct support from our team",
                   )}

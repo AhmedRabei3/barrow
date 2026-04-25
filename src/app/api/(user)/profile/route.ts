@@ -251,7 +251,10 @@ export async function GET(req: NextRequest) {
       const key = `${request.itemType}:${request.itemId}`;
       const itemSummary = itemMetaByKey.get(key) ?? {
         title: "Listing",
-        listingUrl: buildListingDetailsPath({ id: request.itemId, brand: "Listing" }),
+        listingUrl: buildListingDetailsPath({
+          id: request.itemId,
+          brand: "Listing",
+        }),
         imageUrl: null,
       };
 

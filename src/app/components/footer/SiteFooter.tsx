@@ -86,62 +86,36 @@ const localizedSteps = [
   },
 ];
 
-const footerSections = {
+const footerLabels = {
   ar: {
-    categories: "الفئات",
-    company: "المنصة",
-    support: "الدعم",
-    categoriesLinks: [
-      "العقارات السكنية",
-      "السيارات الجديدة",
-      "السيارات المستعملة",
-      "السلع والأجهزة",
-      "الإعلانات المميزة",
-    ],
-    companyLinks: [
-      "عن المنصة",
-      "طريقة العمل",
-      "العضوية المدفوعة",
-      "سياسة الخصوصية",
-      "شروط الاستخدام",
-    ],
-    supportLinks: [
-      "مركز الدعم",
-      "إرشادات الأمان",
-      "الإبلاغ عن مشكلة",
-      "مساعدة الدفع",
-      "الأسئلة الشائعة",
-    ],
-    legalTerms: "شروط الخدمة",
-    legalCookies: "سياسة ملفات الارتباط",
+    spotlight: "منصة واحدة لكل ما تحتاجه",
+    quickAccess: "وصول سريع",
+    supportTitle: "دعم مباشر عند الحاجة",
+    supportBody:
+      "إذا احتجت مساعدة في النشر أو التفعيل أو الدفع، يمكنك الوصول إلى مركز الدعم مباشرة من داخل المنصة.",
+    startNow: "ابدأ الآن",
+    browseNow: "استكشف أفضل العروض اليوم",
+    browseBody:
+      "اعثر على العقارات والسيارات والسلع في تجربة أكثر وضوحاً وسرعة وبدون عمولات على الصفقات.",
+    supportAction: "الدعم",
+    signupAction: "التسجيل",
+    privacy: "سياسة الخصوصية",
+    terms: "شروط الخدمة",
   },
   en: {
-    categories: "Categories",
-    company: "Company",
-    support: "Support",
-    categoriesLinks: [
-      "Residential Properties",
-      "New Cars",
-      "Used Cars",
-      "Goods & Devices",
-      "Featured Listings",
-    ],
-    companyLinks: [
-      "About Platform",
-      "How It Works",
-      "Paid Membership",
-      "Privacy Policy",
-      "Terms of Use",
-    ],
-    supportLinks: [
-      "Help Center",
-      "Safety Guide",
-      "Report an Issue",
-      "Payment Help",
-      "FAQ",
-    ],
-    legalTerms: "Terms of Service",
-    legalCookies: "Cookie Policy",
+    spotlight: "One platform for what matters",
+    quickAccess: "Quick access",
+    supportTitle: "Direct support when needed",
+    supportBody:
+      "If you need help with listing, activation, or payments, you can reach the support center directly inside the platform.",
+    startNow: "Start now",
+    browseNow: "Explore the best deals today",
+    browseBody:
+      "Find properties, vehicles, and goods in a clearer, faster experience with zero commission on deals.",
+    supportAction: "Support",
+    signupAction: "Sign Up",
+    privacy: "Privacy Policy",
+    terms: "Terms of Service",
   },
 };
 
@@ -165,9 +139,9 @@ const SiteFooter = () => {
             "Complete buying, selling, and renting faster while discovering real estate, cars, and many great listings.",
         },
         {
-          title: "Paid Subscription Benefits",
+          title: "Paid membership value",
           description:
-            "With a paid subscription, you can generate more value from sales and rentals, invite others, and earn with tiered referral rates: 60% for the first 10 activated invites, then 40% for 11-20, 30% for 21-30, and 20% above that — provided the invited user has real listing activity (at least one non-deleted listing).",
+            "Unlock publishing tools, stronger reach, and tier-based referral earnings in one streamlined workflow.",
         },
       ];
 
@@ -177,120 +151,155 @@ const SiteFooter = () => {
       : { title: item.enTitle, body: item.enBody },
   );
 
-  const footerContent = isArabic ? footerSections.ar : footerSections.en;
+  const footerContent = isArabic ? footerLabels.ar : footerLabels.en;
 
   return (
     <footer className="footer-shell mt-12">
       <Container>
-        <div className="space-y-14 py-14 md:py-20">
-          <div>
-            <div className="mb-5 flex items-center gap-3">
-              <Logo
-                width={50}
-                height={30}
-                arCustomTxt="حيث تلتقي الشهرة مع المال"
-                enCustomTxt="Where Fame and Money Meet"
-              />
-            </div>
-            <h2 className="footer-heading text-2xl font-black tracking-tight md:text-3xl">
-              {isArabic
-                ? " البيع والإيجار بأفضل الأسعار و بدون عمولة"
-                : "Buy and Rent at the Best Prices Without Commission"}
-            </h2>
-            <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
-              {isArabic
-                ? "نجمع العقارات والسيارات وكل ماتحتاجه في تجربة واحدة واضحة وسريعة ."
-                : "We bring properties, vehicles, and other goods into one clear experience, with paid membership support, referrals, and a fully integrated in-app support center."}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {user ? (
-                <button
-                  onClick={() => setSupportModalOpen(true)}
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+        <div className="space-y-8 py-12 md:space-y-10 md:py-16">
+          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-stretch">
+            <div className="footer-panel rounded-[28px] p-6 md:p-8">
+              <div className="mb-5 flex items-center gap-3">
+                <Logo
+                  width={50}
+                  height={30}
+                  arCustomTxt="حيث تلتقي الشهرة مع المال"
+                  enCustomTxt="Where Fame and Money Meet"
+                />
+              </div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
+                {footerContent.spotlight}
+              </p>
+              <h2 className="footer-heading mt-3 text-2xl font-black tracking-tight md:text-3xl">
+                {isArabic
+                  ? "البيع والإيجار بأفضل الأسعار وبدون عمولة"
+                  : "Buy and rent at the best prices without commission"}
+              </h2>
+              <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
+                {isArabic
+                  ? "نجمع العقارات والسيارات والسلع في تجربة واحدة واضحة وسريعة، مع دعم مباشر داخل المنصة وأدوات تساعدك على الوصول إلى الصفقة المناسبة أسرع."
+                  : "Properties, vehicles, and goods come together in one clear experience with built-in support and practical tools that help you reach the right deal faster."}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {user ? (
+                  <button
+                    onClick={() => setSupportModalOpen(true)}
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                  >
+                    {footerContent.supportAction}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => register.onOpen()}
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
+                  >
+                    {footerContent.signupAction}
+                  </button>
+                )}
+                <Link
+                  href="/privacy-policy"
+                  className="footer-pill inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition hover:text-sky-600 dark:hover:text-sky-300"
                 >
-                  {isArabic ? "الدعم" : "Support"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => register.onOpen()}
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-500"
-                >
-                  {isArabic ? "التسجيل" : "Sign Up"}
-                </button>
-              )}
+                  {footerContent.privacy}
+                </Link>
+              </div>
             </div>
-          </div>
-          <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
-            <div className="border dark:border-slate-500 bg-blue-600 shadow-lg hover:translate-1.1 rounded-3xl p-6">
+
+            <aside className="footer-card rounded-[28px] p-6 md:p-8">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
+                {footerContent.quickAccess}
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <h3 className="footer-heading text-lg font-bold">
+                    {footerContent.supportTitle}
+                  </h3>
+                  <p className="footer-text mt-2 text-sm leading-7">
+                    {footerContent.supportBody}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Link
+                    href="/privacy-policy"
+                    className="footer-pill rounded-2xl px-4 py-3 text-sm font-semibold transition hover:text-sky-600 dark:hover:text-sky-300"
+                  >
+                    {footerContent.privacy}
+                  </Link>
+                  <Link
+                    href="/privacy-policy"
+                    className="footer-pill rounded-2xl px-4 py-3 text-sm font-semibold transition hover:text-sky-600 dark:hover:text-sky-300"
+                  >
+                    {footerContent.terms}
+                  </Link>
+                </div>
+                <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
+                    {footerContent.startNow}
+                  </p>
+                  <h3 className="footer-heading mt-2 text-xl font-black tracking-tight">
+                    {footerContent.browseNow}
+                  </h3>
+                  <p className="footer-text mt-2 text-sm leading-7">
+                    {footerContent.browseBody}
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
+            <div className="rounded-3xl border border-slate-500/50 bg-blue-600 p-6 shadow-lg md:p-7">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
-                {isArabic ? "لماذا تختارنا" : "Why you Choose Us"}
+                {isArabic ? "لماذا تختارنا" : "Why choose us"}
               </h3>
-              <ul className="mt-5 space-y-3">
+              <ul className="mt-5 grid gap-3 md:grid-cols-2">
                 {steps.map((step) => (
                   <li
                     key={step.title}
-                    className="footer-text flex items-start gap-3 text-sm"
+                    className="flex items-start gap-3 rounded-2xl bg-white/6 px-4 py-3 text-sm"
                   >
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-primary " />
-                    <span className="leading-6">
-                      <span className="font-extrabold text-white/80 ">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-white" />
+                    <span className="leading-6 text-white/85">
+                      <span className="font-extrabold text-white">
                         {step.title}
                       </span>
-                      <span className="font-normal text-white/80">
-                        : {step.body}
-                      </span>
+                      <span className="font-normal">: {step.body}</span>
                     </span>
                   </li>
                 ))}
               </ul>
             </div>
-          </section>
 
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {localizedAdvantages.map((item) => (
-              <article
-                key={item.title}
-                className="footer-card rounded-[20px] p-5"
-              >
-                <h3 className="footer-heading text-base font-bold md:text-lg">
-                  {item.title}
-                </h3>
-                <p className="footer-text mt-3 text-sm leading-7">
-                  {item.description}
-                </p>
-              </article>
-            ))}
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] dark:text-white/75">
-                  {isArabic ? "سجل الآن" : " Sign Up Now"}
-                </p>
-                <h3 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
-                  {isArabic
-                    ? "أعثر على أفضل العروض"
-                    : "Find the best deals now"}
-                </h3>
-                <p className="mt-3 text-sm leading-7 dark:text-blue-100 md:text-base">
-                  {isArabic
-                    ? "المال والشهرة في انتظارك، انضم إلينا وابدأ رحلتك اليوم!"
-                    : "Fame and money await you, join us and start your journey today!"}
-                </p>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {localizedAdvantages.map((item) => (
+                <article
+                  key={item.title}
+                  className="footer-card rounded-[20px] p-5"
+                >
+                  <h3 className="footer-heading text-base font-bold md:text-lg">
+                    {item.title}
+                  </h3>
+                  <p className="footer-text mt-3 text-sm leading-7">
+                    {item.description}
+                  </p>
+                </article>
+              ))}
             </div>
           </section>
 
-          <section className="rounded-[28px] bg-blue-800 p-8 text-white shadow-[0_26px_60px_rgba(37,99,235,0.24)] md:p-10"></section>
-
-          <div dir="ltr" className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between">
+          <div
+            dir="ltr"
+            className="footer-divider footer-text flex flex-col gap-3 border-t pt-6 text-xs md:flex-row md:items-center md:justify-between"
+          >
             <span>© {new Date().getFullYear()} Mashhoor</span>
             <div className="flex gap-6">
               <Link
                 href="/privacy-policy"
                 className="transition hover:text-sky-600 dark:hover:text-sky-300"
               >
-                {footerContent.legalTerms}
+                {footerContent.terms}
               </Link>
-              <span>{footerContent.legalCookies}</span>
+              <span>{footerContent.privacy}</span>
             </div>
           </div>
         </div>
