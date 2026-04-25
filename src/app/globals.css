@@ -409,6 +409,14 @@ html.dark .activation-spotlight-accordion-icon {
   border: 1px solid rgba(16, 185, 129, 0.2);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(236, 253, 245, 0.95));
   padding: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .activation-spotlight-tier-card {
+    max-width: 40vw;
+    margin-inline: auto;
+  }
 }
 
 html.dark .activation-spotlight-tier-card {

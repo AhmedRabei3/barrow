@@ -317,6 +317,40 @@ export const requestExistingUserPasswordResetAction = async (
   }
 };
 
+export const requestPasswordResetAction = async (
+  email: string,
+  isArabic: boolean,
+) => {
+  const validation = loginUserSchema.shape.email.safeParse(email);
+
+  if (!validation.success) {
+    return {
+      success: false,
+      message: isArabic
+        ? "صيغة البريد الإلكتروني غير صحيحة"
+        : "Invalid email format",
+    };
+  }
+
+  try {
+    return await requestPasswordReset({
+      email: validation.data,
+      isArabic,
+      revealDelivery: false,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : isArabic
+            ? "تعذر إرسال رسالة إعادة التعيين"
+            : "Failed to send reset email",
+    };
+  }
+};
+
 export const resendVerificationEmailAction = async (
   email: string,
   isArabic: boolean,

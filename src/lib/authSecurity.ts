@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
 
 const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
+const PASSWORD_RESET_RESEND_COOLDOWN_MS = 60 * 1000;
 const FAILED_LOGIN_ALERT_THRESHOLD = 5;
 
 const getAppUrl = () => {
@@ -131,12 +132,42 @@ export async function requestPasswordReset(params: {
     return {
       success: true,
       userExists: false,
+      retryAfterSeconds: 0,
       message: buildPasswordResetMessage({
         isArabic: params.isArabic,
         revealDelivery: false,
         email: normalizedEmail,
       }),
     };
+  }
+
+  const latestToken = await prisma.passwordResetToken.findFirst({
+    where: {
+      userId: user.id,
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+
+  if (latestToken) {
+    const remainingMs =
+      PASSWORD_RESET_RESEND_COOLDOWN_MS -
+      (Date.now() - latestToken.createdAt.getTime());
+
+    if (remainingMs > 0) {
+      const retryAfterSeconds = Math.ceil(remainingMs / 1000);
+
+      return {
+        success: true,
+        userExists: true,
+        retryAfterSeconds,
+        message: params.isArabic
+          ? `يرجى الانتظار ${retryAfterSeconds} ثانية قبل طلب رسالة إعادة تعيين جديدة.`
+          : `Please wait ${retryAfterSeconds} seconds before requesting another reset email.`,
+      };
+    }
   }
 
   const { resetLink } = await createPasswordResetRecord({
@@ -155,6 +186,7 @@ export async function requestPasswordReset(params: {
   return {
     success: true,
     userExists: true,
+    retryAfterSeconds: PASSWORD_RESET_RESEND_COOLDOWN_MS / 1000,
     message: buildPasswordResetMessage({
       isArabic: params.isArabic,
       revealDelivery,

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useId } from "react";
+import { memo, useEffect, useId, useMemo, useState } from "react";
 import {
   MdOutlineRealEstateAgent,
   MdCarCrash,
@@ -13,9 +13,11 @@ import { useSession } from "next-auth/react";
 import {
   getOrderedPrimaryCategoryTabs,
   getPrimaryCategoryKey,
+  PRIMARY_CATEGORY_TABS,
   type PrimaryCategoryKey,
 } from "@/lib/primaryCategories";
 import MainCatList from "./MainCatList";
+import categoryFetcher from "@/app/components/category/CategoryFetcher";
 
 const TAB_ICONS = {
   MdOutlineRealEstateAgent,
@@ -32,19 +34,59 @@ interface HomeTabsProps {
   compact?: boolean;
 }
 
-const HomeTab = ({
-  onSelectTab,
-  type,
-  compact = false,
-}: HomeTabsProps) => {
+const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
   const mainCategoryId = useId();
+  const [availableKeys, setAvailableKeys] = useState<
+    PrimaryCategoryKey[] | null
+  >(null);
 
-  const tabsList = getOrderedPrimaryCategoryTabs(
-    session?.user?.preferredInterestOrder,
+  const orderedTabs = useMemo(
+    () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
+    [session?.user?.preferredInterestOrder],
   );
+  const tabsList =
+    availableKeys && availableKeys.length > 0
+      ? orderedTabs.filter((tab) => availableKeys.includes(tab.key))
+      : orderedTabs;
   const selectedType = getPrimaryCategoryKey(type as never) ?? tabsList[0]?.key;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAvailableTabs = async () => {
+      const results = await Promise.all(
+        PRIMARY_CATEGORY_TABS.map(async (tab) => {
+          const categories = await categoryFetcher({
+            type: tab.type,
+            withItemsOnly: true,
+          });
+
+          return categories.length > 0 ? tab.key : null;
+        }),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const nextKeys = results.filter(
+        (key): key is PrimaryCategoryKey => key !== null,
+      );
+      setAvailableKeys(nextKeys);
+
+      if (nextKeys.length === 0) {
+        setAvailableKeys(orderedTabs.map((tab) => tab.key));
+      }
+    };
+
+    void loadAvailableTabs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderedTabs]);
 
   const handleSelectType = (value: string) => {
     onSelectTab(value as PrimaryCategoryKey);
@@ -52,7 +94,7 @@ const HomeTab = ({
 
   return (
     <>
-    {/* Main category list */}
+      {/* Main category list */}
       <MainCatList
         compact={compact}
         isArabic={isArabic}

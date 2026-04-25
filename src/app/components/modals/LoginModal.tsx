@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
 import useLoginModal from "@/app/hooks/useLoginModal";
@@ -17,9 +17,13 @@ import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import GoogleSignInButton from "@/app/components/auth/GoogleSignInButton";
 import EmailVerificationResendPanel from "@/app/components/auth/EmailVerificationResendPanel";
-import { resendVerificationEmailAction } from "@/actions/auth.actions";
+import {
+  requestPasswordResetAction,
+  resendVerificationEmailAction,
+} from "@/actions/auth.actions";
 
 const PENDING_VERIFICATION_EMAIL_KEY = "pending-verification-email";
+const PASSWORD_RESET_COOLDOWN_PREFIX = "password-reset-cooldown:";
 
 const readPendingVerificationEmail = (): string | null => {
   if (typeof window === "undefined") {
@@ -54,11 +58,28 @@ const LoginModal = () => {
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<
     string | null
   >(null);
+  const [passwordResetMessage, setPasswordResetMessage] = useState<
+    string | null
+  >(null);
+  const [passwordResetCooldown, setPasswordResetCooldown] = useState(0);
   const [activationMessage, setActivationMessage] = useState<string | null>(
     null,
   );
   const { update, status } = useSession();
   const { isArabic } = useAppPreferences();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<FieldValues>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
     if (status === "authenticated" && loginModal.isOpen) {
@@ -69,6 +90,7 @@ const LoginModal = () => {
   useEffect(() => {
     if (loginModal.isOpen) {
       setPendingVerificationEmail(readPendingVerificationEmail());
+      setPasswordResetMessage(null);
     }
   }, [loginModal.isOpen]);
 
@@ -76,16 +98,101 @@ const LoginModal = () => {
     persistPendingVerificationEmail(pendingVerificationEmail);
   }, [pendingVerificationEmail]);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FieldValues>({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  useEffect(() => {
+    if (passwordResetCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPasswordResetCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [passwordResetCooldown]);
+
+  const emailValue = useMemo(
+    () =>
+      String(watch("email") ?? "")
+        .trim()
+        .toLowerCase(),
+    [watch],
+  );
+
+  useEffect(() => {
+    if (!loginModal.isOpen || !emailValue || typeof window === "undefined") {
+      setPasswordResetCooldown(0);
+      return;
+    }
+
+    const expiresAt = Number(
+      window.localStorage.getItem(
+        `${PASSWORD_RESET_COOLDOWN_PREFIX}${emailValue}`,
+      ) ?? 0,
+    );
+
+    setPasswordResetCooldown(
+      Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)),
+    );
+  }, [emailValue, loginModal.isOpen]);
+
+  const handleForgotPassword = useCallback(async () => {
+    if (!emailValue) {
+      setError("email", {
+        type: "manual",
+        message: isArabic
+          ? "أدخل بريدك الإلكتروني أولاً"
+          : "Enter your email first",
+      });
+      return;
+    }
+
+    if (passwordResetCooldown > 0) {
+      setPasswordResetMessage(
+        isArabic
+          ? `يرجى الانتظار ${passwordResetCooldown} ثانية قبل إعادة المحاولة.`
+          : `Please wait ${passwordResetCooldown} seconds before trying again.`,
+      );
+      return;
+    }
+
+    clearErrors("email");
+    setIsLoading(true);
+
+    try {
+      const result = await requestPasswordResetAction(emailValue, isArabic);
+
+      if (!result.success) {
+        setError("email", {
+          type: "manual",
+          message: result.message,
+        });
+        return;
+      }
+
+      const retryAfterSeconds = Number(
+        "retryAfterSeconds" in result ? (result.retryAfterSeconds ?? 60) : 60,
+      );
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          `${PASSWORD_RESET_COOLDOWN_PREFIX}${emailValue}`,
+          String(Date.now() + retryAfterSeconds * 1000),
+        );
+      }
+
+      setPasswordResetCooldown(retryAfterSeconds);
+      setPasswordResetMessage(result.message);
+      toast.success(result.message);
+    } catch {
+      toast.error(
+        isArabic
+          ? "تعذر إرسال رسالة إعادة التعيين"
+          : "Failed to send reset email",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearErrors, emailValue, isArabic, passwordResetCooldown, setError]);
 
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     try {
@@ -204,6 +311,29 @@ const LoginModal = () => {
         errors={errors}
         required
       />
+
+      <div className="-mt-1 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          disabled={isLoading || passwordResetCooldown > 0}
+          className="text-sm font-medium text-sky-700 transition hover:underline disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-300"
+        >
+          {passwordResetCooldown > 0
+            ? isArabic
+              ? `إعادة الإرسال خلال ${passwordResetCooldown}s`
+              : `Resend in ${passwordResetCooldown}s`
+            : isArabic
+              ? "نسيت كلمة المرور؟"
+              : "Forgot password?"}
+        </button>
+      </div>
+
+      {passwordResetMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+          {passwordResetMessage}
+        </div>
+      ) : null}
 
       {pendingVerificationEmail ? (
         <EmailVerificationResendPanel
