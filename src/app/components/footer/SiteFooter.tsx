@@ -20,19 +20,6 @@ const SupportContactModal = lazy(async () => {
   };
 });
 
-const advantages = [
-  {
-    title: "هدفنا",
-    description:
-      "نهدف إلى تسهيل وصولكم لما ترغبون دون أن تضطروا لدفع عمولة مرتفعة.",
-  },
-  {
-    title: "أنجز معاملاتك بسهولة",
-    description:
-      "أنجز معاملات البيع والإيجار بسهولة، واعثر على العقارات والسيارات والكثير من الأشياء الرائعة.",
-  },
-];
-
 const localizedSteps = [
   {
     arTitle: "بيئة نظيفة وموثوقة",
@@ -125,25 +112,6 @@ const SiteFooter = () => {
   const user = session?.user;
   const register = useRegisterModal();
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
-  const localizedAdvantages = isArabic
-    ? advantages
-    : [
-        {
-          title: "Our Mission",
-          description:
-            "We make it easier for you to reach what you want without paying high commissions.",
-        },
-        {
-          title: "Close Deals with Ease",
-          description:
-            "Complete buying, selling, and renting faster while discovering real estate, cars, and many great listings.",
-        },
-        {
-          title: "Paid membership value",
-          description:
-            "Unlock publishing tools, stronger reach, and tier-based referral earnings in one streamlined workflow.",
-        },
-      ];
 
   const steps = localizedSteps.map((item) =>
     isArabic
@@ -247,8 +215,8 @@ const SiteFooter = () => {
             </aside>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
-            <div className="rounded-3xl border border-slate-500/50 bg-blue-600 p-6 shadow-lg md:p-7">
+          <section className="grid gap-6 w-full">
+            <div className="rounded-3xl border border-slate-500/50 bg-indigo-600 p-6 shadow-lg md:p-7">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why choose us"}
               </h3>
@@ -268,22 +236,6 @@ const SiteFooter = () => {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {localizedAdvantages.map((item) => (
-                <article
-                  key={item.title}
-                  className="footer-card rounded-[20px] p-5"
-                >
-                  <h3 className="footer-heading text-base font-bold md:text-lg">
-                    {item.title}
-                  </h3>
-                  <p className="footer-text mt-3 text-sm leading-7">
-                    {item.description}
-                  </p>
-                </article>
-              ))}
             </div>
           </section>
 

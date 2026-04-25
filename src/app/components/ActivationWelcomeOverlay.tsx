@@ -428,6 +428,11 @@ const ActivationWelcomeOverlay = () => {
                   )}
                   <br />
                   {t(
+                    "- تنظيم عمليات البيع والتأجير بسهولة",
+                    "- Easy management of sales and rentals",
+                  )}
+                  <br />
+                  {t(
                     "- عدم نشر الإعلانات التي تعرض صوراً منافية للحشمة ",
                     "- We are committed to not publishing listings that display immodest images",
                   )}

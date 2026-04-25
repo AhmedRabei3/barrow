@@ -159,8 +159,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.pendingReferralEarnings = Number(
         token.pendingReferralEarnings ?? 0,
       );
-      session.user.preferredInterestOrder = token.preferredInterestOrder ?? [];
-      session.user.notifications = token.notifications ?? [];
+      session.user.preferredInterestOrder = Array.isArray(
+        token.preferredInterestOrder,
+      )
+        ? token.preferredInterestOrder.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [];
+      session.user.notifications = Array.isArray(token.notifications)
+        ? token.notifications.filter(
+            (
+              notification,
+            ): notification is {
+              id: string;
+              title: string;
+              message: string;
+              createdAt: Date;
+            } =>
+              Boolean(notification) &&
+              typeof notification === "object" &&
+              "id" in notification &&
+              typeof notification.id === "string" &&
+              "title" in notification &&
+              typeof notification.title === "string" &&
+              "message" in notification &&
+              typeof notification.message === "string" &&
+              "createdAt" in notification &&
+              notification.createdAt instanceof Date,
+          )
+        : [];
 
       try {
         await ensureOwnerAccount();

@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { getSessionCookieName } from "@/lib/auth-cookie";
 
 const SESSION_COOKIE_NAME = getSessionCookieName();
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const origin = req.nextUrl.origin;
-
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-    cookieName: SESSION_COOKIE_NAME,
-  });
-
-  const isLoggedIn = Boolean(token?.sub);
+  const isLoggedIn = req.cookies.has(SESSION_COOKIE_NAME);
 
   if (!isLoggedIn && pathname.startsWith("/profile")) {
     const redirect = new URL("/", origin);
