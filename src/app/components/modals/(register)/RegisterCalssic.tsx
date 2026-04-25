@@ -94,7 +94,7 @@ const RegisterCalssic = ({
         }}
       />
 
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50/70 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80">
+      <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50/70 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">

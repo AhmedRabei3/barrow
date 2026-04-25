@@ -9,15 +9,15 @@ type RateLimitEntry = {
 type RateLimitStore = Map<string, RateLimitEntry>;
 
 type RateLimitGlobals = typeof globalThis & {
-  __barrowRateLimitStore?: RateLimitStore;
-  __barrowRateLimitSweepCounter?: number;
+  __mashhoorRateLimitStore?: RateLimitStore;
+  __mashhoorRateLimitSweepCounter?: number;
 };
 
 const globals = globalThis as RateLimitGlobals;
-const store: RateLimitStore = globals.__barrowRateLimitStore || new Map();
-globals.__barrowRateLimitStore = store;
-globals.__barrowRateLimitSweepCounter =
-  globals.__barrowRateLimitSweepCounter || 0;
+const store: RateLimitStore = globals.__mashhoorRateLimitStore || new Map();
+globals.__mashhoorRateLimitStore = store;
+globals.__mashhoorRateLimitSweepCounter =
+  globals.__mashhoorRateLimitSweepCounter || 0;
 
 const SWEEP_INTERVAL = 100;
 
@@ -35,10 +35,10 @@ const getClientIp = (req: NextRequest) => {
 };
 
 const maybeSweepStore = () => {
-  globals.__barrowRateLimitSweepCounter =
-    (globals.__barrowRateLimitSweepCounter || 0) + 1;
+  globals.__mashhoorRateLimitSweepCounter =
+    (globals.__mashhoorRateLimitSweepCounter || 0) + 1;
 
-  if ((globals.__barrowRateLimitSweepCounter || 0) % SWEEP_INTERVAL !== 0) {
+  if ((globals.__mashhoorRateLimitSweepCounter || 0) % SWEEP_INTERVAL !== 0) {
     return;
   }
 

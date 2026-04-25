@@ -39,7 +39,7 @@ const processOneJob = async () => {
       walletCode: job.walletCode,
       amount: job.amount,
       note: job.note,
-      reference: `BARROW-${job.userId.slice(0, 8)}-${Date.now()}`,
+      reference: `MASHHOOR-${job.userId.slice(0, 8)}-${Date.now()}`,
       currency: job.currency,
     });
 

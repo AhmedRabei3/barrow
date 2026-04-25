@@ -276,7 +276,7 @@ export const applySubscriptionActivation = async (
     data: {
       userId: activatedUserId,
       title: isFirstActivation
-        ? "🎉 مرحبًا بك في اشتراك Barrow"
+        ? "🎉 مرحبًا بك في اشتراك Mashhoor"
         : `✅ تم تجديد الاشتراك عبر ${sourceLabel}`,
       message: isFirstActivation
         ? `تم تفعيل اشتراكك لأول مرة بنجاح حتى ${newActiveUntil.toISOString().slice(0, 10)}. يمكنك الآن النشر والاستفادة من برنامج الدعوات والأرباح.`

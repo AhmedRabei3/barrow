@@ -57,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       await prisma.notification.create({
         data: {
           userId: user.id,
-          title: "🎉 Welcome to Barrow | مرحبًا بك في Barrow",
+          title: "🎉 Welcome to Mashhoor | مرحبًا بك في Mashhoor",
           message:
             "Your account is ready. Verify your email if needed, then activate your subscription to unlock publishing and earnings. | حسابك أصبح جاهزًا. أكمل التحقق من البريد إن لزم، ثم فعّل اشتراكك لبدء النشر والاستفادة من الأرباح.",
           type: NotificationType.INFO,

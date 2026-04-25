@@ -21,18 +21,20 @@ interface RealtimeNotificationPayload {
 }
 
 type WebSocketGlobals = typeof globalThis & {
-  __barrowWss?: WebSocketServer | null;
-  __barrowWsClients?: Map<string, Set<ExtendedWebSocket>>;
-  __barrowWsHeartbeat?: NodeJS.Timeout;
+  __mashhoorWss?: WebSocketServer | null;
+  __mashhoorWsClients?: Map<string, Set<ExtendedWebSocket>>;
+  __mashhoorWsHeartbeat?: NodeJS.Timeout;
 };
 
 const wsGlobals = globalThis as WebSocketGlobals;
 
-let wss: WebSocketServer | null = wsGlobals.__barrowWss ?? null;
-const clients: Map<string, Set<ExtendedWebSocket>> =
-  wsGlobals.__barrowWsClients ?? new Map<string, Set<ExtendedWebSocket>>();
+let wss: WebSocketServer | null = wsGlobals.__mashhoorWss ?? null;
+const clients: Map<
+  string,
+  Set<ExtendedWebSocket>
+> = wsGlobals.__mashhoorWsClients ?? new Map<string, Set<ExtendedWebSocket>>();
 
-wsGlobals.__barrowWsClients = clients;
+wsGlobals.__mashhoorWsClients = clients;
 
 /**
  * تهيئة WebSocket server
@@ -47,7 +49,7 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
     noServer: true,
     perMessageDeflate: false, // تقليل الضغط لسرعة أفضل
   });
-  wsGlobals.__barrowWss = wss;
+  wsGlobals.__mashhoorWss = wss;
 
   console.log("🔧 Setting up WebSocket upgrade handler...");
 
@@ -190,11 +192,11 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
   });
 
   /* Health check كل 30 ثانية */
-  if (wsGlobals.__barrowWsHeartbeat) {
-    clearInterval(wsGlobals.__barrowWsHeartbeat);
+  if (wsGlobals.__mashhoorWsHeartbeat) {
+    clearInterval(wsGlobals.__mashhoorWsHeartbeat);
   }
 
-  wsGlobals.__barrowWsHeartbeat = setInterval(() => {
+  wsGlobals.__mashhoorWsHeartbeat = setInterval(() => {
     console.log(`💓 Health check... (${wss!.clients.size} connected clients)`);
 
     wss!.clients.forEach((ws: WSWebSocket) => {
@@ -263,7 +265,9 @@ export function sendNotificationToUsers(
 /**
  * بث إشعار لجميع المستخدمين المتصلين
  */
-export function broadcastNotification(notification: RealtimeNotificationPayload) {
+export function broadcastNotification(
+  notification: RealtimeNotificationPayload,
+) {
   if (!wss) {
     console.warn("⚠️ WebSocket server not initialized");
     return;

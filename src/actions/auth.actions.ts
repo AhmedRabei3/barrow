@@ -185,7 +185,9 @@ export const registerAction = async (
       await tx.notification.create({
         data: {
           userId: newUser.id,
-          title: isArabic ? "🎉 مرحبًا بك في Barrow" : "🎉 Welcome to Barrow",
+          title: isArabic
+            ? "🎉 مرحبًا بك في Mashhoor"
+            : "🎉 Welcome to Mashhoor",
           message: isArabic
             ? "تم إنشاء حسابك بنجاح. فعّل بريدك الإلكتروني أولاً، ثم فعّل اشتراكك للاستفادة من النشر والدعوات والأرباح."
             : "Your account was created successfully. Verify your email first, then activate your subscription to unlock publishing, referrals, and earnings.",

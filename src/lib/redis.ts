@@ -3,8 +3,8 @@ import { createClient } from "redis";
 type RedisClientInstance = ReturnType<typeof createClient>;
 
 type RedisGlobals = typeof globalThis & {
-  __barrowRedisClient?: RedisClientInstance;
-  __barrowRedisClientPromise?: Promise<RedisClientInstance | null>;
+  __mashhoorRedisClient?: RedisClientInstance;
+  __mashhoorRedisClientPromise?: Promise<RedisClientInstance | null>;
 };
 
 const globals = globalThis as RedisGlobals;
@@ -29,25 +29,25 @@ const createRedisConnection = async (): Promise<RedisClientInstance | null> => {
 };
 
 export const getRedisClient = async (): Promise<RedisClientInstance | null> => {
-  if (globals.__barrowRedisClient?.isReady) {
-    return globals.__barrowRedisClient;
+  if (globals.__mashhoorRedisClient?.isReady) {
+    return globals.__mashhoorRedisClient;
   }
 
-  if (!globals.__barrowRedisClientPromise) {
-    globals.__barrowRedisClientPromise = createRedisConnection()
+  if (!globals.__mashhoorRedisClientPromise) {
+    globals.__mashhoorRedisClientPromise = createRedisConnection()
       .then((client) => {
-        globals.__barrowRedisClient = client || undefined;
+        globals.__mashhoorRedisClient = client || undefined;
         return client;
       })
       .catch((error) => {
         console.error("Failed to connect Redis:", error);
-        globals.__barrowRedisClient = undefined;
+        globals.__mashhoorRedisClient = undefined;
         return null;
       })
       .finally(() => {
-        globals.__barrowRedisClientPromise = undefined;
+        globals.__mashhoorRedisClientPromise = undefined;
       });
   }
 
-  return globals.__barrowRedisClientPromise;
+  return globals.__mashhoorRedisClientPromise;
 };

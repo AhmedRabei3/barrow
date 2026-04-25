@@ -10,10 +10,10 @@ import useInviteModal from "@/app/hooks/useInviteHook";
 
 type OverlayMode = "success" | "inactive" | null;
 
-const ACTIVATION_PENDING_KEY = "barrow:activation-celebration-pending";
-const ACTIVATION_SEEN_PREFIX = "barrow:activation-seen:";
-const INACTIVE_PROMPT_DISMISSED_PREFIX = "barrow:inactive-prompt-dismissed:";
-export const OPEN_SMART_CHAT_ON_HOME_KEY = "barrow:open-smart-chat-on-home";
+const ACTIVATION_PENDING_KEY = "mashhoor:activation-celebration-pending";
+const ACTIVATION_SEEN_PREFIX = "mashhoor:activation-seen:";
+const INACTIVE_PROMPT_DISMISSED_PREFIX = "mashhoor:inactive-prompt-dismissed:";
+export const OPEN_SMART_CHAT_ON_HOME_KEY = "mashhoor:open-smart-chat-on-home";
 
 const EXCLUDED_PATH_PREFIXES = ["/admin", "/payment"];
 
@@ -297,7 +297,7 @@ const ActivationWelcomeOverlay = () => {
               <p className="activation-spotlight-copy">
                 {t(
                   "يمكنك الآن دعوة الآخرين للانضمام والاستفادة من مكافآت تصل حتى 60% من اشتراكات أول 10 مستخدمين فعليين تدعوهم شهرياً، وذلك حسب ",
-                  "You can now invite others and earn rewards of up to 60% from the monthly subscriptions of the first 10 real users you activate, based on the tier system ",
+                  "You can now invite others to join and earn rewards of up to 60% from the monthly subscriptions of the first 10 real users you invite, based on the ",
                 )}
                 <button
                   type="button"
@@ -308,8 +308,8 @@ const ActivationWelcomeOverlay = () => {
                   {t("نظام الشرائح", "tier system")}
                 </button>
                 {t(
-                  ". استثمر هذه الفترة لتعزيز أرباحك، وبناء حضور أقوى داخل المنصة.",
-                  ". Use this activation window to grow your income and strengthen your presence across the platform.",
+                  ". استثمر هذه الفترة لنشر إعلاناتك و تعزيز أرباحك عبر مشاركة رابط الدعوة الخاص بك مع أصدقائك.",
+                  " Make the most of this period to publish your listings and boost your earnings by sharing your invite link with your friends.",
                 )}
               </p>
 
@@ -321,7 +321,7 @@ const ActivationWelcomeOverlay = () => {
                   aria-expanded={isTiersExpanded}
                 >
                   <span className="activation-spotlight-tier-title">
-                    {t("شرح نظام الشرائح", "Tier system breakdown")}
+                    {t("ماهو نظام الشرائح", "What is the tier system?")}
                   </span>
                   <span
                     className="activation-spotlight-accordion-icon"

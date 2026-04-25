@@ -23,12 +23,12 @@ type RealtimeBus = EventEmitter & {
 };
 
 const globalBus = globalThis as typeof globalThis & {
-  __barrowRealtimeBus?: RealtimeBus;
+  __mashhoorRealtimeBus?: RealtimeBus;
 };
 
 export const realtimeBus: RealtimeBus =
-  globalBus.__barrowRealtimeBus || (new EventEmitter() as RealtimeBus);
+  globalBus.__mashhoorRealtimeBus || (new EventEmitter() as RealtimeBus);
 
 realtimeBus.setMaxListeners(0);
 
-globalBus.__barrowRealtimeBus = realtimeBus;
+globalBus.__mashhoorRealtimeBus = realtimeBus;
