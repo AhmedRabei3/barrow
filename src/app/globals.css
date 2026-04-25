@@ -417,12 +417,12 @@ html.dark .activation-spotlight-tier-card {
 }
 
 .activation-spotlight-tier-card-warm {
-  border-color: rgba(249, 115, 22, 0.22);
+  border-color: rgba(162, 22, 249, 0.22);
   background: linear-gradient(180deg, rgba(255, 247, 237, 0.92), rgba(255, 237, 213, 0.98));
 }
 
 html.dark .activation-spotlight-tier-card-warm {
-  border-color: rgba(251, 146, 60, 0.24);
+  border-color: rgba(162, 22, 249, 0.296);
   background: linear-gradient(180deg, rgba(60, 28, 10, 0.82), rgba(38, 18, 8, 0.96));
 }
 

@@ -296,7 +296,7 @@ const ActivationWelcomeOverlay = () => {
             <>
               <p className="activation-spotlight-copy">
                 {t(
-                  "يمكنك الآن دعوة الآخرين للانضمام والاستفادة من مكافآت تصل حتى 60% من اشتراكات أول 10 مستخدمين فعليين تدعوهم شهرياً، وذلك حسب ",
+                  "يمكنك الآن دعوة الآخرين للانضمام والاستفادة من مكافآت تصل حتى 60% من اشتراكاتهم شهرياً، حسب ",
                   "You can now invite others to join and earn rewards of up to 60% from the monthly subscriptions of the first 10 real users you invite, based on the ",
                 )}
                 <button
@@ -402,18 +402,29 @@ const ActivationWelcomeOverlay = () => {
             <>
               <p className="activation-spotlight-copy">
                 {t(
-                  "التفعيل يمنحك 30 يوماً من النشر الكامل، ظهور أقوى لإعلاناتك، وصولاً أفضل للمشترين، وإمكانية دعوة الآخرين وتحويل نشاطك إلى أرباح متصاعدة.",
-                  "Activation gives you 30 days of full publishing access, stronger visibility, better buyer reach, and the ability to invite others and turn activity into growing earnings.",
+                  "الاشتراك يمنحك 30 يوماً من النشر الكامل، ظهور أقوى لإعلاناتك، وصولاً أفضل للمشترين، وإمكانية دعوة الآخرين لزيادة أرباحك.",
+                  "Subscription gives you 30 days of full publishing access, stronger visibility, better buyer reach, and the ability to invite others and turn activity into growing earnings.",
                 )}
               </p>
               <div className="activation-spotlight-tier-card activation-spotlight-tier-card-warm">
                 <div className="activation-spotlight-tier-title">
-                  {t("لماذا يستحق التفعيل؟", "Why activation is worth it")}
+                  {t("لماذا يستحق الاشتراك؟", "Why subscription is worth it")}
                 </div>
                 <p className="activation-spotlight-tier-note">
                   {t(
-                    "ابدأ بالنشر عبر المساعد الذكي، شارك رابط دعوتك لتحصل على أرباح حسب نظام الشرائح، واستفد من وسائل التفعيل المحلية إذا كانت بوابات الدفع غير مدعومة في بلدك.",
-                    "Start publishing with the smart assistant, share your invite link to earn through referral tiers, and use local activation methods if gateways are not available in your country.",
+                    "- انتشار عال لإعلاناتك مع ظهور أقوى في نتائج البحث",
+                    "- High visibility for your listings with stronger appearance in search results",
+                  )}
+                  <br />
+
+                  {t(
+                    "- دخل شهري متجدد من خلال نظام الدعوات يصل لـ60% من قيمة اشتراك من دعوتهم",
+                    "- Monthly recurring income through the referral system reaches up to 60% of the subscription value of those they invite",
+                  )}
+                  <br />
+                  {t(
+                    "- طرق دفع متعددة وآمنة مع دعم مباشر من فريقنا",
+                    "- Multiple secure payment methods with direct support from our team",
                   )}
                 </p>
               </div>
@@ -430,7 +441,7 @@ const ActivationWelcomeOverlay = () => {
                   className="activation-spotlight-btn activation-spotlight-btn-primary"
                   onClick={openActivation}
                 >
-                  {t("تفعيل الحساب", "Activate account")}
+                  {t("تفعيل الاشتراك", "Activate subscription")}
                 </button>
               </div>
             </>
