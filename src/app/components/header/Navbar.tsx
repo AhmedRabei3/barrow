@@ -113,6 +113,34 @@ const Navbar = ({
       return;
     }
 
+    const host = window.location.hostname;
+    const isLocalhost =
+      host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+
+    if (isLocalhost) {
+      void navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) =>
+          Promise.all(
+            registrations.map((registration) => registration.unregister()),
+          ),
+        )
+        .catch(() => {
+          // Ignore cleanup failures on local development.
+        });
+
+      if ("caches" in window) {
+        void caches
+          .keys()
+          .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+          .catch(() => {
+            // Ignore cache cleanup failures on local development.
+          });
+      }
+
+      return;
+    }
+
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Keep silent to avoid noisy console in unsupported/private contexts.
     });
