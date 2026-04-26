@@ -522,29 +522,30 @@ model HomeFurniture {
 }
 
 model MedicalDevice {
-  id                         String          @id @default(cuid())
-  name                       String
-  manufacturer               String?
-  model                      String?
-  description                String?
-  price                      Decimal         @db.Decimal(12, 2)
-  sellOrRent                 TransactionType
-  rentType                   RentType?
-  status                     Availability    @default(AVAILABLE)
-  ownerId                    String
-  categoryId                 String
-  deviceClass                String?
-  condition                  String?
-  manufacturerCountry        String?
-  isUsed                     Boolean         @default(false)
-  warrantyMonths             Int?
-  usageHours                 Int?
-  requiresPrescription       Boolean         @default(false)
-  maintenanceRecordAvailable Boolean         @default(false)
-  moderationAction           String?
-  moderationNote             String?
-  moderatedAt                DateTime?
-  moderatedById              String?
+  id                String          @id @default(cuid())
+  name              String
+  manufacturer      String?
+  model             String?
+  description       String?
+  price             Decimal         @db.Decimal(12, 2)
+  sellOrRent        TransactionType
+  rentType          RentType?
+  status            Availability    @default(AVAILABLE)
+  ownerId           String
+  categoryId        String
+  deviceFunction    String?
+  manufactureYear   Int?
+  condition         String?
+  dimensions        String?
+  weight            String?
+  manufacturerPlace String?
+  isUsed            Boolean         @default(false)
+  warrantyMonths    Int?
+  usageHours        Int?
+  moderationAction  String?
+  moderationNote    String?
+  moderatedAt       DateTime?
+  moderatedById     String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

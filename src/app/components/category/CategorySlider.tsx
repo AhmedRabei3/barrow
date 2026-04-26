@@ -46,16 +46,30 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
       void refetch();
     };
 
+    const handleWindowFocus = () => {
+      void refetch();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refetch();
+      }
+    };
+
     window.addEventListener(
       INVENTORY_INVALIDATED_EVENT,
       handleInventoryInvalidated,
     );
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener(
         INVENTORY_INVALIDATED_EVENT,
         handleInventoryInvalidated,
       );
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [refetch]);
 

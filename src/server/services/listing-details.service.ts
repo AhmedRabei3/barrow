@@ -122,11 +122,15 @@ const medicalDeviceSelect = {
   sellOrRent: true,
   rentType: true,
   ownerId: true,
+  deviceFunction: true,
+  manufactureYear: true,
   condition: true,
-  manufacturerCountry: true,
+  dimensions: true,
+  weight: true,
+  manufacturerPlace: true,
+  isUsed: true,
   warrantyMonths: true,
   usageHours: true,
-  requiresPrescription: true,
   category: { select: categorySelect },
   owner: { select: ownerSelect },
   location: { select: locationSelect },
@@ -157,7 +161,9 @@ const otherItemSelect = {
   location: { select: locationSelect },
 } satisfies Prisma.OtherItemSelect;
 
-type PropertyListing = Prisma.PropertyGetPayload<{ select: typeof propertySelect }>;
+type PropertyListing = Prisma.PropertyGetPayload<{
+  select: typeof propertySelect;
+}>;
 type NewCarListing = Prisma.NewCarGetPayload<{ select: typeof newCarSelect }>;
 type OldCarListing = Prisma.OldCarGetPayload<{ select: typeof oldCarSelect }>;
 type HomeFurnitureListing = Prisma.HomeFurnitureGetPayload<{
@@ -166,7 +172,9 @@ type HomeFurnitureListing = Prisma.HomeFurnitureGetPayload<{
 type MedicalDeviceListing = Prisma.MedicalDeviceGetPayload<{
   select: typeof medicalDeviceSelect;
 }>;
-type OtherItemListing = Prisma.OtherItemGetPayload<{ select: typeof otherItemSelect }>;
+type OtherItemListing = Prisma.OtherItemGetPayload<{
+  select: typeof otherItemSelect;
+}>;
 
 type RawListingItem =
   | PropertyListing
@@ -313,18 +321,14 @@ const loadRawItem = async (type: $Enums.ItemType, id: string) => {
   }
 };
 
-const normalizeListingData = (
-  type: $Enums.ItemType,
-  item: RawListingItem,
-) => {
+const normalizeListingData = (type: $Enums.ItemType, item: RawListingItem) => {
   if (!item) {
     return null;
   }
 
   switch (type) {
-    case $Enums.ItemType.HOME_FURNITURE:
-      {
-        const homeFurnitureItem = item as HomeFurnitureListing;
+    case $Enums.ItemType.HOME_FURNITURE: {
+      const homeFurnitureItem = item as HomeFurnitureListing;
 
       return {
         ...homeFurnitureItem,
@@ -335,22 +339,25 @@ const normalizeListingData = (
         furnitureAssemblyIncluded: homeFurnitureItem.assemblyIncluded,
         price: Number(homeFurnitureItem.price),
       };
-      }
-    case $Enums.ItemType.MEDICAL_DEVICE:
-      {
-        const medicalDeviceItem = item as MedicalDeviceListing;
+    }
+    case $Enums.ItemType.MEDICAL_DEVICE: {
+      const medicalDeviceItem = item as MedicalDeviceListing;
 
       return {
         ...medicalDeviceItem,
         brand: medicalDeviceItem.manufacturer,
         medicalCondition: medicalDeviceItem.condition,
-        medicalManufacturerCountry: medicalDeviceItem.manufacturerCountry,
+        medicalDeviceFunction: medicalDeviceItem.deviceFunction,
+        medicalManufactureYear: medicalDeviceItem.manufactureYear,
+        medicalDimensions: medicalDeviceItem.dimensions,
+        medicalWeight: medicalDeviceItem.weight,
+        medicalManufacturerPlace: medicalDeviceItem.manufacturerPlace,
+        medicalIsUsed: medicalDeviceItem.isUsed,
         medicalWarrantyMonths: medicalDeviceItem.warrantyMonths,
         medicalUsageHours: medicalDeviceItem.usageHours,
-        medicalRequiresPrescription: medicalDeviceItem.requiresPrescription,
         price: Number(medicalDeviceItem.price),
       };
-      }
+    }
     default:
       return {
         ...item,
@@ -405,8 +412,11 @@ export async function getListingDetailsById(
 
   const title = resolveListingTitle({
     title:
-      typeof normalizedData.title === "string" ? normalizedData.title : undefined,
-    name: typeof normalizedData.name === "string" ? normalizedData.name : undefined,
+      typeof normalizedData.title === "string"
+        ? normalizedData.title
+        : undefined,
+    name:
+      typeof normalizedData.name === "string" ? normalizedData.name : undefined,
     brand:
       typeof normalizedData.brand === "string"
         ? normalizedData.brand
@@ -446,7 +456,9 @@ export async function getListingDetailsById(
           ? normalizedData.title
           : undefined,
       name:
-        typeof normalizedData.name === "string" ? normalizedData.name : undefined,
+        typeof normalizedData.name === "string"
+          ? normalizedData.name
+          : undefined,
       brand:
         typeof normalizedData.brand === "string"
           ? normalizedData.brand

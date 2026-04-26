@@ -14,10 +14,10 @@ const CardContainer = ({
   return (
     <div
       className={`
-      group relative flex h-full w-full cursor-pointer 
+      group relative flex h-fit w-full cursor-pointer 
       flex-col overflow-visible rounded-[18px]
       dark:border dark:border-slate-800 dark:bg-slate-950/95
-      bg-slate-200
+      bg-neutral-200
       shadow-[0_18px_45px_rgba(2,6,23,0.26)] 
       transition-all duration-300 hover:-translate-y-1
       hover:border-sky-400/30 

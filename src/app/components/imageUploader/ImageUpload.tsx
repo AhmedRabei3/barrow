@@ -31,9 +31,22 @@ const ImageUpload = ({
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    // اجعلها صورة واحدة فقط (استبدال)
-    const fileArray = Array.from(files).slice(0, 1);
-    setSelectedImages(fileArray);
+    const incomingFiles = Array.from(files);
+
+    setSelectedImages((prev) => {
+      const existingKeys = new Set(
+        prev.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+      );
+
+      const uniqueIncoming = incomingFiles.filter((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        if (existingKeys.has(key)) return false;
+        existingKeys.add(key);
+        return true;
+      });
+
+      return [...prev, ...uniqueIncoming];
+    });
   };
 
   const handleRemove = (index: number) => {

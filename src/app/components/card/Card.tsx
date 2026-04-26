@@ -202,12 +202,15 @@ const Card: FC<CardProps> = ({
           : "Update the images based on the note, then save or resubmit for review.")
       : status === "PENDING_REVIEW"
         ? isArabic
-          ? "إعلانك مخفي حاليًا حتى تنتهي مراجعة الصور من الإدارة."
-          : "Your listing is hidden until image review is completed by admin."
+          ? "إعلانك مخفي حاليًا ريثما تتم مراجعته من الإدارة."
+          : "Your listing is hidden until review is completed by admin."
         : null;
 
   return (
-    <div ref={cardWrapperRef} className="w-full h-full">
+    <div
+      ref={cardWrapperRef}
+      className="w-full h-fit mx-auto"
+    >
       <CardContainer setIsPaused={setIsPaused} isOverlayOpen={isStateMenuOpen}>
         <Link
           href={detailHref}

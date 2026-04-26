@@ -25,7 +25,11 @@ const CardList = ({ items }: CardListProps) => {
     <div
       className="
         flex-1 w-full
-        grid grid-cols-[repeat(auto-fit,minmax(min(100%,210px),1fr))] min-[1680px]:grid-cols-6
+        grid
+        lg:grid-cols-5
+        min-[1680px]:grid-cols-6
+        md:grid-cols-3
+        sm:grid-cols-1
         gap-x-5 gap-y-8 md:gap-x-6 md:gap-y-9 items-stretch
         "
     >

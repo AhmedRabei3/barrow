@@ -1,6 +1,8 @@
 import { ItemType, NotificationType } from "@prisma/client";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { clearCategoriesRouteCache } from "@/app/api/categories/cache";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { prisma } from "@/lib/prisma";
 
@@ -551,6 +553,13 @@ export async function POST(req: NextRequest) {
         },
       });
     });
+
+    if (approved) {
+      clearCategoriesRouteCache();
+      revalidateTag("item-search");
+      revalidateTag("featured-items");
+      revalidatePath("/");
+    }
 
     return NextResponse.json({
       success: true,

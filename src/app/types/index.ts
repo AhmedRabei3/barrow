@@ -50,10 +50,14 @@ export type GrandItem = {
     furnitureDimensions?: string | null;
     furnitureAssemblyIncluded?: boolean | null;
     medicalCondition?: string | null;
-    medicalManufacturerCountry?: string | null;
+    medicalDeviceFunction?: string | null;
+    medicalManufactureYear?: number | null;
+    medicalDimensions?: string | null;
+    medicalWeight?: string | null;
+    medicalManufacturerPlace?: string | null;
+    medicalIsUsed?: boolean | null;
     medicalWarrantyMonths?: number | null;
     medicalUsageHours?: number | null;
-    medicalRequiresPrescription?: boolean | null;
   };
   ownerId?: string | null;
   itemImages: { url: string | null }[];

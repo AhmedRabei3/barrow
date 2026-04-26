@@ -29,10 +29,14 @@ type ItemDetailsData = {
   furnitureDimensions?: string;
   furnitureAssemblyIncluded?: boolean;
   medicalCondition?: string;
-  medicalManufacturerCountry?: string;
+  medicalDeviceFunction?: string;
+  medicalManufactureYear?: number;
+  medicalDimensions?: string;
+  medicalWeight?: string;
+  medicalManufacturerPlace?: string;
+  medicalIsUsed?: boolean;
   medicalWarrantyMonths?: number;
   medicalUsageHours?: number;
-  medicalRequiresPrescription?: boolean;
   // Property-specific
   bedrooms?: number;
   bathrooms?: number;
@@ -107,6 +111,7 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
   const isProperty = type === "PROPERTY";
   const isCar = type === "NEW_CAR" || type === "USED_CAR";
   const isUsedCar = type === "USED_CAR";
+  const isMedicalDevice = type === "MEDICAL_DEVICE";
 
   const rentTypeLabelMap: Record<string, { ar: string; en: string }> = {
     DAILY: { ar: "يومي", en: "daily" },
@@ -258,10 +263,34 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
                 value: data.medicalCondition,
               }
             : null,
-          data.medicalManufacturerCountry
+          data.medicalDeviceFunction
             ? {
-                label: isArabic ? "بلد التصنيع" : "Manufacturer country",
-                value: data.medicalManufacturerCountry,
+                label: isArabic ? "وظيفة الجهاز" : "Device function",
+                value: data.medicalDeviceFunction,
+              }
+            : null,
+          data.medicalManufactureYear != null
+            ? {
+                label: isArabic ? "سنة التصنيع" : "Manufacture year",
+                value: String(data.medicalManufactureYear),
+              }
+            : null,
+          data.medicalDimensions
+            ? {
+                label: isArabic ? "الأبعاد" : "Dimensions",
+                value: data.medicalDimensions,
+              }
+            : null,
+          data.medicalWeight
+            ? {
+                label: isArabic ? "الوزن" : "Weight",
+                value: data.medicalWeight,
+              }
+            : null,
+          data.medicalManufacturerPlace
+            ? {
+                label: isArabic ? "مكان التصنيع" : "Manufacturer place",
+                value: data.medicalManufacturerPlace,
               }
             : null,
           data.medicalWarrantyMonths != null
@@ -368,14 +397,22 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
               value={data.furnitureAssemblyIncluded}
               label={isArabic ? "يشمل التركيب" : "Assembly included"}
             />
-            <BoolBadge
-              value={data.medicalRequiresPrescription}
-              label={
-                isArabic
-                  ? "يتطلب وصفة أو تصريحاً"
-                  : "Requires prescription or approval"
-              }
-            />
+            {isMedicalDevice ? (
+              <>
+                <BoolBadge
+                  value={
+                    data.medicalIsUsed === undefined
+                      ? undefined
+                      : !data.medicalIsUsed
+                  }
+                  label={isArabic ? "جديد" : "New"}
+                />
+                <BoolBadge
+                  value={data.medicalIsUsed}
+                  label={isArabic ? "مستعمل" : "Used"}
+                />
+              </>
+            ) : null}
           </ul>
         )}
 

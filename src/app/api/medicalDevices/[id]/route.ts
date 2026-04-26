@@ -47,18 +47,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       manufacturer: formData.get("manufacturer") ?? undefined,
       model: formData.get("model") ?? undefined,
       description: formData.get("description") ?? undefined,
-      deviceClass: formData.get("deviceClass") ?? undefined,
+      deviceFunction: formData.get("deviceFunction") ?? undefined,
+      manufactureYear: toNumber(formData.get("manufactureYear")),
       condition: formData.get("condition") ?? undefined,
-      manufacturerCountry: formData.get("manufacturerCountry") ?? undefined,
+      dimensions: formData.get("dimensions") ?? undefined,
+      weight: formData.get("weight") ?? undefined,
+      manufacturerPlace: formData.get("manufacturerPlace") ?? undefined,
       isUsed: toOptionalBoolean(formData.get("isUsed")),
       warrantyMonths: toNumber(formData.get("warrantyMonths")),
       usageHours: toNumber(formData.get("usageHours")),
-      requiresPrescription: toOptionalBoolean(
-        formData.get("requiresPrescription"),
-      ),
-      maintenanceRecordAvailable: toOptionalBoolean(
-        formData.get("maintenanceRecordAvailable"),
-      ),
       price: toNumber(formData.get("price")),
       sellOrRent,
       rentType:

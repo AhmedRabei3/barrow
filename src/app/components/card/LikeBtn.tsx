@@ -81,7 +81,15 @@ const LikeBtn = ({ itemId, itemType }: LikeBtnProps) => {
     <button
       onClick={toggleLike}
       disabled={!itemId || !itemType || loading || status === "loading"}
-      className="absolute top-3 right-3 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-200/50 text-slate-100 shadow-md backdrop-blur-md transition-transform hover:scale-105"
+      className="absolute top-3 
+      right-3 z-20 flex h-9 w-9 
+      cursor-pointer items-center 
+      justify-center rounded-full
+       bg-slate-200/50
+        text-slate-100 
+       shadow-md backdrop-blur-sm 
+       transition-transform 
+       hover:scale-105"
     >
       {liked ? (
         <AiFillHeart className="text-xl text-rose-400" />

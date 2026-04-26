@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useId, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   MdOutlineRealEstateAgent,
   MdCarCrash,
@@ -52,41 +52,54 @@ const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
       : orderedTabs;
   const selectedType = getPrimaryCategoryKey(type as never) ?? tabsList[0]?.key;
 
+  const loadAvailableTabs = useCallback(async () => {
+    const results = await Promise.all(
+      PRIMARY_CATEGORY_TABS.map(async (tab) => {
+        const categories = await categoryFetcher({
+          type: tab.type,
+          withItemsOnly: true,
+        });
+
+        return categories.length > 0 ? tab.key : null;
+      }),
+    );
+
+    const nextKeys = results.filter(
+      (key): key is PrimaryCategoryKey => key !== null,
+    );
+    setAvailableKeys(
+      nextKeys.length > 0 ? nextKeys : orderedTabs.map((tab) => tab.key),
+    );
+  }, [orderedTabs]);
+
   useEffect(() => {
     let cancelled = false;
 
-    const loadAvailableTabs = async () => {
-      const results = await Promise.all(
-        PRIMARY_CATEGORY_TABS.map(async (tab) => {
-          const categories = await categoryFetcher({
-            type: tab.type,
-            withItemsOnly: true,
-          });
-
-          return categories.length > 0 ? tab.key : null;
-        }),
-      );
-
+    void loadAvailableTabs().then(() => {
       if (cancelled) {
         return;
       }
+    });
 
-      const nextKeys = results.filter(
-        (key): key is PrimaryCategoryKey => key !== null,
-      );
-      setAvailableKeys(nextKeys);
+    const handleWindowFocus = () => {
+      void loadAvailableTabs();
+    };
 
-      if (nextKeys.length === 0) {
-        setAvailableKeys(orderedTabs.map((tab) => tab.key));
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadAvailableTabs();
       }
     };
 
-    void loadAvailableTabs();
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [orderedTabs]);
+  }, [loadAvailableTabs]);
 
   const handleSelectType = (value: string) => {
     onSelectTab(value as PrimaryCategoryKey);

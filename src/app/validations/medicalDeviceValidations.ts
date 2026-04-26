@@ -17,6 +17,11 @@ const optionalNumber = z.preprocess(
   z.coerce.number().int().nonnegative().optional(),
 );
 
+const optionalManufactureYear = z.preprocess(
+  emptyValueToUndefined,
+  z.coerce.number().int().min(1900).max(2100).optional(),
+);
+
 const optionalBoolean = z.preprocess((value) => {
   if (value === "" || value === null || value === undefined) {
     return undefined;
@@ -54,19 +59,24 @@ const baseRentFields = {
 export const createMedicalDeviceSchema = z
   .object({
     name: z.string().min(1, "اسم الجهاز مطلوب"),
-    manufacturer: emptyToUndefined.optional(),
-    model: emptyToUndefined.optional(),
+    manufacturer: z.string().min(1, "الشركة الصانعة مطلوبة"),
+    model: z.string().min(1, "الموديل مطلوب"),
     description: emptyToUndefined.optional(),
     price: z.coerce.number().positive("السعر يجب أن يكون أكبر من صفر"),
     categoryId: z.string().cuid("معرف الفئة غير صالح"),
-    deviceClass: emptyToUndefined.optional(),
+    deviceFunction: z.string().min(1, "وظيفة الجهاز مطلوبة"),
+    manufactureYear: z.coerce
+      .number()
+      .int()
+      .min(1900, "سنة التصنيع غير صالحة")
+      .max(2100, "سنة التصنيع غير صالحة"),
     condition: emptyToUndefined.optional(),
-    manufacturerCountry: emptyToUndefined.optional(),
+    dimensions: z.string().min(1, "الأبعاد مطلوبة"),
+    weight: z.string().min(1, "الوزن مطلوب"),
+    manufacturerPlace: z.string().min(1, "مكان التصنيع مطلوب"),
     isUsed: optionalBoolean,
     warrantyMonths: optionalNumber,
     usageHours: optionalNumber,
-    requiresPrescription: optionalBoolean,
-    maintenanceRecordAvailable: optionalBoolean,
     ...baseRentFields,
   })
   .refine(
@@ -87,14 +97,15 @@ export const updateMedicalDeviceSchema = z
     model: emptyToUndefined.optional(),
     description: emptyToUndefined.optional(),
     price: z.coerce.number().positive().optional(),
-    deviceClass: emptyToUndefined.optional(),
+    deviceFunction: emptyToUndefined.optional(),
+    manufactureYear: optionalManufactureYear,
     condition: emptyToUndefined.optional(),
-    manufacturerCountry: emptyToUndefined.optional(),
+    dimensions: emptyToUndefined.optional(),
+    weight: emptyToUndefined.optional(),
+    manufacturerPlace: emptyToUndefined.optional(),
     isUsed: optionalBoolean,
     warrantyMonths: optionalNumber,
     usageHours: optionalNumber,
-    requiresPrescription: optionalBoolean,
-    maintenanceRecordAvailable: optionalBoolean,
     sellOrRent: z.enum(["SELL", "RENT"]).optional(),
     rentType: z
       .enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])

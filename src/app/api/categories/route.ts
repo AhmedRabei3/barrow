@@ -11,6 +11,14 @@ import {
   isDatabaseUnavailableError,
   withTimeout,
 } from "@/app/api/lib/errors/dbGuard";
+import {
+  deleteActiveCategoryIdsSnapshot,
+  deleteCategoriesResponseSnapshot,
+  getActiveCategoryIdsSnapshot,
+  getCategoriesResponseSnapshot,
+  setActiveCategoryIdsSnapshot,
+  setCategoriesResponseSnapshot,
+} from "./cache";
 
 type CategoryListItem = {
   id: string;
@@ -32,18 +40,10 @@ const CATEGORY_RESPONSE_STALE_TTL_MS = 30 * 60 * 1000;
 const ACTIVE_CATEGORY_IDS_TTL_MS = 2 * 60 * 1000;
 const ACTIVE_CATEGORY_IDS_STALE_TTL_MS = 30 * 60 * 1000;
 
-const categoriesResponseCache = new Map<
-  string,
-  { expiresAt: number; staleUntil: number; value: CategoryQueryResult }
->();
-
-const activeCategoryIdsCache = new Map<
-  string,
-  { expiresAt: number; staleUntil: number; value: string[] }
->();
-
 const readCachedCategoryResult = (cacheKey: string, allowStale = false) => {
-  const cached = categoriesResponseCache.get(cacheKey);
+  const cached = getCategoriesResponseSnapshot(cacheKey) as
+    | { expiresAt: number; staleUntil: number; value: CategoryQueryResult }
+    | undefined;
   if (!cached) {
     return null;
   }
@@ -51,7 +51,7 @@ const readCachedCategoryResult = (cacheKey: string, allowStale = false) => {
   const now = Date.now();
 
   if (cached.staleUntil <= now) {
-    categoriesResponseCache.delete(cacheKey);
+    deleteCategoriesResponseSnapshot(cacheKey);
     return null;
   }
 
@@ -66,7 +66,7 @@ const writeCachedCategoryResult = (
   cacheKey: string,
   value: CategoryQueryResult,
 ) => {
-  categoriesResponseCache.set(cacheKey, {
+  setCategoriesResponseSnapshot(cacheKey, {
     expiresAt: Date.now() + CATEGORY_RESPONSE_TTL_MS,
     staleUntil: Date.now() + CATEGORY_RESPONSE_STALE_TTL_MS,
     value,
@@ -74,7 +74,7 @@ const writeCachedCategoryResult = (
 };
 
 const readCachedActiveCategoryIds = (cacheKey: string, allowStale = false) => {
-  const cached = activeCategoryIdsCache.get(cacheKey);
+  const cached = getActiveCategoryIdsSnapshot(cacheKey);
   if (!cached) {
     return null;
   }
@@ -82,7 +82,7 @@ const readCachedActiveCategoryIds = (cacheKey: string, allowStale = false) => {
   const now = Date.now();
 
   if (cached.staleUntil <= now) {
-    activeCategoryIdsCache.delete(cacheKey);
+    deleteActiveCategoryIdsSnapshot(cacheKey);
     return null;
   }
 
@@ -94,7 +94,7 @@ const readCachedActiveCategoryIds = (cacheKey: string, allowStale = false) => {
 };
 
 const writeCachedActiveCategoryIds = (cacheKey: string, value: string[]) => {
-  activeCategoryIdsCache.set(cacheKey, {
+  setActiveCategoryIdsSnapshot(cacheKey, {
     expiresAt: Date.now() + ACTIVE_CATEGORY_IDS_TTL_MS,
     staleUntil: Date.now() + ACTIVE_CATEGORY_IDS_STALE_TTL_MS,
     value,
@@ -224,6 +224,21 @@ const getLocalizedCategories = (
 
 const isRecoverableCategoryLookupError = (error: unknown) =>
   error instanceof RequestTimeoutError || isDatabaseUnavailableError(error);
+
+const findCategories = (whereClause: Prisma.CategoryWhereInput) =>
+  prisma.category.findMany({
+    where: whereClause,
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      nameAr: true,
+      nameEn: true,
+      icon: true,
+      type: true,
+      isDeleted: true,
+    },
+  });
 
 const isItemType = (value: string): value is ItemType => {
   return Object.values(ItemType).includes(value as ItemType);
@@ -357,24 +372,23 @@ export async function GET(req: NextRequest) {
         },
       ];
     }
-    // ✅ جلب البيانات (كل الفئات إذا لم يُرسل أي name أو type)
-    const categories = await withTimeout(
-      prisma.category.findMany({
-        where: whereClause,
-        orderBy: { name: "asc" },
-        select: {
-          id: true,
-          name: true,
-          nameAr: true,
-          nameEn: true,
-          icon: true,
-          type: true,
-          isDeleted: true,
-        },
-      }),
-      4500,
-      "Category lookup timed out",
-    );
+    let categories: CategoryListItem[];
+    try {
+      categories = await withTimeout(
+        findCategories(whereClause),
+        8000,
+        "Category lookup timed out",
+      );
+    } catch (error) {
+      if (!isRecoverableCategoryLookupError(error)) {
+        throw error;
+      }
+
+      // One last direct attempt prevents transient cold-start latency from
+      // turning category lookups into hard failures.
+      categories = await findCategories(whereClause);
+    }
+
     const totalCount = categories.length;
 
     // ✅ في حال عدم العثور على أي فئات

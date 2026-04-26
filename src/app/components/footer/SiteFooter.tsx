@@ -79,9 +79,9 @@ const footerLabels = {
     quickAccess: "وصول سريع",
     supportTitle: "دعم مباشر عند الحاجة",
     supportBody:
-      "إذا احتجت مساعدة في النشر أو التفعيل أو الدفع، يمكنك الوصول إلى مركز الدعم مباشرة من داخل المنصة.",
+      "إذا احتجت مساعدة في النشر أو التفعيل أو الدفع، لا تتردد في التحدث مع فريق الدعم.",
     startNow: "ابدأ الآن",
-    browseNow: "استكشف أفضل العروض اليوم",
+    browseNow: "اكتشف أفضل العروض اليوم",
     browseBody:
       "اعثر على العقارات والسيارات والسلع في تجربة أكثر وضوحاً وسرعة وبدون عمولات على الصفقات.",
     supportAction: "الدعم",
@@ -140,7 +140,7 @@ const SiteFooter = () => {
               </p>
               <h2 className="footer-heading mt-3 text-2xl font-black tracking-tight md:text-3xl">
                 {isArabic
-                  ? "البيع والإيجار بأفضل الأسعار وبدون عمولة"
+                  ? "البيع والإيجار بأفضل الأسعار ودون عمولة"
                   : "Buy and rent at the best prices without commission"}
               </h2>
               <p className="footer-text mt-4 max-w-2xl text-sm leading-7 md:text-base">
@@ -173,50 +173,10 @@ const SiteFooter = () => {
               </div>
             </div>
 
-            <aside className="footer-card rounded-[28px] p-6 md:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
-                {footerContent.quickAccess}
-              </p>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <h3 className="footer-heading text-lg font-bold">
-                    {footerContent.supportTitle}
-                  </h3>
-                  <p className="footer-text mt-2 text-sm leading-7">
-                    {footerContent.supportBody}
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Link
-                    href="/privacy-policy"
-                    className="footer-pill rounded-2xl px-4 py-3 text-sm font-semibold transition hover:text-sky-600 dark:hover:text-sky-300"
-                  >
-                    {footerContent.privacy}
-                  </Link>
-                  <Link
-                    href="/privacy-policy"
-                    className="footer-pill rounded-2xl px-4 py-3 text-sm font-semibold transition hover:text-sky-600 dark:hover:text-sky-300"
-                  >
-                    {footerContent.terms}
-                  </Link>
-                </div>
-                <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
-                    {footerContent.startNow}
-                  </p>
-                  <h3 className="footer-heading mt-2 text-xl font-black tracking-tight">
-                    {footerContent.browseNow}
-                  </h3>
-                  <p className="footer-text mt-2 text-sm leading-7">
-                    {footerContent.browseBody}
-                  </p>
-                </div>
-              </div>
-            </aside>
           </section>
 
           <section className="grid gap-6 w-full">
-            <div className="rounded-3xl border border-slate-500/50 bg-indigo-600 p-6 shadow-lg md:p-7">
+            <div className="rounded-3xl border border-slate-500/50 bg-blue-600 p-6 shadow-lg md:p-7">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why choose us"}
               </h3>
@@ -251,7 +211,7 @@ const SiteFooter = () => {
               >
                 {footerContent.terms}
               </Link>
-              <span>{footerContent.privacy}</span>
+
             </div>
           </div>
         </div>

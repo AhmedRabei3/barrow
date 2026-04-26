@@ -37,7 +37,13 @@ type EditableItem = {
     furnitureDimensions?: string | null;
     furnitureAssemblyIncluded?: boolean | null;
     medicalCondition?: string | null;
+    medicalDeviceFunction?: string | null;
+    medicalManufactureYear?: number | null;
+    medicalDimensions?: string | null;
+    medicalWeight?: string | null;
     medicalManufacturerCountry?: string | null;
+    medicalManufacturerPlace?: string | null;
+    medicalIsUsed?: boolean | null;
     medicalWarrantyMonths?: number | null;
     medicalUsageHours?: number | null;
     medicalRequiresPrescription?: boolean | null;
@@ -135,6 +141,33 @@ export function buildEditDataByType(itemToEdit: EditableItem) {
       sellOrRent: itemToEdit.item?.sellOrRent ?? undefined,
       rentType: itemToEdit.item?.rentType ?? undefined,
       status: itemToEdit.item?.status ?? undefined,
+      description: itemToEdit.item?.description ?? undefined,
+      ...baseLocationData,
+    };
+  } else if (itemType === $Enums.ItemType.MEDICAL_DEVICE) {
+    editData = {
+      id: itemToEdit.item?.id,
+      name: itemToEdit.item?.name ?? undefined,
+      manufacturer: itemToEdit.item?.brand ?? undefined,
+      model: itemToEdit.item?.model ?? undefined,
+      categoryId: itemToEdit.item?.categoryId ?? undefined,
+      price: toNumberOrUndefined(itemToEdit.item?.price),
+      sellOrRent: itemToEdit.item?.sellOrRent ?? undefined,
+      rentType: itemToEdit.item?.rentType ?? undefined,
+      status: itemToEdit.item?.status ?? undefined,
+      deviceFunction: itemToEdit.item?.medicalDeviceFunction ?? undefined,
+      manufactureYear: toNumberOrUndefined(
+        itemToEdit.item?.medicalManufactureYear,
+      ),
+      condition: itemToEdit.item?.medicalCondition ?? undefined,
+      dimensions: itemToEdit.item?.medicalDimensions ?? undefined,
+      weight: itemToEdit.item?.medicalWeight ?? undefined,
+      manufacturerPlace: itemToEdit.item?.medicalManufacturerPlace ?? undefined,
+      isUsed: itemToEdit.item?.medicalIsUsed ?? undefined,
+      warrantyMonths: toNumberOrUndefined(
+        itemToEdit.item?.medicalWarrantyMonths,
+      ),
+      usageHours: toNumberOrUndefined(itemToEdit.item?.medicalUsageHours),
       description: itemToEdit.item?.description ?? undefined,
       ...baseLocationData,
     };

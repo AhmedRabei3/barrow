@@ -1,13 +1,21 @@
 "use client";
 
 import { useProfile } from "@/app/hooks/useProfile";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ProfileHeader from "./ProfileHeader";
 import TabbedView, { type ProfileTabKey } from "./TabsProfilePage";
 
 import { formatDate, formatCurrency } from "@/app/api/utils/generalHelper";
 import ProfileSkeleton from "@/app/components/ProfileSkeleton";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  type ComponentType,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ConfirmModal from "@/app/components/modals/ConfirmModal";
 import toast from "react-hot-toast";
 import { handleConfirmDelete } from "./profileHelper";
@@ -28,6 +36,17 @@ import {
   playDeleteFeedback,
   waitForDeleteAnimation,
 } from "@/app/utils/deleteFeedback";
+import { OPEN_SMART_CHAT_ON_HOME_KEY } from "@/app/components/ActivationWelcomeOverlay";
+
+const SmartChatBot = lazy(async () => {
+  const importedModule = await import("@/app/components/SmartChatBot.lazy.js");
+
+  return {
+    default: importedModule.default as unknown as ComponentType<{
+      onClose: () => void;
+    }>,
+  };
+});
 
 const SMART_CHAT_EDIT_PAYLOAD_KEY = "smart-chat-edit-payload";
 const SMART_CHAT_ACTION_ADD_ITEM = "ACTION_ADD_ITEM";
@@ -40,6 +59,8 @@ const formatEnglishNumber = (value: number, fractionDigits = 0) =>
   }).format(value);
 
 const Profile = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const activationModal = useActivationModal();
   const [itemIdToEdit, setItemIdToEdit] = useState<string | null>(null);
@@ -53,6 +74,7 @@ const Profile = () => {
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [identityVerificationModalOpen, setIdentityVerificationModalOpen] =
     useState(false);
+  const [profileAssistantOpen, setProfileAssistantOpen] = useState(false);
   const [removingItemIds, setRemovingItemIds] = useState<string[]>([]);
   const [hiddenItemIds, setHiddenItemIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("ALL");
@@ -99,16 +121,24 @@ const Profile = () => {
   }, [user?.id]);
 
   const handleCreateListing = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        SMART_CHAT_EDIT_PAYLOAD_KEY,
-        JSON.stringify({
-          mode: "create",
-          action: SMART_CHAT_ACTION_ADD_ITEM,
-        }),
-      );
+    if (typeof window === "undefined") return;
+
+    window.localStorage.setItem(
+      SMART_CHAT_EDIT_PAYLOAD_KEY,
+      JSON.stringify({
+        mode: "create",
+        action: SMART_CHAT_ACTION_ADD_ITEM,
+      }),
+    );
+
+    window.sessionStorage.setItem(OPEN_SMART_CHAT_ON_HOME_KEY, "1");
+
+    if (pathname === "/") {
       window.dispatchEvent(new Event("open-smart-chat"));
+      return;
     }
+
+    router.push("/");
   };
 
   const handleCopyReferralLink = async () => {
@@ -415,7 +445,15 @@ const Profile = () => {
           SMART_CHAT_EDIT_PAYLOAD_KEY,
           JSON.stringify(payload),
         );
-        window.dispatchEvent(new Event("open-smart-chat"));
+
+        if (pathname === "/profile") {
+          setProfileAssistantOpen(true);
+        } else if (pathname === "/") {
+          window.dispatchEvent(new Event("open-smart-chat"));
+        } else {
+          window.sessionStorage.setItem(OPEN_SMART_CHAT_ON_HOME_KEY, "1");
+          router.push("/");
+        }
       }
     } catch {
       toast.error(
@@ -426,7 +464,7 @@ const Profile = () => {
     }
 
     setItemIdToEdit(null);
-  }, [itemIdToEdit, items, isArabic]);
+  }, [itemIdToEdit, items, isArabic, pathname, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -731,25 +769,26 @@ const Profile = () => {
                         : item.moderationAction === "REJECT"
                           ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
                           : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
-                      const itemLocation = (item.location ?? null) as
-                        | { city?: string; country?: string }
-                        | null;
-                      const detailHref = item.id
-                        ? buildListingDetailsPath({
-                            id: item.id,
-                            title: item.title,
-                            name: item.name,
-                            brand: item.brand,
-                            model: item.model,
-                            city: itemLocation?.city,
-                            country: itemLocation?.country,
-                          })
-                        : "#";
+                    const itemLocation = (item.location ?? null) as {
+                      city?: string;
+                      country?: string;
+                    } | null;
+                    const detailHref = item.id
+                      ? buildListingDetailsPath({
+                          id: item.id,
+                          title: item.title,
+                          name: item.name,
+                          brand: item.brand,
+                          model: item.model,
+                          city: itemLocation?.city,
+                          country: itemLocation?.country,
+                        })
+                      : "#";
 
                     return (
                       <Link
                         key={item.id}
-                          href={detailHref}
+                        href={detailHref}
                         className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 transition-colors hover:border-primary/30 dark:border-slate-800"
                       >
                         <div className="h-14 w-14 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
@@ -954,6 +993,34 @@ const Profile = () => {
           </div>
         </nav>
         <GoBackBtn />
+
+        {profileAssistantOpen && (
+          <div className="fixed inset-0 z-70 flex items-end justify-center bg-slate-950/45 p-4 backdrop-blur-sm sm:items-center">
+            <div className="relative w-full max-w-104 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/95 shadow-2xl dark:border-slate-700/80 dark:bg-slate-900/95">
+              <button
+                type="button"
+                onClick={() => setProfileAssistantOpen(false)}
+                className="absolute left-3 top-3 z-10 rounded-lg bg-slate-900/10 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-900/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+              >
+                {isArabic ? "إغلاق" : "Close"}
+              </button>
+              <Suspense
+                fallback={
+                  <div
+                    className="px-4 py-5 text-sm text-slate-600 dark:text-slate-300"
+                    dir={isArabic ? "rtl" : "ltr"}
+                  >
+                    {isArabic
+                      ? "جارٍ تحميل المساعد..."
+                      : "Loading assistant..."}
+                  </div>
+                }
+              >
+                <SmartChatBot onClose={() => setProfileAssistantOpen(false)} />
+              </Suspense>
+            </div>
+          </div>
+        )}
 
         {editProfileModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">

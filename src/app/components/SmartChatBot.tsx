@@ -10,6 +10,7 @@ import categoryFetcher from "./category/CategoryFetcher";
 import { FieldValues, useForm } from "react-hook-form";
 import {
   createNewCarSchema,
+  createMedicalDeviceSchema,
   createOtherItemSchema,
   createPropertySchema,
   createUsedCarSchema,
@@ -29,6 +30,10 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  questionKey?: string;
+  questionIndex?: number;
+  questionLabel?: string;
+  isEditableAnswer?: boolean;
 };
 
 type EditFieldEntry = Question & {
@@ -226,7 +231,7 @@ const SCHEMA_BY_TYPE = {
   USED_CAR: createUsedCarSchema,
   PROPERTY: createPropertySchema,
   HOME_FURNITURE: createOtherItemSchema,
-  MEDICAL_DEVICE: createOtherItemSchema,
+  MEDICAL_DEVICE: createMedicalDeviceSchema,
   OTHER: createOtherItemSchema,
 } as const;
 
@@ -618,7 +623,19 @@ const getQuestionsByType = (
         key: "model",
         label: "الموديل أو الرقم المرجعي",
         type: "text",
-        required: false,
+        required: true,
+      },
+      {
+        key: "deviceFunction",
+        label: "ما وظيفة الجهاز؟",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "manufactureYear",
+        label: "سنة التصنيع",
+        type: "number",
+        required: true,
       },
       { key: "price", label: "السعر", type: "number", required: true },
       {
@@ -637,26 +654,32 @@ const getQuestionsByType = (
         condition: (answers) => answers.sellOrRent === "RENT",
       },
       {
-        key: "deviceClass",
-        label: "فئة الجهاز",
+        key: "condition",
+        label: "وصف حالة الجهاز (اختياري)",
         type: "text",
         required: false,
       },
       {
-        key: "condition",
-        label: "حالة الجهاز",
+        key: "dimensions",
+        label: "الأبعاد",
         type: "text",
         required: true,
       },
       {
-        key: "manufacturerCountry",
-        label: "بلد التصنيع",
+        key: "weight",
+        label: "الوزن",
         type: "text",
-        required: false,
+        required: true,
+      },
+      {
+        key: "manufacturerPlace",
+        label: "مكان التصنيع",
+        type: "text",
+        required: true,
       },
       {
         key: "isUsed",
-        label: "هل الجهاز مستعمل؟",
+        label: "هل الجهاز جديد أم مستعمل؟ اختر نعم إذا كان مستعملًا",
         type: "boolean",
         required: true,
         options: BOOLEAN_OPTIONS,
@@ -672,20 +695,6 @@ const getQuestionsByType = (
         label: "ساعات الاستخدام",
         type: "number",
         required: false,
-      },
-      {
-        key: "requiresPrescription",
-        label: "هل يتطلب وصفة أو تصريحًا؟",
-        type: "boolean",
-        required: false,
-        options: BOOLEAN_OPTIONS,
-      },
-      {
-        key: "maintenanceRecordAvailable",
-        label: "هل سجل الصيانة متوفر؟",
-        type: "boolean",
-        required: false,
-        options: BOOLEAN_OPTIONS,
       },
       {
         key: "status",
@@ -953,6 +962,10 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   const [selectedEditableFieldKey, setSelectedEditableFieldKey] = useState<
     string | null
   >(null);
+  const [selectedEditableMessageId, setSelectedEditableMessageId] = useState<
+    string | null
+  >(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1297,6 +1310,35 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     ]);
   };
 
+  const upsertUserAnswerMessage = useCallback(
+    (
+      content: string,
+      question: Question & { index: number },
+      messageId?: string | null,
+    ) => {
+      const nextMessage: ChatMessage = {
+        id: messageId || `${Date.now()}-${Math.random()}`,
+        role: "user",
+        content,
+        questionKey: question.key,
+        questionIndex: question.index,
+        questionLabel: question.label,
+        isEditableAnswer: true,
+      };
+
+      setMessages((prev) => {
+        if (!messageId) {
+          return [...prev, nextMessage];
+        }
+
+        return prev.map((message) =>
+          message.id === messageId ? { ...message, ...nextMessage } : message,
+        );
+      });
+    },
+    [],
+  );
+
   const isQuestionAnswered = (
     question: Question,
     sourceAnswers: FieldValues,
@@ -1415,6 +1457,8 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     setAssistantMode("home");
     setEditItemId(null);
     setSelectedEditableFieldKey(null);
+    setSelectedEditableMessageId(null);
+    setEditingMessageId(null);
     setCategories([]);
     setAnswers({});
     setSelectedImages([]);
@@ -1572,6 +1616,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     }
 
     let nextAnswers = { ...answers };
+    const targetMessageId = editingMessageId;
 
     if (currentQuestion.type === "location") {
       const picked = rawValue as LocationSelection;
@@ -1585,7 +1630,11 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
         state: picked.state || nextAnswers.state || "",
         country: picked.country || nextAnswers.country || "",
       };
-      pushUserMessage(getQuestionAnswerDisplay(currentQuestion, nextAnswers));
+      upsertUserAnswerMessage(
+        getQuestionAnswerDisplay(currentQuestion, nextAnswers),
+        currentQuestion,
+        targetMessageId,
+      );
       setSelectedLocation(picked);
     } else {
       const normalized = normalizeAnswer(currentQuestion, rawValue);
@@ -1594,7 +1643,11 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
         [currentQuestion.key]: normalized,
       };
 
-      pushUserMessage(getQuestionAnswerDisplay(currentQuestion, nextAnswers));
+      upsertUserAnswerMessage(
+        getQuestionAnswerDisplay(currentQuestion, nextAnswers),
+        currentQuestion,
+        targetMessageId,
+      );
 
       if (currentQuestion.key === "images") {
         setSelectedImages(rawValue as File[]);
@@ -1602,6 +1655,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     }
 
     setAnswers(nextAnswers);
+    setEditingMessageId(null);
+    setSelectedEditableMessageId(null);
+    setSelectedEditableFieldKey(null);
 
     if (editItemId) {
       setIsReadyToSubmit(true);
@@ -1653,6 +1709,8 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   };
 
   const handleSelectEditField = (questionIndex: number, fieldLabel: string) => {
+    setEditingMessageId(null);
+    setSelectedEditableMessageId(null);
     setSelectedEditableFieldKey(null);
     pushUserMessage(fieldLabel);
     setMessages((prev) => [
@@ -1674,6 +1732,35 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     if (
       selectedQuestion &&
       (selectedQuestion.type === "text" || selectedQuestion.type === "number")
+    ) {
+      const existing = answers[selectedQuestion.key];
+      setTextInput(
+        existing === undefined || existing === null ? "" : String(existing),
+      );
+    }
+  };
+
+  const handleStartInlineMessageEdit = (message: ChatMessage) => {
+    if (
+      !message.isEditableAnswer ||
+      message.questionIndex === undefined ||
+      message.questionIndex < 0
+    ) {
+      return;
+    }
+
+    const selectedQuestion = questions[message.questionIndex];
+    if (!selectedQuestion) return;
+
+    setSelectedEditableFieldKey(message.questionKey ?? selectedQuestion.key);
+    setSelectedEditableMessageId(message.id);
+    setEditingMessageId(message.id);
+    setIsReadyToSubmit(false);
+    setActiveIndex(message.questionIndex);
+
+    if (
+      selectedQuestion.type === "text" ||
+      selectedQuestion.type === "number"
     ) {
       const existing = answers[selectedQuestion.key];
       setTextInput(
@@ -1782,23 +1869,69 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               layout
               className="space-y-1"
             >
-              <div
-                className={`flex ${
-                  message.role === "assistant"
-                    ? assistantMessageWrapClass
-                    : userMessageWrapClass
-                }`}
-              >
-                <div
-                  className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed ${
-                    message.role === "assistant"
-                      ? `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 ${assistantBubbleClass} shadow-sm`
-                      : `bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
-                  }`}
-                >
-                  {message.content}
-                </div>
-              </div>
+              {(() => {
+                const isEditableBubble =
+                  message.role === "user" &&
+                  message.isEditableAnswer &&
+                  message.questionIndex !== undefined;
+                const isSelectedMessage =
+                  isEditableBubble && selectedEditableMessageId === message.id;
+
+                return (
+                  <div
+                    className={`flex ${
+                      message.role === "assistant"
+                        ? assistantMessageWrapClass
+                        : userMessageWrapClass
+                    }`}
+                  >
+                    {isEditableBubble ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedEditableMessageId((current) =>
+                            current === message.id ? null : message.id,
+                          )
+                        }
+                        className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed text-start bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md transition-all ${
+                          isSelectedMessage
+                            ? "ring-2 ring-blue-200 dark:ring-blue-400/60"
+                            : "hover:shadow-lg"
+                        }`}
+                      >
+                        {message.content}
+                      </button>
+                    ) : (
+                      <div
+                        className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed ${
+                          message.role === "assistant"
+                            ? `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 ${assistantBubbleClass} shadow-sm`
+                            : `bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {message.role === "user" &&
+                message.isEditableAnswer &&
+                message.questionIndex !== undefined &&
+                selectedEditableMessageId === message.id && (
+                  <div className={`flex ${userMessageWrapClass}`}>
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => handleStartInlineMessageEdit(message)}
+                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-50 dark:border-blue-500/40 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      <span aria-hidden="true">✎</span>
+                      <span>{t("تعديل هذه الإجابة", "Edit this answer")}</span>
+                    </button>
+                  </div>
+                )}
             </motion.div>
           ))}
         </AnimatePresence>
