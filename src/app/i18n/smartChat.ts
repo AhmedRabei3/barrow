@@ -5,17 +5,13 @@ export const SMART_CHAT_TEXT = {
     ar: ASSISTANT_NAME_AR,
     en: ASSISTANT_NAME_EN,
   },
-  headerSubtitle: {
-    ar: "دليلك السريع للنشر عبر أسئلة موجهة حسب نوع العنصر",
-    en: "Create a listing through guided questions based on item type",
-  },
   greeting: {
-    ar: `مرحبًا، أنا ${ASSISTANT_NAME_AR}. أساعدك في النشر والتفعيل والدعوات بخطوات واضحة وسريعة.`,
-    en: `Hello, I'm ${ASSISTANT_NAME_EN}. I help with listing creation, activation, and referrals through clear guided steps.`,
+    ar: `مرحبًا، أنا ${ASSISTANT_NAME_AR}.بماذا أساعدك؟`,
+    en: `Hello, I'm ${ASSISTANT_NAME_EN}. How can I assist you?`,
   },
   newVisitorPitch: {
-    ar: "أهلاً بك ✨ الاشتراك يمنحك أفضلية حقيقية: ظهور أقوى لإعلاناتك، ثقة أعلى من المشترين، وأدوات أفضل لإدارة عروضك بسرعة واحترافية.\n\n💳 التفعيل متاح عبر PayPal، وكذلك عبر أكواد التفعيل الرسمية — خصوصًا للدول التي لا تدعم بوابات الدفع مثل سوريا.\n\n💸 كيف تزيد أرباحك؟\n1) فعّل حسابك.\n2) شارك رابط الدعوة الخاص بك.\n3) عند تسجيل وتفعيل المدعو عبر رابطك، تُحتسب أرباح الإحالة في حسابك وفق النظام.\n\n🏦 وعند جاهزية الأرباح، يمكنك طلب السحب بسهولة من قسم الرصيد.\n\n🚀 ابدأ الآن: انشر عبر المساعد، فعّل اشتراكك، وحوّل كل دعوة إلى فرصة دخل إضافي.",
-    en: "Welcome ✨ You made a smart choice! Subscription gives you a strong boost: better listing visibility, higher buyer trust, and better tools to manage offers faster and smarter.\n\n💳 Activation is available via PayPal, and also via official activation codes — especially useful for countries where payment gateways are not supported, like Syria.\n\n💸 How to grow your earnings:\n1) Activate your account.\n2) Share your personal referral link.\n3) When invited users sign up and activate through your link, referral earnings are credited to your account according to the system.\n\n🏦 Once earnings are ready, you can request withdrawal easily from the balance section.\n\n🚀 Start now: publish through the assistant, activate your subscription, and turn each referral into higher income.",
+    ar: "أهلاً بك ✨ لماذا يستحق الاشتراك:لتستطيع نشر إعلاناتك على المنصة،وتدير عمليات البيع والشراء والتأجير بسرعة واحترافية.\n\n💳 التفعيل متاح عبر شام كاش، وكذلك عبر أكواد التفعيل الرسمية — خصوصًا للدول التي لا تدعم بوابات الدفع مثل سوريا.\n\n💸 كيف تزيد أرباحك؟\n1) فعّل حسابك.\n2) شارك رابط الدعوة الخاص بك.\n3) عند تسجيل وتفعيل المدعو عبر رابطك، تُحتسب أرباح الإحالة في حسابك وفق النظام.\n\n🏦 وعند جاهزية الأرباح، يمكنك طلب السحب بسهولة من قسم الرصيد.\n\n🚀 ابدأ الآن: انشر عبر المساعد، فعّل اشتراكك، وحوّل كل دعوة إلى فرصة دخل إضافي.",
+    en: "Welcome ✨ Why subscribe: To be able to post your ads on the platform, and manage buying, selling, and renting operations quickly and professionally.\n\n💳 Activation is available via PayPal, and also via official activation codes — especially useful for countries where payment gateways are not supported, like Syria.\n\n💸 How to grow your earnings:\n1) Activate your account.\n2) Share your personal referral link.\n3) When invited users sign up and activate through your link, referral earnings are credited to your account according to the system.\n\n🏦 Once earnings are ready, you can request withdrawal easily from the balance section.\n\n🚀 Start now: publish through the assistant, activate your subscription, and turn each referral into higher income.",
   },
   readyToSubmit: {
     ar: "✅ اكتملت البيانات. راجع إجاباتك ثم اضغط تأكيد الإضافة أو إلغاء.",
@@ -44,14 +40,6 @@ export const SMART_CHAT_TEXT = {
   send: {
     ar: "إرسال",
     en: "Send",
-  },
-  previous: {
-    ar: "السابق",
-    en: "Previous",
-  },
-  next: {
-    ar: "التالي",
-    en: "Next",
   },
   editAnswer: {
     ar: "تعديل إجابة",

@@ -177,6 +177,25 @@ const Profile = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!profileAssistantOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.touchAction = previousBodyTouchAction;
+    };
+  }, [profileAssistantOpen]);
+
   const scrollToSection = (section: "OVERVIEW" | "LISTINGS") => {
     const targetRef =
       section === "OVERVIEW" ? overviewSectionRef : listingsSectionRef;
@@ -995,8 +1014,8 @@ const Profile = () => {
         <GoBackBtn />
 
         {profileAssistantOpen && (
-          <div className="fixed inset-0 z-70 flex items-end justify-center bg-slate-950/45 p-4 backdrop-blur-sm sm:items-center">
-            <div className="relative w-full max-w-104 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/95 shadow-2xl dark:border-slate-700/80 dark:bg-slate-900/95">
+          <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
+            <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-104 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/95 shadow-2xl dark:border-slate-700/80 dark:bg-slate-900/95 sm:max-h-[calc(100dvh-2rem)]">
               <button
                 type="button"
                 onClick={() => setProfileAssistantOpen(false)}

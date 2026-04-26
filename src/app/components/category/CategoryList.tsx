@@ -37,7 +37,7 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
       </button>
       <div
         ref={scrollRef}
-        className="flex overflow-x-auto scroll-smooth gap-4 px-10 no-scrollbar scrollbar-hide"
+        className="flex overflow-x-auto scroll-smooth gap-3 px-4 sm:gap-4 sm:px-8 no-scrollbar scrollbar-hide"
       >
         {uniqueList.map((item, index) => (
           <div

@@ -966,6 +966,13 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     string | null
   >(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [viewportMetrics, setViewportMetrics] = useState<{
+    height: number | null;
+    keyboardOpen: boolean;
+  }>({
+    height: null,
+    keyboardOpen: false,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1041,16 +1048,16 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           id: "edit-init-1",
           role: "assistant",
           content: t(
-            "😊 أهلًا بك من جديد! 🛠️ تم تحميل بيانات العنصر للتعديل عبر المساعد. يمكنك مراجعة الإجابات وتعديلها ثم الضغط على حفظ التعديلات.",
-            "😊 Welcome back! 🛠️ Your item data is loaded for assistant edit. Review answers, adjust any field, then click Save changes.",
+            "😊 راجع الإجابات ثم اضغط على حفظ التعديلات.",
+            "😊 Review your answers then click Save changes.",
           ),
         },
         {
           id: "edit-init-2",
           role: "assistant",
           content: t(
-            "✅ جاهز للحفظ. يمكنك الضغط على حفظ التعديلات مباشرة أو الرجوع لتعديل أي إجابة.",
-            "✅ Ready to save. You can save now or go back to edit any answer.",
+            "يمكنك الضغط على حفظ التعديلات مباشرة أو الرجوع لتعديل أي إجابة.",
+            "You can save now or go back to edit any answer.",
           ),
         },
       ]);
@@ -1299,6 +1306,34 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     );
   }, [currentQuestion?.type, selectedLocation]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const visualViewport = window.visualViewport;
+
+    const syncViewportMetrics = () => {
+      const layoutHeight = window.innerHeight;
+      const visibleHeight = visualViewport?.height ?? layoutHeight;
+
+      setViewportMetrics({
+        height: Math.round(visibleHeight),
+        keyboardOpen: layoutHeight - visibleHeight > 120,
+      });
+    };
+
+    syncViewportMetrics();
+
+    window.addEventListener("resize", syncViewportMetrics);
+    visualViewport?.addEventListener("resize", syncViewportMetrics);
+    visualViewport?.addEventListener("scroll", syncViewportMetrics);
+
+    return () => {
+      window.removeEventListener("resize", syncViewportMetrics);
+      visualViewport?.removeEventListener("resize", syncViewportMetrics);
+      visualViewport?.removeEventListener("scroll", syncViewportMetrics);
+    };
+  }, []);
+
   const pushUserMessage = (content: string) => {
     setMessages((prev) => [
       ...prev,
@@ -1338,33 +1373,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     },
     [],
   );
-
-  const isQuestionAnswered = (
-    question: Question,
-    sourceAnswers: FieldValues,
-  ) => {
-    if (question.type === "files") return selectedImages.length > 0;
-    if (question.type === "location") {
-      return Boolean(sourceAnswers.latitude && sourceAnswers.longitude);
-    }
-
-    const value = sourceAnswers[question.key];
-    if (question.type === "multiselect") {
-      return Array.isArray(value) && value.length > 0;
-    }
-
-    if (question.required === false) return true;
-
-    if (question.type === "number") {
-      return value !== undefined && value !== null && String(value) !== "";
-    }
-
-    return !(
-      value === undefined ||
-      value === null ||
-      String(value).trim() === ""
-    );
-  };
 
   const getNextVisibleIndex = (
     startFrom: number,
@@ -1680,12 +1688,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     moveToNextQuestion(currentQuestion.index, nextAnswers);
   };
 
-  const handleNavigateNext = () => {
-    if (!currentQuestion) return;
-    if (!isQuestionAnswered(currentQuestion, answers)) return;
-    moveToNextQuestion(currentQuestion.index, answers);
-  };
-
   const handleNavigatePrevious = () => {
     if (!itemType) return;
 
@@ -1806,22 +1808,43 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   const userMessageWrapClass = isArabic ? "justify-start" : "justify-end";
   const assistantBubbleClass = isArabic ? "ml-auto" : "mr-auto";
   const userBubbleClass = isArabic ? "mr-auto" : "ml-auto";
+  const isCompactViewport =
+    viewportMetrics.keyboardOpen ||
+    (viewportMetrics.height !== null && viewportMetrics.height < 760);
+  const panelStyle = useMemo(() => {
+    if (viewportMetrics.height === null) {
+      return undefined;
+    }
+
+    const viewportPadding = isCompactViewport ? 12 : 24;
+    const availableHeight = Math.max(
+      Math.floor(viewportMetrics.height - viewportPadding),
+      360,
+    );
+
+    return {
+      height: `${Math.min(availableHeight, 704)}px`,
+      maxHeight: `${availableHeight}px`,
+    };
+  }, [isCompactViewport, viewportMetrics.height]);
 
   return (
     <div
-      className="w-full max-w-104 h-[min(80dvh-2rem,44rem)] max-h-150 bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+      className="flex h-[min(80dvh-2rem,44rem)] min-h-0 w-full max-w-104 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90 sm:rounded-2xl"
       dir={isArabic ? "rtl" : "ltr"}
+      style={panelStyle}
     >
-      <div className="px-4 py-3 border-b border-blue-100/70 dark:border-slate-700 bg-linear-to-r from-blue-600 via-teal-600 to-cyan-600 text-white">
+      <div
+        className={`border-b border-blue-100/70 bg-linear-to-r from-blue-600 via-teal-600 to-cyan-600 text-white dark:border-slate-700 ${
+          isCompactViewport ? "px-3 py-2.5" : "px-4 py-3"
+        }`}
+      >
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-block h-2 w-2 rounded-full bg-blue-200 animate-pulse" />
               <h3 className="text-sm font-semibold">{tc("headerTitle")}</h3>
             </div>
-            <p className="text-xs text-blue-50/95 mt-1">
-              {tc("headerSubtitle")}
-            </p>
           </div>
           {onClose && (
             <button
@@ -1844,7 +1867,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2 bg-linear-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950"
+        className={`flex-1 overflow-y-auto bg-linear-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 ${
+          isCompactViewport ? "space-y-1.5 p-2.5" : "space-y-2 p-3"
+        }`}
       >
         <AnimatePresence initial={false}>
           {messages.map((message) => (
@@ -1948,7 +1973,11 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
         )}
       </div>
 
-      <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-900/85 space-y-2">
+      <div
+        className={`border-t border-slate-200 bg-white/85 dark:border-slate-700 dark:bg-slate-900/85 ${
+          isCompactViewport ? "space-y-1.5 p-2.5" : "space-y-2 p-3"
+        }`}
+      >
         {!itemType && (
           <>
             {assistantMode === "home" && (
@@ -2208,7 +2237,11 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           )}
 
         {canSubmitText && !isReadyToSubmit && (
-          <div className="flex items-center gap-2 w-full px-0.5">
+          <div
+            className={`flex w-full items-center px-0.5 ${
+              isCompactViewport ? "gap-1.5" : "gap-2"
+            }`}
+          >
             <input
               value={textInput}
               onChange={(event) => setTextInput(event.target.value)}
@@ -2216,7 +2249,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 currentQuestion?.placeholder || tc("answerPlaceholder")
               }
               type={currentQuestion?.type === "number" ? "number" : "text"}
-              className="max-w-[90%] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 bg-white dark:bg-slate-900"
+              className={`max-w-[90%] rounded-xl border border-slate-300 bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:border-blue-500 dark:focus:ring-blue-900/40 ${
+                isCompactViewport ? "px-2.5 py-1.5" : "px-3 py-2"
+              }`}
             />
             <button
               type="button"
@@ -2249,33 +2284,13 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
         {itemType && !isReadyToSubmit && (
           <motion.div
-            className="grid grid-cols-3 gap-2"
+            className={`grid grid-cols-3 ${
+              isCompactViewport ? "gap-1.5" : "gap-2"
+            }`}
             variants={staggerContainerVariants}
             initial="hidden"
             animate="visible"
           >
-            <motion.button
-              type="button"
-              onClick={handleNavigatePrevious}
-              disabled={isLoading}
-              variants={staggerItemVariants}
-              className="px-2 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              {tc("previous")}
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={handleNavigateNext}
-              disabled={
-                isLoading ||
-                !currentQuestion ||
-                !isQuestionAnswered(currentQuestion, answers)
-              }
-              variants={staggerItemVariants}
-              className="px-2 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              {tc("next")}
-            </motion.button>
             <motion.button
               type="button"
               onClick={handleNavigatePrevious}
@@ -2294,12 +2309,14 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               <div className="space-y-2">
                 <p className="text-xs text-neutral-600">
                   {t(
-                    "اضغط على الإجابة التي تريد تعديلها، ثم اضغط على زر التعديل الذي يظهر لها:",
-                    "Tap the answer you want to edit, then use the edit button that appears for it:",
+                    "اضغط على الإجابة التي تريد تعديلها، ثم اضغط على زر التعديل الذي يظهر أسفل منها:",
+                    "Tap the answer you want to edit, then use the edit button that appears below it:",
                   )}
                 </p>
                 <motion.div
-                  className="space-y-2 max-h-56 overflow-y-auto"
+                  className={`overflow-y-auto ${
+                    isCompactViewport ? "max-h-44 space-y-1.5" : "max-h-56 space-y-2"
+                  }`}
                   variants={staggerContainerVariants}
                   initial="hidden"
                   animate="visible"

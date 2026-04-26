@@ -86,9 +86,9 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
   return (
     <div
       className="
-       relative mt-24 
+       relative mt-16 
        overflow-hidden 
-       md:mt-36 lg:mt-40 
+       sm:mt-18 md:mt-36 lg:mt-40 
        block
       "
     >

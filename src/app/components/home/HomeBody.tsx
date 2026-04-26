@@ -19,8 +19,7 @@ interface HomeBodyProps {
 }
 
 const CONTENT_LAYOUT_CLASS =
-  "relative mt-24 md:mt-6 flex flex-col md:flex-row gap-4 md:gap-5";
-
+  "relative mt-8 md:mt-6 flex flex-col md:flex-row gap-4 md:gap-5";
 
 const HomeBody = ({
   loading,
@@ -61,9 +60,7 @@ const HomeBody = ({
   /** 🔹 المكون الرئيسي */
   return (
     <Container>
-      {isRefreshing && items.length > 0 && (
-        <Loader isArabic={isArabic} />
-      )}
+      {isRefreshing && items.length > 0 && <Loader isArabic={isArabic} />}
 
       {topFeaturedItems.length > 0 && (
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4">
