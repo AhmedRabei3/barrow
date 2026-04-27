@@ -25,16 +25,19 @@ import AppToaster from "./components/providers/AppToaster";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "optional",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "optional",
 });
 
 const notoKufiArabic = Noto_Kufi_Arabic({
   variable: "--font-noto-kufi",
   subsets: ["arabic"],
+  display: "optional",
 });
 
 export const viewport: Viewport = {
@@ -156,7 +159,7 @@ export default async function RootLayout({
                 __html: JSON.stringify([websiteJsonLd, organizationJsonLd]),
               }}
             />
-            {children}
+            <main id="main-content">{children}</main>
           </SessionProvider>
         </AppPreferencesProvider>
       </body>

@@ -92,17 +92,17 @@ export const getStatusBadgeClass = (
   status?: string | null,
 ) => {
   if (status === "RENTED") {
-    return "border border-amber-500 dark:border-amber-500/30 bg-amber-500/10 dark:text-amber-300 text-amber-500";
+    return "border border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-100";
   }
   if (status === "SOLD") {
-    return "border border-rose-500 dark:border-rose-500/30 bg-rose-500/10 dark:text-rose-300 text-rose-500";
+    return "border border-rose-300 dark:border-rose-700 bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-100";
   }
   if (status === "MAINTENANCE") {
-    return "border border-slate-500 dark:border-slate-500/30 bg-slate-500/10 dark:text-slate-300 text-slate-500";
+    return "border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100";
   }
   return sellOrRent === "RENT"
-    ? "border border-sky-500 dark:border-sky-500/30 bg-sky-500/10 dark:text-sky-300 text-sky-500"
-    : "border border-emerald-500 dark:border-emerald-500/30 bg-emerald-500/10 dark:text-emerald-300 text-emerald-500";
+    ? "border border-sky-300 dark:border-sky-700 bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-100"
+    : "border border-emerald-300 dark:border-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-100";
 };
 
 export const normalizeManualRentalEndsAt = (value?: string | Date | null) => {

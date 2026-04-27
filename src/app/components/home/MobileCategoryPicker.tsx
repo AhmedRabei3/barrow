@@ -177,7 +177,7 @@ function CategoryCard({
         <p className="text-[15px] font-bold leading-snug tracking-wide">
           {cat.nameAr}
         </p>
-        <p className="mt-0.5 text-[11px] opacity-75 font-medium tracking-wider uppercase">
+        <p className="mt-0.5 text-[11px] text-white/95 font-semibold tracking-wider uppercase">
           {cat.nameEn}
         </p>
       </div>
@@ -298,7 +298,7 @@ export default function MobileCategoryPicker({
         >
           <div className="relative flex items-center gap-3 my-1">
             <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-            <span className="text-[12px] text-slate-400 dark:text-slate-500 font-medium">
+            <span className="text-[12px] text-slate-600 dark:text-slate-300 font-semibold">
               {isArabic ? "أو انضم إلينا" : "or join us"}
             </span>
             <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />

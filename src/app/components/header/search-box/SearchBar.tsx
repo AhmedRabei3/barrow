@@ -132,6 +132,7 @@ export default function SearchBar({
 
         <button
           type="button"
+          aria-label={isArabic ? "بحث" : "Search"}
           className="m-1.5 h-11 w-11 shrink-0 
             rounded-full bg-linear-to-r from-sky-500
              to-indigo-500 text-white 

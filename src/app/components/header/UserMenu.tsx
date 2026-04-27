@@ -371,12 +371,12 @@ const UserMenu = () => {
             ) : null}
             <IoMdMenu size={20} />
             <Image
-              className="rounded-full"
+              className="h-6 w-6 rounded-full"
               alt="avatar"
               src="/images/avatar.svg"
               width={24}
               height={24}
-            /> 
+            />
           </button>
 
           {/* Desktop dropdown */}
@@ -431,7 +431,7 @@ const UserMenu = () => {
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
                     <div className="flex items-center gap-2">
                       <Image
-                        className="rounded-full"
+                        className="h-7 w-7 rounded-full"
                         alt="avatar"
                         src="/images/avatar.svg"
                         width={28}

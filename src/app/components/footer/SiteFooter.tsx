@@ -174,7 +174,7 @@ const SiteFooter = () => {
           </section>
 
           <section className="grid gap-6 w-full">
-            <div className="rounded-3xl border border-slate-500/50 bg-blue-600 p-6 shadow-lg md:p-7">
+            <div className="rounded-3xl border border-blue-300/50 bg-blue-700 p-6 shadow-lg md:p-7">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why choose us"}
               </h3>
@@ -182,10 +182,10 @@ const SiteFooter = () => {
                 {steps.map((step) => (
                   <li
                     key={step.title}
-                    className="flex items-start gap-3 rounded-2xl bg-white/6 px-4 py-3 text-sm"
+                    className="flex items-start gap-3 rounded-2xl bg-white/14 px-4 py-3 text-sm"
                   >
                     <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-white" />
-                    <span className="leading-6 text-white/85">
+                    <span className="leading-6 text-white">
                       <span className="font-extrabold text-white">
                         {step.title}
                       </span>

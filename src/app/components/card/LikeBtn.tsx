@@ -79,8 +79,14 @@ const LikeBtn = ({ itemId, itemType }: LikeBtnProps) => {
 
   return (
     <button
+      type="button"
       onClick={toggleLike}
       disabled={!itemId || !itemType || loading || status === "loading"}
+      aria-label={
+        liked
+          ? t("إزالة من المفضلة", "Remove from favorites")
+          : t("إضافة إلى المفضلة", "Add to favorites")
+      }
       className="absolute top-3 
       right-3 z-20 flex h-9 w-9 
       cursor-pointer items-center 

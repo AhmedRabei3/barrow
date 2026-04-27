@@ -161,9 +161,9 @@ const DetailCard = ({
           <span
             className="inline-flex gap-1
             items-center 
-           dark:border-slate-700 dark:bg-slate-900
+           rounded-md px-2 py-0.5 border border-slate-200 dark:border-slate-700 dark:bg-slate-900
             text-sm font-bold
-           uppercase tracking-[0.16em] text-slate-500
+           uppercase tracking-[0.16em] text-slate-700 dark:text-slate-100
           "
           >
             {averageRatingText}{" "}

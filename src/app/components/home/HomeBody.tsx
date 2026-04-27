@@ -111,6 +111,14 @@ const HomeBody = ({
         </section>
       )}
 
+      {featuredItems === undefined && (
+        <section
+          aria-hidden="true"
+          className="mt-6 rounded-2xl border border-slate-200/60 bg-slate-50/70 p-3 md:p-4"
+          style={{ minHeight: 300 }}
+        />
+      )}
+
       <div
         className={`${CONTENT_LAYOUT_CLASS} ${hasFeaturedSection ? "mt-8 md:mt-6" : "mt-0"}`}
       >

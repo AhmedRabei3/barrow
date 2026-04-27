@@ -180,10 +180,7 @@ const Card: FC<CardProps> = ({
         : null;
 
   return (
-    <div
-      className="w-full h-fit mx-auto"
-      style={{ contentVisibility: "auto", containIntrinsicSize: "560px" }}
-    >
+    <div className="w-full h-fit mx-auto">
       <CardContainer setIsPaused={setIsPaused} isOverlayOpen={isStateMenuOpen}>
         <Link
           href={detailHref}

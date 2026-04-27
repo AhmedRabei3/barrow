@@ -30,7 +30,9 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
     <>
       {" "}
       <button
+        type="button"
         onClick={() => scroll("left")}
+        aria-label="Scroll categories left"
         className="absolute left-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-800 p-2 rounded-full transition-all duration-200 disabled:opacity-30 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
         <FaChevronLeft size={16} />
@@ -70,7 +72,9 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
         ))}
       </div>
       <button
+        type="button"
         onClick={() => scroll("right")}
+        aria-label="Scroll categories right"
         className="absolute right-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-600 p-2 rounded-full transition-all duration-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
         <FaChevronRight size={16} />

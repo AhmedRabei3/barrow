@@ -37,6 +37,8 @@ const Logo = ({
   const router = useRouter();
   const { isArabic } = useAppPreferences();
   const logoSize = getLogoSize(width, height);
+  const displayWidth = Math.max(1, Math.round(logoSize.width));
+  const displayHeight = Math.max(1, Math.round(logoSize.height));
 
   return (
     <div
@@ -53,9 +55,8 @@ const Logo = ({
         className="cursor-pointer 
         overflow-hidden"
         src={logoImage}
-        width={logoImage.width}
-        height={logoImage.height}
-        style={{ width: logoSize.width, height: logoSize.height }}
+        width={displayWidth}
+        height={displayHeight}
       />
       <div className="flex flex-col leading-[0.9]">
         <span
