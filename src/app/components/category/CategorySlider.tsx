@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import CategoryList from "./CategoryList";
 import categoryFetcher from "./CategoryFetcher";
 import Container from "../Container";
@@ -75,38 +75,46 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
 
   const list = data ?? [];
 
+  const shellClassName =
+    "relative mt-16 overflow-hidden sm:mt-18 md:mt-36 lg:mt-40 block";
+
+  const renderShell = (content: ReactNode) => (
+    <div className={shellClassName}>
+      <Container>
+        <div className="relative min-h-22">{content}</div>
+      </Container>
+    </div>
+  );
+
   if (loading && !list.length) {
-    return <Loader isArabic={isArabic} />;
+    return renderShell(
+      <div className="flex min-h-22 items-center justify-center">
+        <Loader isArabic={isArabic} />
+      </div>,
+    );
   }
 
   if (!list.length) {
-    return <Tryagain isArabic={isArabic} refetch={refetch} />;
+    return renderShell(
+      <div className="flex min-h-22 items-center justify-center">
+        <Tryagain isArabic={isArabic} refetch={refetch} />
+      </div>,
+    );
   }
 
-  return (
+  return renderShell(
     <div
+      key={type}
       className="
-       relative mt-16 
-       overflow-hidden 
-       sm:mt-18 md:mt-36 lg:mt-40 
-       block
+       relative flex 
+       items-center gap-4 
+       transition-all 
+       duration-300 
+       ease-out
       "
     >
-      <Container>
-        <div
-          key={type}
-          className="
-           relative flex 
-           items-center gap-4 
-           transition-all 
-           duration-300 
-           ease-out
-          "
-        >
-          <CategoryList list={list} setCatName={setCatName} catName={catName} />
-        </div>
-      </Container>
-    </div>
+      <CategoryList list={list} setCatName={setCatName} catName={catName} />
+    </div>,
   );
 };
 

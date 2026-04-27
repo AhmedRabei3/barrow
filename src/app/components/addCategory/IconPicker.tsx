@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-
-import { icons } from "./IconSetter";
 import {
   FieldValues,
   Path,
@@ -9,7 +7,36 @@ import {
   UseFormSetValue,
 } from "react-hook-form";
 import { IconType } from "react-icons";
+import * as FaIcons from "react-icons/fa";
+import * as AiIcons from "react-icons/ai";
+import * as MdIcons from "react-icons/md";
+import * as BiIcons from "react-icons/bi";
+import * as IoIcons from "react-icons/io";
+import * as CiIcons from "react-icons/ci";
+import * as GiIcons from "react-icons/gi";
+import * as BsIcons from "react-icons/bs";
+import * as TbIcons from "react-icons/tb";
+import * as RiIcons from "react-icons/ri";
+import * as HiIcons from "react-icons/hi";
+import * as SiIcons from "react-icons/si";
+import * as CgIcons from "react-icons/cg";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+
+const icons: Record<string, Record<string, IconType>> = {
+  Fa: FaIcons,
+  Ai: AiIcons,
+  Md: MdIcons,
+  Bi: BiIcons,
+  Io: IoIcons,
+  Ci: CiIcons,
+  Gi: GiIcons,
+  Bs: BsIcons,
+  Tb: TbIcons,
+  Ri: RiIcons,
+  Hi: HiIcons,
+  Si: SiIcons,
+  Cg: CgIcons,
+};
 
 interface IconPickerInterface<TFormValues extends FieldValues> {
   register: UseFormRegister<TFormValues>;
