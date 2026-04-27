@@ -12,7 +12,8 @@ import Tryagain from "../category/Tryagain";
 
 interface HomeBodyProps {
   items: FormattedItem[];
-  featuredItems?: FormattedItem[];
+  /** undefined = still loading; [] = loaded but none; [...] = has featured items */
+  featuredItems?: FormattedItem[] | undefined;
   loading: boolean;
   isRefreshing?: boolean;
   onRefresh: () => void;
@@ -25,7 +26,7 @@ const HomeBody = ({
   loading,
   isRefreshing = false,
   items,
-  featuredItems = [],
+  featuredItems,
   onRefresh,
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
@@ -41,8 +42,18 @@ const HomeBody = ({
     () => items.filter((it) => Boolean(it.item.isFeatured)),
     [items],
   );
+  // Only use dedicated featured API result (not fallback from main items) to
+  // avoid the CLS caused by fallbackFeaturedItems appearing when main items load.
+  // featuredItems === undefined  → still loading (show skeleton placeholder)
+  // featuredItems === []         → loaded, none found
+  // featuredItems.length > 0    → has dedicated featured items
   const topFeaturedItems = useMemo(
-    () => (featuredItems.length > 0 ? featuredItems : fallbackFeaturedItems),
+    () =>
+      featuredItems !== undefined && featuredItems.length > 0
+        ? featuredItems
+        : featuredItems === undefined
+          ? []
+          : fallbackFeaturedItems,
     [fallbackFeaturedItems, featuredItems],
   );
   const featuredIds = useMemo(
@@ -81,7 +92,20 @@ const HomeBody = ({
         </div>
       )}
 
-      {topFeaturedItems.length > 0 && (
+      {/*
+       * Featured section: space is ALWAYS reserved while loading to prevent CLS.
+       * featuredItems === undefined → skeleton placeholder (height matches section)
+       * featuredItems !== undefined && topFeaturedItems.length > 0 → real section
+       * featuredItems !== undefined && topFeaturedItems.length === 0 → nothing shown
+       */}
+      {featuredItems === undefined && (
+        <div
+          aria-hidden="true"
+          className="mt-6 min-h-55 animate-pulse rounded-2xl border border-amber-200/40 bg-amber-50/30 dark:bg-amber-900/10"
+        />
+      )}
+
+      {featuredItems !== undefined && topFeaturedItems.length > 0 && (
         <section
           className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4"
           style={{ contain: "layout" }}

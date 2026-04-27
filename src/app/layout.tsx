@@ -137,6 +137,8 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
+        {/* Preload logo so MobileCategoryPicker LCP element arrives early */}
+        <link rel="preload" as="image" href="/images/logo.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}

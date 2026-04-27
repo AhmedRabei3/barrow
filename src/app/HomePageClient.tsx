@@ -220,55 +220,66 @@ const HomePageClient = () => {
 
   return (
     <div>
-      <AnimatePresence mode="wait">
-        {showPicker ? (
-          <MobileCategoryPicker key="picker" onPick={handleMobilePick} />
-        ) : (
+      {/*
+       * Content is ALWAYS mounted so card images start preloading immediately,
+       * even while the mobile picker overlay is visible. This is the key fix for
+       * LCP on mobile (was 12.3 s because AnimatePresence removed content from
+       * DOM while picker was shown, preventing image preloading).
+       */}
+      <Navbar
+        handleSetType={helper.handleSetType}
+        type={filters.type}
+        catName={filters.catName}
+        q={filters.q}
+        setQ={helper.handleSearch}
+        sellOrRent={filters.action}
+        handelSellOrRent={helper.handleAction}
+        handleSetMinPrice={helper.handleSetMinPrice}
+        handleSetMaxPrice={helper.handleSetMaxPrice}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+      />
+      <CategorySlider
+        type={filters.type}
+        catName={filters.catName}
+        setCatName={helper.handleSetCatName}
+      />
+
+      <HomeBody
+        items={items}
+        featuredItems={featuredItems}
+        loading={loading}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+      />
+
+      {paginationVisible && (
+        <Pagination
+          itemsCount={totalItems}
+          itemsPerPage={limit}
+          currentPage={currentPage}
+          setPage={helper.handleSetPage}
+          maxPagesToShow={10}
+        />
+      )}
+
+      <SiteFooter />
+
+      {/*
+       * Mobile category picker – rendered as a fixed overlay so the content
+       * above stays in the DOM (images keep preloading in the background).
+       */}
+      <AnimatePresence>
+        {showPicker && (
           <motion.div
-            key="content"
-            initial={isMobile ? { opacity: 0, y: 18 } : false}
-            animate={{ opacity: 1, y: 0 }}
+            key="picker-overlay"
+            className="fixed inset-0 z-50 overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
+            transition={{ duration: 0.22 }}
           >
-            <Navbar
-              handleSetType={helper.handleSetType}
-              type={filters.type}
-              catName={filters.catName}
-              q={filters.q}
-              setQ={helper.handleSearch}
-              sellOrRent={filters.action}
-              handelSellOrRent={helper.handleAction}
-              handleSetMinPrice={helper.handleSetMinPrice}
-              handleSetMaxPrice={helper.handleSetMaxPrice}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-            />
-            <CategorySlider
-              type={filters.type}
-              catName={filters.catName}
-              setCatName={helper.handleSetCatName}
-            />
-
-            <HomeBody
-              items={items}
-              featuredItems={featuredItems ?? []}
-              loading={loading}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefresh}
-            />
-
-            {paginationVisible && (
-              <Pagination
-                itemsCount={totalItems}
-                itemsPerPage={limit}
-                currentPage={currentPage}
-                setPage={helper.handleSetPage}
-                maxPagesToShow={10}
-              />
-            )}
-
-            <SiteFooter />
+            <MobileCategoryPicker onPick={handleMobilePick} />
           </motion.div>
         )}
       </AnimatePresence>

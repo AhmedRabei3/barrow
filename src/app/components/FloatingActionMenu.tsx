@@ -66,7 +66,7 @@ export default function FloatingActionMenu({
   const [waveKey, setWaveKey] = useState(0);
 
   const { isArabic } = useAppPreferences();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const registerModal = useRegisterModal();
   const activationModal = useActivationModal();
   const menuRef = useRef<HTMLDivElement>(null);

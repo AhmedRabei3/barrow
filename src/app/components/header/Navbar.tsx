@@ -207,7 +207,14 @@ const Navbar = ({
   const tabsStyle = {
     opacity: scrollDir === "down" ? 0 : 1,
     transform: `translateY(${scrollDir === "down" ? "-8px" : "0px"})`,
-    height: scrollDir === "down" ? 0 : "auto",
+    /*
+     * Use max-height instead of height: 0 ↔ "auto".
+     * Animating `height` between 0 and "auto" forces layout reflow on every
+     * frame (contributing to TBT). max-height with overflow:hidden is handled
+     * by the compositor and avoids triggering layout.
+     */
+    maxHeight: scrollDir === "down" ? 0 : "200px",
+    overflow: "hidden" as const,
     pointerEvents: scrollDir === "down" ? "none" : "auto",
   } as const;
 
