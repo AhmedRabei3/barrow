@@ -1,7 +1,6 @@
 "use client";
 import { DynamicIcon } from "../addCategory/IconSetter";
 
-
 interface UserMenueItemProps {
   label: string;
   onClick: () => void;
@@ -17,15 +16,24 @@ const UserMenueItem = ({
   badge,
   isArabic,
 }: UserMenueItemProps) => {
-
   return (
     <div>
-      <div
+      <button
+        type="button"
         onClick={onClick}
         dir={isArabic ? "rtl" : "ltr"}
-        className={`p-1 text-sm text-slate-700 dark:text-slate-100 hover:bg-sky-50 dark:hover:bg-slate-700 
-        rounded hover:cursor-pointer w-full
-        flex items-center justify-between ${isArabic ? "text-right" : "text-left"}`}
+        className={`min-h-11 
+          w-full flex items-center 
+          justify-between
+          gap-2 rounded px-3 py-2 
+          text-sm text-slate-800 
+          transition hover:cursor-pointer
+          hover:bg-sky-50 focus:outline-none 
+          focus-visible:ring-2 
+          focus-visible:ring-sky-500/60 
+          dark:text-slate-100 
+          dark:hover:bg-slate-700 
+          ${isArabic ? "text-right" : "text-left"}`}
       >
         <div className="flex items-center gap-2">
           <span>{label}</span>
@@ -40,7 +48,7 @@ const UserMenueItem = ({
           iconName={iconName}
           className="text-sky-500 dark:text-sky-400"
         />
-      </div>
+      </button>
     </div>
   );
 };

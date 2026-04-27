@@ -354,13 +354,16 @@ const UserMenu = () => {
         <div className="relative" ref={menuRef}>
           {/* زر الأيقونة */}
           <button
+            type="button"
             onClick={toggleHandler}
+            aria-label={isArabic ? "فتح قائمة المستخدم" : "Open user menu"}
+            aria-expanded={isOpen}
             className="
             group relative
-            rounded-full border border-slate-200 px-2.5 py-1.5
+            min-h-11 min-w-11 rounded-full border border-slate-300 px-2.5 py-2
             shadow-sm hover:shadow-md transition-all duration-200
             flex items-center gap-2
-            bg-white text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100
+            bg-white text-slate-800 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100
           "
           >
             {showMenuIndicator ? (
@@ -373,8 +376,7 @@ const UserMenu = () => {
               src="/images/avatar.svg"
               width={24}
               height={24}
-            />
-            
+            /> 
           </button>
 
           {/* Desktop dropdown */}
@@ -442,8 +444,9 @@ const UserMenu = () => {
                       </span>
                     </div>
                     <button
+                      type="button"
                       onClick={closeMenu}
-                      className="text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
                       aria-label={
                         isArabic ? "إغلاق القائمة الجانبية" : "Close side menu"
                       }
@@ -454,8 +457,15 @@ const UserMenu = () => {
 
                   <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                     <button
+                      type="button"
                       onClick={() => setShowQuickFilters((prev) => !prev)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-100 ${textAlignClass}`}
+                      aria-expanded={showQuickFilters}
+                      aria-label={
+                        isArabic
+                          ? "تبديل البحث المتقدم"
+                          : "Toggle advanced search"
+                      }
+                      className={`min-h-11 w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-100 ${textAlignClass}`}
                     >
                       <span>{isArabic ? "بحث متقدم" : "Advanced Search"}</span>
                       <DynamicIcon

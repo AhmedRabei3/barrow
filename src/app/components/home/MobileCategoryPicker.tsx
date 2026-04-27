@@ -9,9 +9,13 @@ import {
 } from "react-icons/md";
 import { FaCarSide, FaStethoscope } from "react-icons/fa";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
 import type { PrimaryCategoryKey } from "@/lib/primaryCategories";
 import type { ComponentType } from "react";
+import logoImage from "../../../../public/images/logo.png";
 
 /* ─── Category definitions ──────────────────────────────────────────────── */
 
@@ -191,6 +195,10 @@ export default function MobileCategoryPicker({
   onPick,
 }: MobileCategoryPickerProps) {
   const { isArabic } = useAppPreferences();
+  const { data: session, status } = useSession();
+  const loginModal = useLoginModal();
+  const registerModal = useRegisterModal();
+  const isGuest = status !== "loading" && !session?.user;
 
   return (
     <motion.div
@@ -241,12 +249,13 @@ export default function MobileCategoryPicker({
           style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
         >
           <Image
-            src="/images/logo.png"
+            src={logoImage}
             alt="مشهور"
-            width={76}
-            height={76}
+            width={logoImage.width}
+            height={logoImage.height}
             priority
             className="block"
+            style={{ width: 76, height: "auto" }}
           />
         </div>
 
@@ -275,6 +284,45 @@ export default function MobileCategoryPicker({
           <CategoryCard key={cat.key} cat={cat} onPick={onPick} />
         ))}
       </motion.div>
+
+      {/* Auth buttons – shown only for guests */}
+      {isGuest && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            transition: { delay: 0.55, duration: 0.35, ease: "easeOut" },
+          }}
+          className="px-5 pb-10 flex flex-col gap-3"
+        >
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <span className="text-[12px] text-slate-400 dark:text-slate-500 font-medium">
+              {isArabic ? "أو انضم إلينا" : "or join us"}
+            </span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          </div>
+
+          <button
+            onClick={() => registerModal.onOpen()}
+            className="w-full h-12 rounded-2xl font-bold text-[15px] text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500"
+            style={{
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              boxShadow: "0 6px 20px rgba(14,165,233,0.35)",
+            }}
+          >
+            {isArabic ? "إنشاء حساب" : "Create account"}
+          </button>
+
+          <button
+            onClick={() => loginModal.onOpen()}
+            className="w-full h-12 rounded-2xl font-bold text-[15px] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+          >
+            {isArabic ? "تسجيل الدخول" : "Sign in"}
+          </button>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

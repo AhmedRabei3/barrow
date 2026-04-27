@@ -130,7 +130,6 @@ const SiteFooter = () => {
               <div className="mb-5 flex items-center gap-3">
                 <Logo
                   width={50}
-                  height={30}
                   arCustomTxt="حيث تلتقي الشهرة مع المال"
                   enCustomTxt="Where Fame and Money Meet"
                 />
@@ -172,7 +171,6 @@ const SiteFooter = () => {
                 </Link>
               </div>
             </div>
-
           </section>
 
           <section className="grid gap-6 w-full">
@@ -211,7 +209,6 @@ const SiteFooter = () => {
               >
                 {footerContent.terms}
               </Link>
-
             </div>
           </div>
         </div>

@@ -12,8 +12,9 @@ const BellBtn = ({ setOpen, unreadCount }: Props) => {
 
   return (
     <button
+      type="button"
       onClick={() => setOpen((v) => !v)}
-      className="relative p-2 rounded-full mx-2.5 transition text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+      className="relative mx-2.5 flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-800 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
       aria-label={isArabic ? "الإشعارات" : "Notifications"}
     >
       <DynamicIcon iconName="FaRegBell" size={18} />

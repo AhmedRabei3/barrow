@@ -14,10 +14,11 @@ const ThemeToggle = () => {
       onClick={toggleTheme}
       aria-label={isArabic ? "تبديل الثيم" : "Toggle theme"}
       className="
-        h-10 w-10 rounded-full border border-slate-200
-        bg-white/90 text-slate-700 shadow-sm
+        h-11 w-11 rounded-full border border-slate-300
+        bg-white text-slate-800 shadow-sm
         hover:bg-slate-100 transition-colors
-        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60
+        dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800
         flex items-center justify-center
       "
     >

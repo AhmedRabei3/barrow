@@ -26,7 +26,7 @@ const ScrollToTopButton = () => {
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label={isArabic ? "الانتقال إلى أعلى الصفحة" : "Scroll to top"}
       title={isArabic ? "إلى الأعلى" : "Back to top"}
-      className="fixed bottom-6 left-6 z-40 h-11 w-11 rounded-full bg-white/72 dark:bg-slate-900/72 text-slate-700 dark:text-slate-100 border border-white/70 dark:border-slate-700/70 backdrop-blur-md shadow-md hover:shadow-lg hover:bg-white/85 dark:hover:bg-slate-900/85 transition-all duration-300"
+      className="fixed bottom-6 left-6 z-40 h-12 w-12 rounded-full border border-slate-300 bg-white/92 text-slate-900 backdrop-blur-md shadow-md transition-all duration-300 hover:bg-white hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 dark:border-slate-600 dark:bg-slate-900/92 dark:text-slate-100 dark:hover:bg-slate-900"
     >
       <span className="flex items-center justify-center">
         <FiChevronUp size={20} />

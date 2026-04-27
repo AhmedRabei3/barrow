@@ -20,7 +20,7 @@ interface HomeBodyProps {
 }
 
 const CONTENT_LAYOUT_CLASS =
-  "relative mt-8 md:mt-6 flex flex-col md:flex-row gap-4 md:gap-5";
+  "relative flex flex-col md:flex-row gap-4 md:gap-5";
 
 const HomeBody = ({
   loading,
@@ -67,6 +67,8 @@ const HomeBody = ({
       ? []
       : regularItems;
   }, [featuredIds, items, topFeaturedItems.length]);
+  const hasFeaturedSection =
+    featuredItems !== undefined && topFeaturedItems.length > 0;
 
   /** 🔹 الحالات الخاصة */
   if (loading && !items.length) {
@@ -92,19 +94,6 @@ const HomeBody = ({
         </div>
       )}
 
-      {/*
-       * Featured section: space is ALWAYS reserved while loading to prevent CLS.
-       * featuredItems === undefined → skeleton placeholder (height matches section)
-       * featuredItems !== undefined && topFeaturedItems.length > 0 → real section
-       * featuredItems !== undefined && topFeaturedItems.length === 0 → nothing shown
-       */}
-      {featuredItems === undefined && (
-        <div
-          aria-hidden="true"
-          className="mt-6 min-h-55 animate-pulse rounded-2xl border border-amber-200/40 bg-amber-50/30 dark:bg-amber-900/10"
-        />
-      )}
-
       {featuredItems !== undefined && topFeaturedItems.length > 0 && (
         <section
           className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4"
@@ -122,7 +111,9 @@ const HomeBody = ({
         </section>
       )}
 
-      <div className={CONTENT_LAYOUT_CLASS}>
+      <div
+        className={`${CONTENT_LAYOUT_CLASS} ${hasFeaturedSection ? "mt-8 md:mt-6" : "mt-0"}`}
+      >
         {/* ✅ قسم العناصر */}
         <CardList items={mainItems} />
         {/* ✅ زر عائم لإظهار الخريطة – مخفي في الجوال (يتحكم به FAB) */}

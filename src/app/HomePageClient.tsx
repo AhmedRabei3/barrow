@@ -114,16 +114,33 @@ const HomePageClient = () => {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
-  const fetchFeaturedItems = useCallback(async () => {
-    const { data } = await request.get("/api/items/featured?limit=8", {
-      timeout: 8000,
-    });
+  const fetchFeaturedItems = useCallback(async (signal: AbortSignal) => {
+    try {
+      const { data } = await request.get("/api/items/featured?limit=8", {
+        timeout: 8000,
+        signal,
+      });
 
-    if (!data?.success) {
+      if (!data?.success) {
+        return [];
+      }
+
+      return formatRawItems((data.items || []) as RawItem[]);
+    } catch (error: unknown) {
+      const isAbortLikeError =
+        signal.aborted ||
+        (error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.name === "CanceledError" ||
+            error.name === "TimeoutError" ||
+            error.message === "canceled"));
+
+      if (!isAbortLikeError && process.env.NODE_ENV === "development") {
+        console.warn("Failed to fetch featured items", error);
+      }
+
       return [];
     }
-
-    return formatRawItems((data.items || []) as RawItem[]);
   }, []);
 
   const paginationVisible = totalItems > limit;

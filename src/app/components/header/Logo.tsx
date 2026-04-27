@@ -2,10 +2,30 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import logoImage from "../../../../public/images/logo.png";
+
+function getLogoSize(targetWidth: number, targetHeight?: number) {
+  if (targetHeight === undefined) {
+    return {
+      width: targetWidth,
+      height: (targetWidth * logoImage.height) / logoImage.width,
+    };
+  }
+
+  const scale = Math.min(
+    targetWidth / logoImage.width,
+    targetHeight / logoImage.height,
+  );
+
+  return {
+    width: logoImage.width * scale,
+    height: logoImage.height * scale,
+  };
+}
 
 const Logo = ({
   width = 50,
-  height = 50,
+  height,
   arCustomTxt = "نصلك بالعالم",
   enCustomTxt = "U R Famous",
 }: {
@@ -16,6 +36,8 @@ const Logo = ({
 }) => {
   const router = useRouter();
   const { isArabic } = useAppPreferences();
+  const logoSize = getLogoSize(width, height);
+
   return (
     <div
       className="
@@ -30,9 +52,10 @@ const Logo = ({
         alt="logo"
         className="cursor-pointer 
         overflow-hidden"
-        src="/images/logo.png"
-        width={width}
-        height={height}
+        src={logoImage}
+        width={logoImage.width}
+        height={logoImage.height}
+        style={{ width: logoSize.width, height: logoSize.height }}
       />
       <div className="flex flex-col leading-[0.9]">
         <span
