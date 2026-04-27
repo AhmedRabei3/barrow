@@ -5,6 +5,7 @@ interface ImageCardProps {
   currentIndex: number;
   brand?: string | null;
   model?: string | null;
+  priority?: boolean;
 }
 
 const ImageCard = ({
@@ -12,6 +13,7 @@ const ImageCard = ({
   currentIndex,
   brand,
   model,
+  priority = false,
 }: ImageCardProps) => {
   return (
     <div>
@@ -21,7 +23,9 @@ const ImageCard = ({
           src={itemImages[currentIndex].url}
           alt={`${brand} ${model}`}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          priority={priority}
+          loading={priority ? "eager" : "lazy"}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 20vw"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
         />
       ) : (

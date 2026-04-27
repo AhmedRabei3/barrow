@@ -17,8 +17,50 @@ import useScrollDirection from "@/app/hooks/useScrollDirection";
 import SearchBar from "./search-box/SearchBar";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
-
+import { BiSearch } from "react-icons/bi";
+import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useSearchHelper } from "../../hooks/useSearchHelper";
+
+/* ─── Mobile search input ──────────────────────────────────────────────── */
+
+function MobileSearchInput({
+  q,
+  setQ,
+  isArabic,
+}: {
+  q: string;
+  setQ: (v: string) => void;
+  isArabic: boolean;
+}) {
+  const [local, setLocal] = useState(q);
+
+  useEffect(() => {
+    setLocal(q);
+  }, [q]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (local !== q) setQ(local);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [local, q, setQ]);
+
+  return (
+    <div
+      dir={isArabic ? "rtl" : "ltr"}
+      className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 shadow-[0_1px_8px_rgba(0,0,0,0.07)] transition-shadow focus-within:shadow-[0_2px_14px_rgba(0,0,0,0.12)]"
+    >
+      <BiSearch size={15} className="shrink-0 text-slate-400" />
+      <input
+        type="text"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        placeholder={isArabic ? "ابحث..." : "Search..."}
+        className="min-w-0 flex-1 bg-transparent text-[13px] text-slate-700 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+      />
+    </div>
+  );
+}
 
 const UserMenu = lazy(async () => {
   const importedModule = await import("./UserMenu.lazy.js");
@@ -85,6 +127,7 @@ const Navbar = ({
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith("/admin");
   const scrollDir = useScrollDirection();
+  const { isArabic } = useAppPreferences();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const helper = useSearchHelper();
@@ -212,12 +255,8 @@ const Navbar = ({
           <div className="flex items-center justify-center">
             <Logo />
           </div>
-          <div className="min-w-0 px-0.5">
-            <HomeTabs
-              onSelectTab={helper.handleSelectPrimaryTab}
-              type={type}
-              compact
-            />
+          <div className="min-w-0 px-1">
+            <MobileSearchInput q={q} setQ={setQ} isArabic={isArabic} />
           </div>
           <div className="flex items-center justify-end gap-1">
             <Suspense fallback={null}>

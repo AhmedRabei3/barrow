@@ -37,6 +37,7 @@ const CardList = ({ items }: CardListProps) => {
         item,
         key: getCardKey(item),
         delay: Math.min(index * 0.02, 0.2),
+        priority: index < 4,
       })),
     [items, visibleCount],
   );
@@ -53,13 +54,13 @@ const CardList = ({ items }: CardListProps) => {
         gap-x-5 gap-y-8 md:gap-x-6 md:gap-y-9 items-stretch
         "
     >
-      {renderedItems.map(({ item, key, delay }) => (
+      {renderedItems.map(({ item, key, delay, priority }) => (
         <div
           key={key}
           className="flex h-full w-full"
           style={{ transitionDelay: `${delay}s` }}
         >
-          <Card grandItem={item} />
+          <Card grandItem={item} priority={priority} />
         </div>
       ))}
     </div>

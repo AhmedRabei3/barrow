@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
 import ClientOnly from "./components/ClientOnly";
@@ -36,6 +36,12 @@ const notoKufiArabic = Noto_Kufi_Arabic({
   variable: "--font-noto-kufi",
   subsets: ["arabic"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -123,8 +129,17 @@ export default async function RootLayout({
       dir={initialLocale === "ar" ? "rtl" : "ltr"}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link
+          rel="preconnect"
+          href="https://res.cloudinary.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased p-2 bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}
       >
         <AppPreferencesProvider initialLocale={initialLocale}>
           <SessionProvider refetchOnWindowFocus={false}>

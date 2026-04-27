@@ -107,7 +107,7 @@ const FloatingChatButton = () => {
       <button
         ref={triggerRef}
         onClick={toggleAssistant}
-        className="fixed bottom-24 right-6 z-50 h-14 w-14 rounded-full p-0.5 animated-indigo-border shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
+        className="hidden md:flex fixed bottom-24 right-6 z-50 h-14 w-14 rounded-full p-0.5 animated-indigo-border shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
         title={isArabic ? ASSISTANT_NAME_AR : ASSISTANT_NAME_EN}
         aria-label={isArabic ? "فتح المساعد" : "Open assistant"}
         aria-expanded={open}

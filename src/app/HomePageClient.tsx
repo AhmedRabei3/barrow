@@ -4,10 +4,10 @@ import Navbar from "./components/header/Navbar";
 import CategorySlider from "./components/category/CategorySlider";
 import HomeBody from "./components/home/HomeBody";
 import Pagination from "./components/home/Pagination";
-import SiteFooter from "./components/footer/SiteFooter";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSearchHelper } from "./hooks/useSearchHelper";
 import { request } from "@/app/utils/axios";
 import {
@@ -25,8 +25,12 @@ import {
   getOrderedPrimaryCategoryTabs,
   normalizeUserInterestOrder,
   PENDING_INTEREST_ORDER_STORAGE_KEY,
+  type PrimaryCategoryKey,
 } from "@/lib/primaryCategories";
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
+import SiteFooter from "./components/footer/SiteFooter";
+import MobileCategoryPicker from "./components/home/MobileCategoryPicker";
+import FloatingActionMenu from "./components/FloatingActionMenu";
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
@@ -34,11 +38,60 @@ const HomePageClient = () => {
   const { data: session, status, update } = useSession();
   const { isArabic } = useAppPreferences();
   const limit = 24;
+
+  /* ── Mobile category picker state ──────────────────────────────── */
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileCategoryPicked, setMobileCategoryPicked] = useState(false);
+  const [skipPicker, setSkipPicker] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    // Skip the picker when:
+    // 1. URL already has explicit filters (shared link)
+    // 2. Zustand store already has a type set (user navigated back)
+    // 3. sessionStorage remembers the user already picked
+    const params = new URLSearchParams(window.location.search);
+    const storeType = useSearchFilters.getState().filters.type;
+    const alreadyPicked =
+      sessionStorage.getItem("mobile-category-picked") === "1";
+
+    if (
+      params.has("type") ||
+      params.has("q") ||
+      params.has("catName") ||
+      params.has("city") ||
+      storeType != null ||
+      alreadyPicked
+    ) {
+      setSkipPicker(true);
+    }
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const showPicker = isMobile && !mobileCategoryPicked && !skipPicker;
+
+  const handleMobileBack = useCallback(() => {
+    setMobileCategoryPicked(false);
+    sessionStorage.removeItem("mobile-category-picked");
+  }, []);
   const { items, totalItems, loading, isRefreshing, refetch } = useItems({
     page: currentPage,
     limit,
   });
   const helper = useSearchHelper(setCurrentPage);
+
+  const handleMobilePick = useCallback(
+    (key: PrimaryCategoryKey) => {
+      helper.handleSelectPrimaryTab(key);
+      setMobileCategoryPicked(true);
+      sessionStorage.setItem("mobile-category-picked", "1");
+    },
+    [helper],
+  );
   const orderedTabs = useMemo(
     () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
     [session?.user?.preferredInterestOrder],
@@ -167,44 +220,66 @@ const HomePageClient = () => {
 
   return (
     <div>
-      <Navbar
-        handleSetType={helper.handleSetType}
-        type={filters.type}
-        catName={filters.catName}
-        q={filters.q}
-        setQ={helper.handleSearch}
-        sellOrRent={filters.action}
-        handelSellOrRent={helper.handleAction}
-        handleSetMinPrice={helper.handleSetMinPrice}
-        handleSetMaxPrice={helper.handleSetMaxPrice}
-        minPrice={minPrice}
-        maxPrice={maxPrice}
-      />
-      <CategorySlider
-        type={filters.type}
-        catName={filters.catName}
-        setCatName={helper.handleSetCatName}
-      />
+      <AnimatePresence mode="wait">
+        {showPicker ? (
+          <MobileCategoryPicker key="picker" onPick={handleMobilePick} />
+        ) : (
+          <motion.div
+            key="content"
+            initial={isMobile ? { opacity: 0, y: 18 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            <Navbar
+              handleSetType={helper.handleSetType}
+              type={filters.type}
+              catName={filters.catName}
+              q={filters.q}
+              setQ={helper.handleSearch}
+              sellOrRent={filters.action}
+              handelSellOrRent={helper.handleAction}
+              handleSetMinPrice={helper.handleSetMinPrice}
+              handleSetMaxPrice={helper.handleSetMaxPrice}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+            />
+            <CategorySlider
+              type={filters.type}
+              catName={filters.catName}
+              setCatName={helper.handleSetCatName}
+            />
 
-      <HomeBody
-        items={items}
-        featuredItems={featuredItems ?? []}
-        loading={loading}
-        isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
-      />
+            <HomeBody
+              items={items}
+              featuredItems={featuredItems ?? []}
+              loading={loading}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
 
-      {paginationVisible && (
-        <Pagination
-          itemsCount={totalItems}
-          itemsPerPage={limit}
-          currentPage={currentPage}
-          setPage={helper.handleSetPage}
-          maxPagesToShow={10}
+            {paginationVisible && (
+              <Pagination
+                itemsCount={totalItems}
+                itemsPerPage={limit}
+                currentPage={currentPage}
+                setPage={helper.handleSetPage}
+                maxPagesToShow={10}
+              />
+            )}
+
+            <SiteFooter />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Action Menu – mobile only, shown after category is picked */}
+      {isMobile && mobileCategoryPicked && (
+        <FloatingActionMenu
+          onCategories={handleMobileBack}
+          categoriesEnabled={true}
         />
       )}
-
-      <SiteFooter />
     </div>
   );
 };

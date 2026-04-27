@@ -49,6 +49,7 @@ interface CardProps {
   setItemIdToEdit?: Dispatch<React.SetStateAction<string | null>>;
   setItemIdToDelete?: Dispatch<React.SetStateAction<string | null>>;
   onStatusChanged?: () => Promise<void> | void;
+  priority?: boolean;
 }
 
 const Card: FC<CardProps> = ({
@@ -56,6 +57,7 @@ const Card: FC<CardProps> = ({
   setItemIdToEdit,
   setItemIdToDelete,
   onStatusChanged,
+  priority = false,
 }) => {
   const { isArabic } = useAppPreferences();
   const item = grandItem?.item;
@@ -213,6 +215,7 @@ const Card: FC<CardProps> = ({
             currentIndex={currentIndex}
             brand={brand}
             model={model}
+            priority={priority}
           />
 
           {/* نقاط التبديل بين الصور */}

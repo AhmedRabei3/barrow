@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
 import CardListSkeleton from "./CardListSkeleton";
@@ -30,6 +30,13 @@ const HomeBody = ({
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
   const { isArabic } = useAppPreferences();
+
+  /* Listen for mobile FAB map toggle */
+  useEffect(() => {
+    const handler = () => setShowMap((prev) => !prev);
+    window.addEventListener("toggle-map-view", handler);
+    return () => window.removeEventListener("toggle-map-view", handler);
+  }, []);
   const fallbackFeaturedItems = useMemo(
     () => items.filter((it) => Boolean(it.item.isFeatured)),
     [items],
@@ -75,7 +82,10 @@ const HomeBody = ({
       )}
 
       {topFeaturedItems.length > 0 && (
-        <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4">
+        <section
+          className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4"
+          style={{ contain: "layout" }}
+        >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base md:text-lg font-bold text-amber-900">
               {isArabic ? "إعلانات مميزة" : "Featured Listings"}
@@ -91,8 +101,10 @@ const HomeBody = ({
       <div className={CONTENT_LAYOUT_CLASS}>
         {/* ✅ قسم العناصر */}
         <CardList items={mainItems} />
-        {/* ✅ زر عائم لإظهار الخريطة */}
-        <MapButton setShowMap={setShowMap} showMap={showMap} />
+        {/* ✅ زر عائم لإظهار الخريطة – مخفي في الجوال (يتحكم به FAB) */}
+        <div className="hidden md:block">
+          <MapButton setShowMap={setShowMap} showMap={showMap} />
+        </div>
         {/* ✅ خريطة تظهر بانزلاق من الجانب */}
         <MapWrapper setShowMap={setShowMap} showMap={showMap} items={items} />
       </div>
