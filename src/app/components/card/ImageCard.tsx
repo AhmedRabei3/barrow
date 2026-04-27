@@ -20,6 +20,8 @@ const ImageCard = ({
           key={itemImages[currentIndex].url}
           src={itemImages[currentIndex].url}
           alt={`${brand} ${model}`}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
         />
       ) : (

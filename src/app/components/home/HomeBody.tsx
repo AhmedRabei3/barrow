@@ -3,11 +3,11 @@
 import { memo, useMemo, useState } from "react";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
+import CardListSkeleton from "./CardListSkeleton";
 import MapWrapper from "./MyMap";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
-import Loader from "../category/Loader";
 import Tryagain from "../category/Tryagain";
 
 interface HomeBodyProps {
@@ -51,7 +51,15 @@ const HomeBody = ({
   }, [featuredIds, items, topFeaturedItems.length]);
 
   /** 🔹 الحالات الخاصة */
-  if (loading && !items.length) return <Loader isArabic={isArabic} />;
+  if (loading && !items.length) {
+    return (
+      <Container>
+        <div className={CONTENT_LAYOUT_CLASS}>
+          <CardListSkeleton count={10} />
+        </div>
+      </Container>
+    );
+  }
 
   if (!loading && !isRefreshing && !items.length) {
     return <Tryagain isArabic={isArabic} refetch={onRefresh} />;
@@ -60,7 +68,11 @@ const HomeBody = ({
   /** 🔹 المكون الرئيسي */
   return (
     <Container>
-      {isRefreshing && items.length > 0 && <Loader isArabic={isArabic} />}
+      {isRefreshing && items.length > 0 && (
+        <div className="mb-4">
+          <CardListSkeleton count={3} />
+        </div>
+      )}
 
       {topFeaturedItems.length > 0 && (
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4">

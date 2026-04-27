@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState, FC, Dispatch } from "react";
+import { memo, useEffect, useState, FC, Dispatch } from "react";
 import Link from "next/link";
 import ToolBox from "./ToolBox";
 import LikeBtn from "./LikeBtn";
@@ -63,37 +63,8 @@ const Card: FC<CardProps> = ({
     url: img?.url ?? null,
   }));
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  const [, setIsPaused] = useState(false);
   const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
-  const cardWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const node = cardWrapperRef.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { threshold: 0.15 },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  // ✅ التبديل التلقائي بين الصور
-  useEffect(() => {
-    if (itemImages.length > 1 && !isPaused && isInView) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) =>
-          prev === itemImages.length - 1 ? 0 : prev + 1,
-        );
-      }, 8000);
-      return () => clearInterval(interval);
-    }
-  }, [isPaused, isInView, itemImages.length]);
 
   useEffect(() => {
     if (currentIndex >= itemImages.length) {
@@ -208,8 +179,8 @@ const Card: FC<CardProps> = ({
 
   return (
     <div
-      ref={cardWrapperRef}
       className="w-full h-fit mx-auto"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "560px" }}
     >
       <CardContainer setIsPaused={setIsPaused} isOverlayOpen={isStateMenuOpen}>
         <Link

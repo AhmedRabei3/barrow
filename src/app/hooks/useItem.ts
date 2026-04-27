@@ -201,9 +201,6 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshSeed, setRefreshSeed] = useState(0);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    null,
-  );
 
   const controllerRef = useRef<AbortController | null>(null);
   const itemsRef = useRef<FormattedItem[]>([]);
@@ -233,46 +230,25 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
         ...requestFilters,
         page,
         limit,
-        latitude: coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
+        latitude: null,
+        longitude: null,
       }),
-    [requestFilters, page, limit, coords?.lat, coords?.lng],
+    [requestFilters, page, limit],
   );
   const requestQuery = useMemo<CacheQueryKey>(
     () => ({
       ...requestFilters,
       page,
       limit,
-      latitude: coords?.lat ?? null,
-      longitude: coords?.lng ?? null,
+      latitude: null,
+      longitude: null,
     }),
-    [requestFilters, page, limit, coords?.lat, coords?.lng],
+    [requestFilters, page, limit],
   );
 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      () => {
-        setCoords(null);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
-  }, []);
 
   useEffect(() => {
     // إلغاء الطلب السابق إن وجد
@@ -297,8 +273,6 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
         ...requestFilters,
         page,
         limit,
-        latitude: coords?.lat,
-        longitude: coords?.lng,
         setItems,
         setTotal: setTotalItems,
         setLoading,
@@ -317,16 +291,7 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
     })();
 
     return () => controller.abort();
-  }, [
-    requestFilters,
-    requestKey,
-    requestQuery,
-    page,
-    limit,
-    coords?.lat,
-    coords?.lng,
-    refreshSeed,
-  ]);
+  }, [requestFilters, requestKey, requestQuery, page, limit, refreshSeed]);
 
   const refetch = useCallback(() => {
     setRefreshSeed((prev) => prev + 1);

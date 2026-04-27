@@ -66,9 +66,7 @@ const Profile = () => {
   const [itemIdToEdit, setItemIdToEdit] = useState<string | null>(null);
   const [itemIdToDelete, setItemIdToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [withdrawingPaypal, setWithdrawingPaypal] = useState(false);
   const [withdrawingShamCash, setWithdrawingShamCash] = useState(false);
-  const [paypalWithdrawModalOpen, setPaypalWithdrawModalOpen] = useState(false);
   const [shamCashWithdrawModalOpen, setShamCashWithdrawModalOpen] =
     useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
@@ -81,8 +79,6 @@ const Profile = () => {
   const [activeSidebarSection, setActiveSidebarSection] = useState<
     "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS"
   >("OVERVIEW");
-  const [paypalEmail, setPaypalEmail] = useState("");
-  const [paypalWithdrawAmount, setPaypalWithdrawAmount] = useState("");
   const [shamCashWithdrawAmount, setShamCashWithdrawAmount] = useState("");
   const overviewSectionRef = useRef<HTMLDivElement | null>(null);
   const listingsSectionRef = useRef<HTMLDivElement | null>(null);
@@ -286,87 +282,10 @@ const Profile = () => {
     );
   };
 
-  const handleOpenPaypalWithdrawModal = () => {
-    if (!user) return;
-    setPaypalEmail(String(user.email || ""));
-    setPaypalWithdrawAmount("");
-    setPaypalWithdrawModalOpen(true);
-  };
-
   const handleOpenShamCashWithdrawModal = () => {
     if (!user) return;
     setShamCashWithdrawAmount("");
     setShamCashWithdrawModalOpen(true);
-  };
-
-  const handlePaypalWithdraw = async () => {
-    if (!user) return;
-
-    const trimmedEmail = paypalEmail.trim();
-    if (!trimmedEmail || !trimmedEmail.includes("@")) {
-      toast.error(
-        isArabic ? "يرجى إدخال بريد PayPal صالح" : "Enter a valid PayPal email",
-      );
-      return;
-    }
-
-    const amount = Number(paypalWithdrawAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error(isArabic ? "قيمة السحب غير صحيحة" : "Invalid amount");
-      return;
-    }
-
-    if (amount > availableToWithdraw) {
-      toast.error(
-        isArabic
-          ? "المبلغ أكبر من الرصيد المتاح للسحب"
-          : "Amount exceeds available withdrawable balance",
-      );
-      return;
-    }
-
-    try {
-      setWithdrawingPaypal(true);
-      const response = await fetch("/api/pay/paypal/withdraw", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-lang": isArabic ? "ar" : "en",
-        },
-        body: JSON.stringify({
-          paypalEmail: trimmedEmail,
-          amount,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        message?: string;
-        payoutBatchId?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(data.message || "Withdrawal failed");
-      }
-
-      toast.success(
-        isArabic
-          ? `تم إرسال طلب السحب عبر PayPal بنجاح${data.payoutBatchId ? ` (${data.payoutBatchId})` : ""}`
-          : `PayPal withdrawal request submitted successfully${data.payoutBatchId ? ` (${data.payoutBatchId})` : ""}`,
-      );
-
-      await refetch();
-      setPaypalWithdrawModalOpen(false);
-    } catch (error) {
-      const rawMessage =
-        error instanceof Error ? error.message : "Withdrawal failed";
-      toast.error(
-        isArabic
-          ? localizeErrorMessage(rawMessage, true)
-          : rawMessage || "Failed to withdraw",
-      );
-    } finally {
-      setWithdrawingPaypal(false);
-    }
   };
 
   const handleShamCashWithdraw = async () => {
@@ -739,8 +658,6 @@ const Profile = () => {
             formatDate={formatDate}
             walletBalanceLabel={walletBalanceLabel}
             totalFavorites={favorites.length}
-            onPaypalWithdraw={handleOpenPaypalWithdrawModal}
-            isWithdrawingPaypal={withdrawingPaypal}
             onShamCashWithdraw={handleOpenShamCashWithdrawModal}
             isWithdrawingShamCash={withdrawingShamCash}
             onEditProfile={() => setEditProfileModalOpen(true)}
@@ -1087,78 +1004,6 @@ const Profile = () => {
                   setIdentityVerificationModalOpen(false);
                 }}
               />
-            </div>
-          </div>
-        )}
-
-        {paypalWithdrawModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="profile-modal-backdrop absolute inset-0"
-              onClick={() => {
-                if (!withdrawingPaypal) setPaypalWithdrawModalOpen(false);
-              }}
-            />
-            <div className="market-panel z-10 w-11/12 max-w-md rounded-[26px] p-5 space-y-3 shadow-xl">
-              <h3 className="font-semibold text-white">
-                {isArabic ? "سحب الأرباح عبر PayPal" : "PayPal withdrawal"}
-              </h3>
-              <p className="text-xs leading-relaxed text-slate-400">
-                {isArabic
-                  ? "أدخل بريد PayPal والمبلغ بالدولار الأمريكي."
-                  : "Enter your PayPal email and USD amount."}
-              </p>
-              <p className="text-xs font-semibold text-emerald-300">
-                {isArabic
-                  ? `الرصيد المتاح للسحب: ${availableToWithdraw.toFixed(2)}$`
-                  : `Available to withdraw: $${availableToWithdraw.toFixed(2)}`}
-              </p>
-
-              <input
-                type="email"
-                value={paypalEmail}
-                onChange={(event) => setPaypalEmail(event.target.value)}
-                placeholder={isArabic ? "بريد PayPal" : "PayPal email"}
-                className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-sky-400 focus:outline-none"
-                disabled={withdrawingPaypal}
-              />
-
-              <input
-                type="number"
-                min={0.01}
-                max={Math.max(0, availableToWithdraw)}
-                step="0.01"
-                value={paypalWithdrawAmount}
-                onChange={(event) =>
-                  setPaypalWithdrawAmount(event.target.value)
-                }
-                placeholder={isArabic ? "المبلغ بالدولار" : "Amount in USD"}
-                className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-sky-400 focus:outline-none"
-                disabled={withdrawingPaypal}
-              />
-
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  onClick={() => setPaypalWithdrawModalOpen(false)}
-                  disabled={withdrawingPaypal}
-                  className="market-secondary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
-                >
-                  {isArabic ? "إلغاء" : "Cancel"}
-                </button>
-                <button
-                  onClick={handlePaypalWithdraw}
-                  disabled={withdrawingPaypal}
-                  className="market-primary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
-                >
-                  {withdrawingPaypal
-                    ? isArabic
-                      ? "جارٍ الإرسال..."
-                      : "Submitting..."
-                    : isArabic
-                      ? "تأكيد سحب PayPal"
-                      : "Confirm PayPal withdrawal"}
-                </button>
-              </div>
             </div>
           </div>
         )}

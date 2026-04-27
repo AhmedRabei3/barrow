@@ -33,7 +33,7 @@ const HomePageClient = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { data: session, status, update } = useSession();
   const { isArabic } = useAppPreferences();
-  const limit = 50;
+  const limit = 24;
   const { items, totalItems, loading, isRefreshing, refetch } = useItems({
     page: currentPage,
     limit,

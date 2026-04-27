@@ -35,8 +35,6 @@ interface Props {
   totalItems: number;
   formatDate: (date?: string) => string;
   walletBalanceLabel: string;
-  onPaypalWithdraw?: () => void;
-  isWithdrawingPaypal?: boolean;
   onShamCashWithdraw?: () => void;
   isWithdrawingShamCash?: boolean;
   onEditProfile?: () => void;
@@ -49,8 +47,6 @@ const ProfileHeader = ({
   totalItems,
   formatDate,
   walletBalanceLabel,
-  onPaypalWithdraw,
-  isWithdrawingPaypal = false,
   onShamCashWithdraw,
   isWithdrawingShamCash = false,
   onEditProfile,
@@ -136,21 +132,6 @@ const ProfileHeader = ({
           >
             <DynamicIcon iconName="MdAdd" size={18} />
             {isArabic ? "عنصر جديد" : "New item"}
-          </button>
-          <button
-            type="button"
-            onClick={onPaypalWithdraw}
-            disabled={isWithdrawingPaypal || !onPaypalWithdraw}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
-          >
-            <DynamicIcon iconName="FaMoneyBillWave" size={15} />
-            {isWithdrawingPaypal
-              ? isArabic
-                ? "جارٍ السحب..."
-                : "Withdrawing..."
-              : isArabic
-                ? "سحب PayPal"
-                : "PayPal"}
           </button>
           <button
             type="button"

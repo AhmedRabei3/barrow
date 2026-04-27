@@ -7,6 +7,7 @@ import {
 export async function GET(req: NextRequest) {
   try {
     const isArabic = resolveIsArabicFromRequest(req);
+    const locale = isArabic ? "ar" : "en";
     const { searchParams } = new URL(req.url);
     const lat = searchParams.get("lat");
     const lon = searchParams.get("lon");
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(url, {
       headers: {
         "User-Agent": "RealEstateApp/1.0",
-        "Accept-Language": "en",
+        "Accept-Language": locale,
         From: "realestate.contact.app@gmail.com", // ضع إيميل حقيقي هنا
       },
       cache: "no-store",

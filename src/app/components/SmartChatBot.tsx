@@ -779,8 +779,8 @@ const getSubscriptionAnswerByKey = (key: string, isArabic: boolean) => {
       en: "✨ The subscription make you able to list throw platform and earn from referrals. \n You get a unique invite link that offers new subscribers a 10% discount on their first subscription. You earn 60% of the subscription fee for your first 10 referrals, 40% for referrals 11-20, 30% for referrals 21-30, and 20% for any referrals beyond that.\n With each subscription renewal, your pending earnings move to your balance, ready for withdrawal.",
     },
     SUB_ACTIVATE: {
-      ar: "🔐 تفعيل الحساب بسيط: عبر بوابات الدفع المتاحة (ومنها PayPal) أو باستخدام كود تفعيل. بعد التأكيد مباشرة يتفعل حسابك لمدة 30 يومًا وتحصل على المزايا الكاملة فورًا.",
-      en: "🔐 Activation is super simple: use available payment gateways (including PayPal) or an activation code. Once confirmed, your account is active for 30 days and you start getting full benefits immediately.",
+      ar: "🔐 تفعيل الحساب بسيط: عبر شام كاش أو باستخدام كود تفعيل رسمي. بعد التأكيد مباشرة يتفعل حسابك لمدة 30 يومًا وتحصل على المزايا الكاملة فورًا.",
+      en: "🔐 Activation is simple: use ShamCash or an official activation code. Once confirmed, your account is active for 30 days and you start getting full benefits immediately.",
     },
     SUB_GRACE: {
       ar: "⏳ بعد انتهاء الاشتراك لديك فترة لمدة 15 يومًا لتجديد الاشتراك",
@@ -799,8 +799,8 @@ const getSubscriptionAnswerByKey = (key: string, isArabic: boolean) => {
       en: "🔗 From the invite-friends option, your personal link is generated (?ref=yourId). Share it; when others register and activate through it, the referral is credited to you.",
     },
     SUB_WITHDRAW: {
-      ar: "🏦 تتجمع أرباحك في الرصيد، وعند الجاهزية يمكنك طلب السحب بسهولة من قسم الرصيد. السحب والاشتراك يدعمان PayPal، مع توفر وسائل محلية حسب بلدك — أي طريق واضح لتحويل نشاطك إلى دخل فعلي.",
-      en: "🏦 Your earnings accumulate in your balance, and when ready you can request payout easily from the balance section. Withdrawals and subscriptions support PayPal, with local methods available by country — giving you a clear path from activity to real income.",
+      ar: "🏦 تتجمع أرباحك في الرصيد، وعند الجاهزية يمكنك طلب السحب بسهولة من قسم الرصيد. الاشتراك والسحب يتمان عبر شام كاش ووسائل محلية معتمدة حسب بلدك.",
+      en: "🏦 Your earnings accumulate in your balance, and when ready you can request payout easily from the balance section. Subscription and withdrawals run through ShamCash and approved local methods based on your country.",
     },
     SUB_CODES: {
       ar: "🌍 حتى لو كان بلدك لا يدعم بوابات الدفع (مثل سوريا)، يبقى الاشتراك متاحًا عبر أكواد التفعيل الرسمية المباعة محليًا. اشترِ الكود، أدخله في صفحة التفعيل، وابدأ الاستفادة فورًا.",
@@ -862,9 +862,8 @@ const getSubscriptionAnswerByQuestion = (
     text.includes("withdraw") ||
     text.includes("payout") ||
     text.includes("wallet") ||
-    text.includes("paypal") ||
-    text.includes("pay pal") ||
-    text.includes("بايبال")
+    text.includes("shamcash") ||
+    text.includes("شام كاش")
   ) {
     return getSubscriptionAnswerByKey("SUB_WITHDRAW", isArabic);
   }
@@ -2070,8 +2069,8 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                           content:
                             answer ||
                             t(
-                              "أقدر أشرح لك: مزايا الاشتراك، التفعيل عبر PayPal أو أكواد التفعيل، فترة السماح، نظام الدعوات، الأرباح المعلقة، وطريقة السحب. وإذا كانت بوابات الدفع غير مدعومة في بلدك (مثل سوريا) اسألني عن أكواد التفعيل.",
-                              "I can explain: subscription benefits, activation via PayPal or activation codes, grace period, referrals, pending earnings, and withdrawals. If gateways are unavailable in your country (like Syria), ask me about activation codes.",
+                              "أقدر أشرح لك: مزايا الاشتراك، التفعيل عبر شام كاش أو أكواد التفعيل، فترة السماح، نظام الدعوات، الأرباح المعلقة، وطريقة السحب. وإذا كانت بوابات الدفع غير مدعومة في بلدك (مثل سوريا) اسألني عن أكواد التفعيل.",
+                              "I can explain: subscription benefits, activation via ShamCash or activation codes, grace period, referrals, pending earnings, and withdrawals. If gateways are unavailable in your country (like Syria), ask me about activation codes.",
                             ),
                         },
                       ]);
@@ -2315,7 +2314,9 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                 </p>
                 <motion.div
                   className={`overflow-y-auto ${
-                    isCompactViewport ? "max-h-44 space-y-1.5" : "max-h-56 space-y-2"
+                    isCompactViewport
+                      ? "max-h-44 space-y-1.5"
+                      : "max-h-56 space-y-2"
                   }`}
                   variants={staggerContainerVariants}
                   initial="hidden"

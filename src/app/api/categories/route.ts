@@ -330,7 +330,8 @@ export async function GET(req: NextRequest) {
           if (staleActiveCategoryIds?.length) {
             activeCategoryIds = staleActiveCategoryIds;
           } else if (isRecoverableCategoryLookupError(error)) {
-            activeCategoryIds = null;
+            // Enforce with-items-only semantics even during transient DB latency.
+            activeCategoryIds = [];
           } else {
             throw error;
           }

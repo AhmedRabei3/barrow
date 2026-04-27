@@ -2,14 +2,16 @@
 
 import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import CategoryList from "./CategoryList";
-import categoryFetcher from "./CategoryFetcher";
+import categoryFetcher, {
+  getCachedCategoriesSnapshot,
+} from "./CategoryFetcher";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import type { CategoryItem, ItemType } from "./types";
 import { useStaleResource } from "@/app/hooks/useStaleResource";
-import Loader from "./Loader";
 import Tryagain from "./Tryagain";
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
+import CategorySliderSkeleton from "./CategorySliderSkeleton";
 
 interface CategorySliderProps {
   type?: ItemType | null;
@@ -24,8 +26,18 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
     [type],
   );
   const fetchCategories = useCallback(
-    () =>
+    (signal: AbortSignal) =>
       categoryFetcher({
+        type,
+        withItemsOnly: true,
+        signal,
+      }),
+    [type],
+  );
+
+  const fallbackData = useMemo(
+    () =>
+      getCachedCategoriesSnapshot({
         type,
         withItemsOnly: true,
       }),
@@ -35,6 +47,7 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
   const { data, loading, refetch } = useStaleResource<CategoryItem[]>({
     cacheKey,
     fetcher: fetchCategories,
+    fallbackData,
   });
 
   useEffect(() => {
@@ -73,7 +86,13 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
     };
   }, [refetch]);
 
-  const list = data ?? [];
+  const list = useMemo(
+    () =>
+      (data ?? []).filter(
+        (category) => !category.isDeleted && category.name.trim().length > 0,
+      ),
+    [data],
+  );
 
   const shellClassName =
     "relative mt-16 overflow-hidden sm:mt-18 md:mt-36 lg:mt-40 block";
@@ -88,8 +107,8 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
 
   if (loading && !list.length) {
     return renderShell(
-      <div className="flex min-h-22 items-center justify-center">
-        <Loader isArabic={isArabic} />
+      <div className="min-h-22 py-1">
+        <CategorySliderSkeleton />
       </div>,
     );
   }

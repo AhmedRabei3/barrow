@@ -46,7 +46,18 @@ const reverseGeocode = async (
   lng: number,
 ): Promise<LocationPayload> => {
   try {
-    const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lng}`);
+    const locale =
+      typeof document !== "undefined" &&
+      document.documentElement.lang.toLowerCase().startsWith("ar")
+        ? "ar"
+        : "en";
+
+    const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lng}`, {
+      headers: {
+        "x-lang": locale,
+        "Accept-Language": locale,
+      },
+    });
     const json = await res.json();
 
     if (!res.ok || !json?.success) {
