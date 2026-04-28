@@ -30,9 +30,8 @@ import {
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
 import dynamic from "next/dynamic";
 
-const SiteFooter = dynamic(
-  () => import("./components/footer/SiteFooter.tsx").then((m) => m.default),
-  { ssr: false },
+const SiteFooter = dynamic(() =>
+  import("./components/footer/SiteFooter.tsx").then((m) => m.default),
 );
 const MobileCategoryPicker = dynamic(
   () =>

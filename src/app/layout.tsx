@@ -141,6 +141,11 @@ export default async function RootLayout({
       <head>
         {/* Critical resource hints for performance */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link
+          rel="preconnect"
+          href="https://res.cloudinary.com"
+          crossOrigin="anonymous"
+        />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
 
         {/* Preload critical resources for LCP optimization */}
