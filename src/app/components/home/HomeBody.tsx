@@ -67,9 +67,6 @@ const HomeBody = ({
       ? []
       : regularItems;
   }, [featuredIds, items, topFeaturedItems.length]);
-  const hasFeaturedSection =
-    featuredItems !== undefined && topFeaturedItems.length > 0;
-
   /** 🔹 الحالات الخاصة */
   if (loading && !items.length) {
     return (
@@ -115,13 +112,11 @@ const HomeBody = ({
         <section
           aria-hidden="true"
           className="mt-6 rounded-2xl border border-slate-200/60 bg-slate-50/70 p-3 md:p-4"
-          style={{ minHeight: 300 }}
+          style={{ minHeight: 260 }}
         />
       )}
 
-      <div
-        className={`${CONTENT_LAYOUT_CLASS} ${hasFeaturedSection ? "mt-8 md:mt-6" : "mt-0"}`}
-      >
+      <div className={`${CONTENT_LAYOUT_CLASS} mt-6`}>
         {/* ✅ قسم العناصر */}
         <CardList items={mainItems} />
         {/* ✅ زر عائم لإظهار الخريطة – مخفي في الجوال (يتحكم به FAB) */}

@@ -14,14 +14,20 @@ const PointsNavigation = ({
   return (
     <>
       {itemImages.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 gap-1 rounded-full border border-white/10 bg-slate-950/60 px-1.5 py-0.5 backdrop-blur-sm">
+        <div className="absolute bottom-2 
+        left-1/2 z-20 flex -translate-x-1/2 
+        gap-1 rounded-full border border-white/10 bg-slate-950/60 px-1.5 py-0.5 backdrop-blur-sm">
           {itemImages.map((_, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleDotClick(index)}
               aria-label={`Go to image ${index + 1}`}
-              className="flex min-w-6 items-center justify-center rounded-full p-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-sky-300/60"
+              className="flex min-h-6 min-w-6 
+              items-center justify-center 
+              rounded-full p-1 focus:outline-none 
+              focus-visible:ring-1 
+              focus-visible:ring-sky-300/60"
             >
               <span
                 className={`block h-1 rounded-full transition-all duration-300 ${

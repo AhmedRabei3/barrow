@@ -7,7 +7,7 @@ import Pagination from "./components/home/Pagination";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+
 import { useSearchHelper } from "./hooks/useSearchHelper";
 import { request } from "@/app/utils/axios";
 import {
@@ -28,9 +28,21 @@ import {
   type PrimaryCategoryKey,
 } from "@/lib/primaryCategories";
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
-import SiteFooter from "./components/footer/SiteFooter";
-import MobileCategoryPicker from "./components/home/MobileCategoryPicker";
-import FloatingActionMenu from "./components/FloatingActionMenu";
+import dynamic from "next/dynamic";
+
+const SiteFooter = dynamic(
+  () => import("./components/footer/SiteFooter.tsx").then((m) => m.default),
+  { ssr: false },
+);
+const MobileCategoryPicker = dynamic(
+  () =>
+    import("./components/home/MobileCategoryPicker.tsx").then((m) => m.default),
+  { ssr: false },
+);
+const FloatingActionMenu = dynamic(
+  () => import("./components/FloatingActionMenu.tsx").then((m) => m.default),
+  { ssr: false },
+);
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
@@ -286,20 +298,14 @@ const HomePageClient = () => {
        * Mobile category picker – rendered as a fixed overlay so the content
        * above stays in the DOM (images keep preloading in the background).
        */}
-      <AnimatePresence>
-        {showPicker && (
-          <motion.div
-            key="picker-overlay"
-            className="fixed inset-0 z-50 overflow-y-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-          >
-            <MobileCategoryPicker onPick={handleMobilePick} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showPicker && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ animation: "barrow-fade-in 0.22s ease forwards" }}
+        >
+          <MobileCategoryPicker onPick={handleMobilePick} />
+        </div>
+      )}
 
       {/* Floating Action Menu – mobile only, shown after category is picked */}
       {isMobile && mobileCategoryPicked && (

@@ -23,6 +23,7 @@ const CardContainer = ({
       hover:border-sky-400/30 
       hover:shadow-[0_26px_60px_rgba(2,6,23,0.34)]
       active:scale-[0.995] ${isOverlayOpen ? "z-80" : "z-0"}`}
+      style={{ contain: "layout" }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
