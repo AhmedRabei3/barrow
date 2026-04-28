@@ -282,26 +282,30 @@ const ActivationWelcomeOverlay = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       dir={isArabic ? "rtl" : "ltr"}
     >
-      <div className="activation-spotlight-shell relative max-w-2xl mx-auto">
-        <div className="activation-spotlight-glow" />
-        <div className="activation-spotlight-frame">
-          <div className="activation-spotlight-headline">
+      <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden">
+        {/* Header gradient background */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/10 dark:to-purple-500/10" />
+
+        {/* Content */}
+        <div className="relative p-8 sm:p-10">
+          {/* Title */}
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-6 text-slate-900 dark:text-white">
             {mode === "success" ? successTitle : inactiveTitle}
-          </div>
+          </h2>
 
           {mode === "success" ? (
             <>
-              <p className="activation-spotlight-copy">
+              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed text-center">
                 {t(
                   "يمكنك الآن دعوة الآخرين للانضمام والاستفادة من مكافآت تصل حتى 60% من اشتراكاتهم شهرياً، حسب ",
                   "You can now invite others to join and earn rewards of up to 60% from the monthly subscriptions of the first 10 real users you invite, based on the ",
                 )}
                 <button
                   type="button"
-                  className="activation-spotlight-inline-link"
+                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                   onClick={toggleTiers}
                   aria-expanded={isTiersExpanded}
                 >
@@ -313,147 +317,154 @@ const ActivationWelcomeOverlay = () => {
                 )}
               </p>
 
-              <div className="activation-spotlight-tier-card">
+              {/* Tier Card */}
+              <div className="mb-8 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800/50">
                 <button
                   type="button"
-                  className="activation-spotlight-accordion-trigger"
+                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition"
                   onClick={toggleTiers}
                   aria-expanded={isTiersExpanded}
                 >
-                  <span className="activation-spotlight-tier-title">
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {t("ماهو نظام الشرائح", "What is the tier system?")}
                   </span>
-                  <span
-                    className="activation-spotlight-accordion-icon"
-                    aria-hidden="true"
-                  >
+                  <span className="text-2xl text-slate-500 dark:text-slate-400">
                     {isTiersExpanded ? "−" : "+"}
                   </span>
                 </button>
-                <div
-                  className={`activation-spotlight-accordion-panel${isTiersExpanded ? " is-open" : ""}`}
-                >
-                  <div className="activation-spotlight-tier-grid">
-                    <div>
-                      <strong>60%</strong>
-                      <span>
-                        {t(
-                          "لأول 10 مستخدمين فعليين يتم تفعيلهم من خلالك",
-                          "for the first 10 real users activated through your link",
-                        )}
-                      </span>
+                {isTiersExpanded && (
+                  <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          60%
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                          {t("لأول 10 مستخدمين", "First 10 users")}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          40%
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                          {t("للمستخدمين 11-20", "Users 11-20")}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          30%
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                          {t("للمستخدمين 21-30", "Users 21-30")}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                          20%
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                          {t("بعد ذلك", "After that")}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <strong>40%</strong>
-                      <span>
-                        {t("للمستخدمين من 11 إلى 20", "for users 11 to 20")}
-                      </span>
-                    </div>
-                    <div>
-                      <strong>30%</strong>
-                      <span>
-                        {t("للمستخدمين من 21 إلى 30", "for users 21 to 30")}
-                      </span>
-                    </div>
-                    <div>
-                      <strong>20%</strong>
-                      <span>
-                        {t(
-                          "لأي مستخدم فعلي بعد ذلك",
-                          "for every real user after that",
-                        )}
-                      </span>
-                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {t(
+                        "يُحتسب العائد عند تفعيل المدعو لاشتراكه ووجود نشاط حقيقي له داخل المنصة، ثم تُضاف الأرباح إلى رصيدك المعلق وفق آلية النظام المعتمدة.",
+                        "Rewards are counted when the invited user activates a subscription and shows real activity on the platform.",
+                      )}
+                    </p>
                   </div>
-                  <p className="activation-spotlight-tier-note">
-                    {t(
-                      "يُحتسب العائد عند تفعيل المدعو لاشتراكه ووجود نشاط حقيقي له داخل المنصة، ثم تُضاف الأرباح إلى رصيدك المعلق وفق آلية النظام المعتمدة.",
-                      "Rewards are counted when the invited user activates a subscription and shows real activity on the platform, then the earnings are added to your pending balance according to the platform rules.",
-                    )}
-                  </p>
-                </div>
+                )}
               </div>
 
-              <div className="activation-spotlight-actions">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
-                  className="activation-spotlight-btn activation-spotlight-btn-muted"
+                  className="flex-1 px-6 py-3 text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-semibold transition"
                   onClick={closeOverlay}
                 >
                   {t("موافق", "OK")}
                 </button>
                 <button
                   type="button"
-                  className="activation-spotlight-btn activation-spotlight-btn-emerald"
+                  className="flex-1 px-6 py-3 text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg font-semibold transition shadow-lg"
                   onClick={openInvite}
                 >
                   {t("دعوة الآخرين", "Invite others")}
                 </button>
                 <button
                   type="button"
-                  className="activation-spotlight-btn activation-spotlight-btn-rgb"
+                  className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg font-semibold transition shadow-lg"
                   onClick={openPublishAssistant}
                 >
-                  {t("نشر إعلان جديد", "Publish a new listing")}
+                  {t("نشر إعلان", "Publish")}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <p className="activation-spotlight-copy">
+              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed text-center">
                 {t(
                   "الاشتراك يمنحك 30 يوماً من النشر الكامل، ظهور أقوى لإعلاناتك، وصولاً أفضل للمشترين، وإمكانية دعوة الآخرين لزيادة أرباحك.",
-                  "Subscription gives you 30 days of full publishing access, stronger visibility, better buyer reach, and the ability to invite others and turn activity into growing earnings.",
+                  "Subscription gives you 30 days of full publishing access, stronger visibility, better buyer reach, and the ability to invite others.",
                 )}
               </p>
-              <div className="activation-spotlight-tier-card activation-spotlight-tier-card-warm">
-                <div className="activation-spotlight-tier-title">
-                  {t("لماذا يستحق الاشتراك؟", "Why subscription is worth it")}
-                </div>
-                <p className="activation-spotlight-tier-note">
-                  {t(
-                    "- انتشار عال لإعلاناتك مع ظهور أقوى في نتائج البحث",
-                    "- High visibility for your listings with stronger appearance in search results",
-                  )}
-                  <br />
 
-                  {t(
-                    "- دخل شهري متجدد من خلال نظام الدعوات يصل لـ60% من قيمة اشتراك من دعوتهم",
-                    "- Monthly recurring income through the referral system reaches up to 60% of the subscription value of those they invite",
-                  )}
-                  <br />
-                  {t(
-                    "- مكافآت وفعاليات حصرية للمشتركين",
-                    "- Exclusive rewards and events for subscribers",
-                  )}
-                  <br />
-                  {t(
-                    "- تنظيم عمليات البيع والتأجير بسهولة",
-                    "- Easy management of sales and rentals",
-                  )}
-                  <br />
-                  {t(
-                    "- عدم نشر الإعلانات التي تعرض صوراً منافية للحشمة ",
-                    "- We are committed to not publishing listings that display immodest images",
-                  )}
-                  <br />
-                  {t(
-                    "- طرق دفع متعددة وآمنة مع دعم مباشر من فريقنا",
-                    "- Multiple secure payment methods with direct support from our team",
-                  )}
-                </p>
+              {/* Benefits Card */}
+              <div className="mb-8 p-6 border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-4">
+                  {t("لماذا يستحق الاشتراك؟", "Why subscription is worth it")}
+                </h3>
+                <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                  <li>
+                    ✓{" "}
+                    {t(
+                      "انتشار عال لإعلاناتك مع ظهور أقوى",
+                      "High visibility with stronger appearance",
+                    )}
+                  </li>
+                  <li>
+                    ✓{" "}
+                    {t(
+                      "دخل شهري من نظام الدعوات يصل لـ60%",
+                      "Monthly income from referrals up to 60%",
+                    )}
+                  </li>
+                  <li>
+                    ✓{" "}
+                    {t("مكافآت وفعاليات حصرية", "Exclusive rewards and events")}
+                  </li>
+                  <li>
+                    ✓{" "}
+                    {t(
+                      "تنظيم عمليات البيع والتأجير بسهولة",
+                      "Easy sales and rental management",
+                    )}
+                  </li>
+                  <li>
+                    ✓{" "}
+                    {t(
+                      "طرق دفع متعددة وآمنة",
+                      "Multiple secure payment methods",
+                    )}
+                  </li>
+                </ul>
               </div>
-              <div className="activation-spotlight-actions activation-spotlight-actions-compact">
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
-                  className="activation-spotlight-btn activation-spotlight-btn-muted"
+                  className="flex-1 px-6 py-3 text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-semibold transition"
                   onClick={closeOverlay}
                 >
                   {t("موافق", "OK")}
                 </button>
                 <button
                   type="button"
-                  className="activation-spotlight-btn activation-spotlight-btn-primary"
+                  className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg font-semibold transition shadow-lg"
                   onClick={openActivation}
                 >
                   {t("تفعيل الاشتراك", "Activate subscription")}
