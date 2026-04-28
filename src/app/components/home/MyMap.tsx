@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
   ComponentType,
@@ -86,11 +85,9 @@ const MapWrapper = ({ showMap, setShowMap, items }: MapProps) => {
     [items, t],
   );
 
-  return (
-    <AnimatePresence>
-      {showMap && <DynamicMap setShowMap={setShowMap} items={mappedItems} />}
-    </AnimatePresence>
-  );
+  return showMap ? (
+    <DynamicMap setShowMap={setShowMap} items={mappedItems} />
+  ) : null;
 };
 
 export default MapWrapper;

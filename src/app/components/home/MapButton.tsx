@@ -1,6 +1,5 @@
 "use client";
 
-import { FaMapMarkedAlt } from "react-icons/fa";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
 interface MapButtonProps {
@@ -25,7 +24,15 @@ const MapButton = ({ showMap, setShowMap }: MapButtonProps) => {
         "
       title={isArabic ? "عرض الخريطة" : "Show map"}
     >
-      <FaMapMarkedAlt size={24} />
+      <svg
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M9 2.5a1 1 0 0 1 .38.08L15 4.83l4.62-2.31A1 1 0 0 1 21 3.4v15.2a1 1 0 0 1-.55.9l-5 2.5a1 1 0 0 1-.9 0L9 19.67l-4.55 2.28A1 1 0 0 1 3 21.1V5.9a1 1 0 0 1 .55-.9l5-2.5A1 1 0 0 1 9 2.5Zm1 2.67v12.9l4 1.6V6.77l-4-1.6Zm-2 .03-3 1.5v12.68l3-1.5V5.2Zm8 1.57v12.9l3-1.5V5.27l-3 1.5Z" />
+      </svg>
     </button>
   );
 };

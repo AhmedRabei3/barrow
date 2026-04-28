@@ -3,7 +3,6 @@
 import Navbar from "./components/header/Navbar";
 import CategorySlider from "./components/category/CategorySlider";
 import HomeBody from "./components/home/HomeBody";
-import Pagination from "./components/home/Pagination";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -32,6 +31,10 @@ import dynamic from "next/dynamic";
 
 const SiteFooter = dynamic(() =>
   import("./components/footer/SiteFooter.tsx").then((m) => m.default),
+);
+const Pagination = dynamic(
+  () => import("./components/home/Pagination.tsx").then((m) => m.default),
+  { ssr: false },
 );
 const MobileCategoryPicker = dynamic(
   () =>
