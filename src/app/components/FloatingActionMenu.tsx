@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MdClose, MdApps, MdCategory } from "react-icons/md";
+import { MdApps, MdCategory, MdKeyboardArrowDown } from "react-icons/md";
 import { BsRobot } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
@@ -220,13 +220,13 @@ export default function FloatingActionMenu({
               "0 10px 32px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.07)",
           }}
         >
-          <motion.span
-            animate={{ rotate: expanded ? 45 : 0 }}
-            transition={{ type: "spring", damping: 15, stiffness: 280 }}
-            className="flex items-center justify-center"
-          >
-            {expanded ? <MdClose size={26} /> : <MdApps size={26} />}
-          </motion.span>
+          <span className="flex items-center justify-center">
+            {expanded ? (
+              <MdKeyboardArrowDown size={30} />
+            ) : (
+              <MdApps size={26} />
+            )}
+          </span>
         </motion.button>
       </div>
     </>

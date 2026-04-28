@@ -3,6 +3,7 @@
 import Navbar from "./components/header/Navbar";
 import CategorySlider from "./components/category/CategorySlider";
 import HomeBody from "./components/home/HomeBody";
+import FloatingActionMenu from "./components/FloatingActionMenu";
 import useItems from "@/app/hooks/useItem";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -41,10 +42,6 @@ const MobileCategoryPicker = dynamic(
     import("./components/home/MobileCategoryPicker.tsx").then((m) => m.default),
   { ssr: false },
 );
-const FloatingActionMenu = dynamic(
-  () => import("./components/FloatingActionMenu.tsx").then((m) => m.default),
-  { ssr: false },
-);
 
 const HomePageClient = () => {
   const { filters } = useSearchFilters();
@@ -81,6 +78,9 @@ const HomePageClient = () => {
       alreadyPicked
     ) {
       setSkipPicker(true);
+      if (alreadyPicked) {
+        setMobileCategoryPicked(true);
+      }
     }
 
     return () => window.removeEventListener("resize", checkMobile);

@@ -244,20 +244,15 @@ export default function MobileCategoryPicker({
         animate="show"
         className="relative flex flex-col items-center pt-14 pb-7 px-6 text-center"
       >
-        <div
-          className="rounded-2xl overflow-hidden shadow-lg"
-          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-        >
-          <Image
-            src={logoImage}
-            alt="مشهور"
-            width={logoImage.width}
-            height={logoImage.height}
-            priority
-            className="block"
-            style={{ width: 76, height: "auto" }}
-          />
-        </div>
+        <Image
+          src={logoImage}
+          alt="مشهور"
+          width={logoImage.width}
+          height={logoImage.height}
+          priority
+          className="block"
+          style={{ width: 76, height: "auto" }}
+        />
 
         <h1 className="mt-4 text-[26px] font-extrabold tracking-wide text-slate-800 dark:text-slate-100">
           {isArabic ? "مـشـهـور" : "Mashhoor"}
