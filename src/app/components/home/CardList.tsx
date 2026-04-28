@@ -37,7 +37,8 @@ const CardList = ({ items }: CardListProps) => {
         item,
         key: getCardKey(item),
         delay: Math.min(index * 0.02, 0.2),
-        priority: index < 4,
+        // Keep high priority for only one above-the-fold image to avoid network contention.
+        priority: index === 0,
       })),
     [items, visibleCount],
   );
