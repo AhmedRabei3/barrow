@@ -201,6 +201,7 @@ const IdentityVerificationEditor = ({
       {canSubmit ? (
         <div className="mt-5 grid gap-4">
           <input
+            name="identityFullName"
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
             placeholder={
@@ -209,6 +210,7 @@ const IdentityVerificationEditor = ({
             className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
           <input
+            name="identityNationalId"
             value={nationalId}
             onChange={(event) => setNationalId(event.target.value)}
             placeholder={isArabic ? "الرقم الوطني" : "National ID number"}
@@ -221,6 +223,7 @@ const IdentityVerificationEditor = ({
               </span>
               <input
                 type="file"
+                name="identityFrontImage"
                 accept="image/*"
                 onChange={(event) =>
                   setFrontImage(event.target.files?.[0] || null)
@@ -234,6 +237,7 @@ const IdentityVerificationEditor = ({
               </span>
               <input
                 type="file"
+                name="identityBackImage"
                 accept="image/*"
                 onChange={(event) =>
                   setBackImage(event.target.files?.[0] || null)

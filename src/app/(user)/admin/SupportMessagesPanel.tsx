@@ -332,6 +332,7 @@ const SupportMessagesPanel = () => {
           </div>
 
           <select
+            name="broadcastAudience"
             value={broadcastAudience}
             onChange={(event) =>
               setBroadcastAudience(event.target.value as "ALL" | "ACTIVE")
@@ -347,6 +348,7 @@ const SupportMessagesPanel = () => {
 
         <div className="grid gap-3">
           <input
+            name="broadcastSubject"
             value={broadcastSubject}
             onChange={(event) => setBroadcastSubject(event.target.value)}
             maxLength={120}
@@ -354,6 +356,7 @@ const SupportMessagesPanel = () => {
             className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-orange-100/60 outline-none"
           />
           <textarea
+            name="broadcastMessage"
             value={broadcastMessage}
             onChange={(event) => setBroadcastMessage(event.target.value)}
             rows={4}
@@ -484,6 +487,7 @@ const SupportMessagesPanel = () => {
                   {t("عنوان الرد", "Reply subject")}
                 </label>
                 <input
+                  name="replySubject"
                   value={replySubject}
                   onChange={(event) => setReplySubject(event.target.value)}
                   maxLength={120}
@@ -496,6 +500,7 @@ const SupportMessagesPanel = () => {
                   {t("نص الرد", "Reply message")}
                 </label>
                 <textarea
+                  name="replyMessage"
                   value={replyMessage}
                   onChange={(event) => setReplyMessage(event.target.value)}
                   rows={5}

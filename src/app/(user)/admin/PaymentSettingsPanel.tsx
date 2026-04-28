@@ -453,6 +453,7 @@ const PaymentSettingsPanel = () => {
                     {t("المبلغ", "Amount")}
                   </label>
                   <input
+                    name="ownerWithdrawAmount"
                     value={withdrawAmount}
                     onChange={(event) => setWithdrawAmount(event.target.value)}
                     type="number"
@@ -466,6 +467,7 @@ const PaymentSettingsPanel = () => {
                     {t("ملاحظة", "Note")}
                   </label>
                   <textarea
+                    name="ownerWithdrawNote"
                     value={withdrawNote}
                     onChange={(event) => setWithdrawNote(event.target.value)}
                     className="admin-textarea min-h-24 w-full rounded-xl px-3 py-2 text-sm outline-none transition"

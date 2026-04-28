@@ -494,6 +494,7 @@ const UserMenu = () => {
                           >
                             <input
                               type="text"
+                              name="drawerSearchKeywords"
                               value={drawerQuery}
                               onChange={(event) =>
                                 setDrawerQuery(event.target.value)
@@ -507,6 +508,7 @@ const UserMenu = () => {
                             />
                             <input
                               type="text"
+                              name="drawerCity"
                               value={drawerCity}
                               onChange={(event) =>
                                 setDrawerCity(event.target.value)
@@ -518,20 +520,22 @@ const UserMenu = () => {
                             <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="number"
+                                name="drawerMinPrice"
                                 value={drawerMinPrice}
                                 onChange={(event) =>
                                   setDrawerMinPrice(event.target.value)
                                 }
-                                placeholder={isArabic ? "الحد الأدنى" : "Min"}
+                                placeholder={isArabic ? "أدنى سعر" : "Min price"}
                                 className={quickFilterInputClass}
                               />
                               <input
                                 type="number"
+                                name="drawerMaxPrice"
                                 value={drawerMaxPrice}
                                 onChange={(event) =>
                                   setDrawerMaxPrice(event.target.value)
                                 }
-                                placeholder={isArabic ? "الحد الأعلى" : "Max"}
+                                placeholder={isArabic ? "أعلى سعر" : "Max price"}
                                 className={quickFilterInputClass}
                               />
                             </div>

@@ -26,6 +26,7 @@ export default function ResetPasswordPage() {
       <form onSubmit={(e) => handleSubmit(token, e)}>
         <input
           type="password"
+          name="newPassword"
           placeholder={isArabic ? "كلمة المرور الجديدة" : "New Password"}
           className="w-full mb-2 p-2 border rounded"
           value={password}
@@ -35,6 +36,7 @@ export default function ResetPasswordPage() {
         <PasswordHintsPanel value={password} className="mb-3" />
         <input
           type="password"
+          name="confirmPassword"
           placeholder={isArabic ? "تأكيد كلمة المرور" : "Confirm Password"}
           className="w-full mb-2 p-2 border rounded"
           value={confirm}

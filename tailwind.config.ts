@@ -3,6 +3,8 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   darkMode: "class",
   content: [
+    "./src/app/**/*.{ts,tsx,js,jsx,mdx}",
+    "./src/components/**/*.{ts,tsx,js,jsx,mdx}",
     "./app/**/*.{ts,tsx,js,jsx,mdx}",
     "./components/**/*.{ts,tsx,js,jsx,mdx}",
   ],
@@ -15,9 +17,9 @@ const config: Config = {
         text: { DEFAULT: "#1e293b", muted: "#475569" },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        ar: ["Noto Kufi Arabic", "sans-serif"], // العربية
-        en: ["Nunito", "sans-serif"], // الإنجليزية
+        sans: ["var(--font-geist-sans)", "sans-serif"],
+        ar: ["var(--font-noto-kufi)", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
       },
     },
   },

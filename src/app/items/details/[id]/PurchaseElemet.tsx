@@ -111,6 +111,7 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
 
             <input
               type="tel"
+              name="purchaseRequestPhone"
               placeholder="رقم الهاتف"
               className="w-full border rounded-md p-2"
               value={phoneNumber}
@@ -119,12 +120,14 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
 
             <input
               type="number"
+              name="purchaseRequestOfferedPrice"
               placeholder="سعر مقترح (اختياري)"
               className="w-full border rounded-md p-2"
               onChange={(e) => setOfferedPrice(Number(e.target.value))}
             />
 
             <textarea
+              name="purchaseRequestNote"
               placeholder="ملاحظة (اختياري)"
               className="w-full border rounded-md p-2"
               rows={3}

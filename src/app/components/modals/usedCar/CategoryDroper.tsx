@@ -124,6 +124,7 @@ const CategoryDroper = ({
                 </div>
                 <input
                   type="text"
+                  name="categoryDropdownSearch"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t("بحث...", "Search...")}

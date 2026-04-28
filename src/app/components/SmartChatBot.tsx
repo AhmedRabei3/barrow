@@ -2037,6 +2037,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
                 <div className="flex gap-2">
                   <input
+                    name="subscriptionQuestion"
                     value={subscriptionQuestion}
                     onChange={(event) =>
                       setSubscriptionQuestion(event.target.value)
@@ -2242,6 +2243,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
             }`}
           >
             <input
+              name="smartChatTextInput"
               value={textInput}
               onChange={(event) => setTextInput(event.target.value)}
               placeholder={

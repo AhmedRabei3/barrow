@@ -71,6 +71,7 @@ export default function IconPicker<TFormValues extends FieldValues>({
     <div className="flex flex-col gap-3 ">
       <input
         type="text"
+        name="iconSearch"
         placeholder={t("ابحث عن أيقونة...", "Search for icons...")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -107,7 +108,11 @@ export default function IconPicker<TFormValues extends FieldValues>({
           {selectedIcon || t("لا يوجد", "None")}
         </b>
       </p>
-      <input {...register("icon" as Path<TFormValues>)} type="hidden" />
+      <input
+        {...register("icon" as Path<TFormValues>)}
+        name="icon"
+        type="hidden"
+      />
     </div>
   );
 }

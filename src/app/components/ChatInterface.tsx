@@ -149,6 +149,7 @@ const ChatInterface = ({
             >
               {currentQuestion.type === "textarea" ? (
                 <textarea
+                  name="chatAnswerTextarea"
                   ref={textAreaRef}
                   placeholder={currentQuestion.placeholder || "اكتب الإجابة..."}
                   className="min-h-28 flex-1 resize-none rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -159,6 +160,7 @@ const ChatInterface = ({
                 <input
                   ref={inputRef}
                   type="color"
+                  name="chatAnswerColor"
                   className="h-12 flex-1 cursor-pointer rounded-2xl border-2 border-slate-300 p-2 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900"
                   disabled={isLoading}
                 />
@@ -166,6 +168,7 @@ const ChatInterface = ({
                 <input
                   ref={inputRef}
                   type={currentQuestion.type || "text"}
+                  name="chatAnswerInput"
                   placeholder={currentQuestion.placeholder || "اكتب الإجابة..."}
                   className="h-12 min-w-0 flex-1 rounded-2xl border-2 border-slate-300 p-3 focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   disabled={isLoading}

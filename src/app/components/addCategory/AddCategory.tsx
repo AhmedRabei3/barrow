@@ -102,11 +102,7 @@ export default function AddCategoryForm() {
     }
 
     return categories.filter((category) => {
-      const searchableText = [
-        category.name,
-        category.nameAr,
-        category.nameEn,
-      ]
+      const searchableText = [category.name, category.nameAr, category.nameEn]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -119,7 +115,9 @@ export default function AddCategoryForm() {
     () =>
       CATEGORY_TYPE_OPTIONS.map((option) => ({
         ...option,
-        items: visibleCategories.filter((category) => category.type === option.value),
+        items: visibleCategories.filter(
+          (category) => category.type === option.value,
+        ),
       })).filter((group) => group.items.length > 0),
     [visibleCategories],
   );
@@ -427,7 +425,10 @@ export default function AddCategoryForm() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {t("فرز الفئات حسب النوع الرئيسي", "Browse categories by main type")}
+                  {t(
+                    "فرز الفئات حسب النوع الرئيسي",
+                    "Browse categories by main type",
+                  )}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {t(
@@ -437,16 +438,21 @@ export default function AddCategoryForm() {
                 </p>
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300">
-                {visibleCategories.length} {t("فئة ظاهرة", "visible categories")}
+                {visibleCategories.length}{" "}
+                {t("فئة ظاهرة", "visible categories")}
               </span>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <input
                 type="search"
+                name="categorySearch"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={t("ابحث باسم الفئة...", "Search by category name...")}
+                placeholder={t(
+                  "ابحث باسم الفئة...",
+                  "Search by category name...",
+                )}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-900/50"
               />
               {searchTerm ? (
@@ -517,8 +523,12 @@ export default function AddCategoryForm() {
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
                               {isArabic
-                                ? category.nameAr || category.nameEn || category.name
-                                : category.nameEn || category.name || category.nameAr}
+                                ? category.nameAr ||
+                                  category.nameEn ||
+                                  category.name
+                                : category.nameEn ||
+                                  category.name ||
+                                  category.nameAr}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
                               {category.type}

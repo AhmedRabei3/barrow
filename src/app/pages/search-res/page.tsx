@@ -45,6 +45,7 @@ const page = () => {
                 <span className="material-symbols-outlined">search</span>
               </div>
               <input
+                name="globalSearch"
                 className="block w-full pl-10 pr-3 py-2 border border-slate-700 rounded-lg leading-5 bg-slate-900/50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all"
                 placeholder="Search across all categories..."
                 type="text"
@@ -132,11 +133,13 @@ const page = () => {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <input
+                      name="searchResMinPrice"
                       className="w-full text-sm bg-slate-800 border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-white"
                       placeholder="Min"
                       type="number"
                     />
                     <input
+                      name="searchResMaxPrice"
                       className="w-full text-sm bg-slate-800 border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-white"
                       placeholder="Max"
                       type="number"
@@ -148,7 +151,10 @@ const page = () => {
                   <label className="block text-sm font-semibold text-slate-300 mb-3">
                     Category
                   </label>
-                  <select className="w-full text-sm bg-slate-800 border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-white">
+                  <select
+                    name="searchResCategory"
+                    className="w-full text-sm bg-slate-800 border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-white"
+                  >
                     <option>All Categories</option>
                     <option>Real Estate</option>
                     <option>Vehicles</option>
@@ -166,6 +172,7 @@ const page = () => {
                       location_on
                     </span>
                     <input
+                      name="searchResLocation"
                       className="w-full pl-9 text-sm bg-slate-800 border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-white"
                       placeholder="City or ZIP"
                       type="text"
@@ -203,6 +210,7 @@ const page = () => {
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input
+                        name="searchResAmenityParking"
                         className="rounded text-primary focus:ring-primary border-slate-700 bg-slate-800"
                         type="checkbox"
                       />
@@ -212,6 +220,7 @@ const page = () => {
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input
+                        name="searchResAmenityPets"
                         className="rounded text-primary focus:ring-primary border-slate-700 bg-slate-800"
                         type="checkbox"
                       />
@@ -221,6 +230,7 @@ const page = () => {
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input
+                        name="searchResAmenityFurnished"
                         className="rounded text-primary focus:ring-primary border-slate-700 bg-slate-800"
                         type="checkbox"
                       />
@@ -260,7 +270,10 @@ const page = () => {
                 <span className="text-sm text-slate-500 font-medium">
                   Sort by:
                 </span>
-                <select className="text-sm py-1 pl-3 pr-8 border-none bg-transparent focus:ring-0 text-white font-semibold cursor-pointer">
+                <select
+                  name="searchResSort"
+                  className="text-sm py-1 pl-3 pr-8 border-none bg-transparent focus:ring-0 text-white font-semibold cursor-pointer"
+                >
                   <option className="bg-slate-900">Relevance</option>
                   <option className="bg-slate-900">Newest</option>
                   <option className="bg-slate-900">Price: Low to High</option>

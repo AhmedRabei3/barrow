@@ -19,6 +19,7 @@ const StepTwo = ({ filters, update }: StepTwoProps) => {
       <QuestionContainer title={SEARCH_MODAL_TEXT.minPrice[locale]}>
         <input
           type="number"
+          name="searchModalMinPrice"
           className="w-full p-1"
           value={filters.minPrice}
           onChange={(e) => update("minPrice", e.target.value)}
@@ -28,6 +29,7 @@ const StepTwo = ({ filters, update }: StepTwoProps) => {
       <QuestionContainer title={SEARCH_MODAL_TEXT.maxPrice[locale]}>
         <input
           type="number"
+          name="searchModalMaxPrice"
           className="w-full p-1"
           value={filters.maxPrice}
           onChange={(e) => update("maxPrice", e.target.value)}

@@ -176,6 +176,7 @@ function SearchControl() {
 
   return (
     <input
+      name="mapCitySearch"
       placeholder="ابحث عن مدينة..."
       className="absolute z-999 top-3 left-3 bg-white p-2 rounded shadow-md w-40"
       onKeyDown={(e) => {

@@ -143,6 +143,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
           {codeSent && (
             <div className="space-y-2">
               <input
+                name="verificationCode"
                 value={verificationCode}
                 onChange={(event) => setVerificationCode(event.target.value)}
                 placeholder={
@@ -179,6 +180,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
+              name="profileName"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder={isArabic ? "الاسم" : "Name"}
@@ -187,6 +189,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
 
             <input
               type="email"
+              name="profileEmail"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder={isArabic ? "البريد الإلكتروني" : "Email"}
@@ -196,6 +199,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
             <div className="md:col-span-2">
               <input
                 type="tel"
+                name="profilePhone"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 placeholder={
@@ -221,6 +225,7 @@ const ProfileAccountEditor = ({ user, onSaved }: ProfileAccountEditorProps) => {
               </label>
               <input
                 type="file"
+                name="profileImage"
                 accept="image/*"
                 onChange={(event) => {
                   const file = event.target.files?.[0] || null;

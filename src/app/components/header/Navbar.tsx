@@ -53,6 +53,7 @@ function MobileSearchInput({
       <BiSearch size={15} className="shrink-0 text-slate-400" />
       <input
         type="text"
+        name="mobileSearchQuery"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder={isArabic ? "ابحث..." : "Search..."}

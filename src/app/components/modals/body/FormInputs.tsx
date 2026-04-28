@@ -66,7 +66,7 @@ function FormInput<T extends Record<string, unknown>>({
                     : `${label} is required`
                   : false,
               })
-            : {})}
+            : { name: String(name) })}
           value={value}
           onChange={onChange}
         />

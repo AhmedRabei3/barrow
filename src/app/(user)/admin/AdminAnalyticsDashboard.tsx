@@ -668,6 +668,7 @@ const AdminAnalyticsDashboard = () => {
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
               <input
+                name="subscriberSearch"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={t(
@@ -677,6 +678,7 @@ const AdminAnalyticsDashboard = () => {
                 className="admin-input min-w-0 rounded-2xl px-4 py-2.5 text-sm outline-none ring-0 transition sm:min-w-72"
               />
               <select
+                name="subscriberStatusFilter"
                 value={status}
                 onChange={(event) =>
                   setStatus(event.target.value as StatusFilter)

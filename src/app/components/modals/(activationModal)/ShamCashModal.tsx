@@ -119,6 +119,7 @@ const ShamCashModal = ({
           >
             <input
               type="text"
+              name="transactionNumber"
               disabled={isSubmitting}
               className="w-full p-2 border rounded bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
               placeholder={isArabic ? "مثال: #123456" : "Example: #123456"}

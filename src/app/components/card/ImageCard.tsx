@@ -27,7 +27,10 @@ const ImageCard = ({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 20vw"
+          quality={75}
+          placeholder="empty"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+          decoding="async"
         />
       ) : (
         <div className="flex justify-center items-center w-full h-full text-slate-500 dark:text-slate-300 text-sm bg-slate-100 dark:bg-slate-900">

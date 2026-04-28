@@ -103,8 +103,8 @@ const SupportContactModal = ({
       if (!response.ok) {
         throw new Error(
           localize(
-              data?.message ||
-                t("تعذر تحميل المحادثات السابقة", "Failed to load tickets"),
+            data?.message ||
+              t("تعذر تحميل المحادثات السابقة", "Failed to load tickets"),
           ),
         );
       }
@@ -400,6 +400,7 @@ const SupportContactModal = ({
                   {t("عنوان الرسالة", "Message subject")}
                 </label>
                 <input
+                  name="supportSubject"
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
                   placeholder={t("اكتب عنوان الرسالة", "Write the subject")}
@@ -413,6 +414,7 @@ const SupportContactModal = ({
                   {t("الرسالة", "Message")}
                 </label>
                 <textarea
+                  name="supportMessage"
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder={t("اكتب رسالتك هنا", "Write your message here")}
@@ -544,6 +546,7 @@ const SupportContactModal = ({
 
                     <div className="space-y-2 border-t border-slate-200 pt-2 dark:border-slate-700">
                       <textarea
+                        name="supportReplyMessage"
                         value={replyMessage}
                         onChange={(event) =>
                           setReplyMessage(event.target.value)

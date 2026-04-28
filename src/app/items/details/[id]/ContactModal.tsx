@@ -46,6 +46,7 @@ const ContactModal = ({
 
         <input
           type="text"
+          name="contactOwnerFullName"
           placeholder={isArabic ? "الاسم الكامل" : "Full name"}
           className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
           value={fullName}
@@ -54,6 +55,7 @@ const ContactModal = ({
 
         <input
           type="tel"
+          name="contactOwnerPhone"
           placeholder={isArabic ? "رقم الهاتف" : "Phone number"}
           className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
           value={phoneNumber}
@@ -61,6 +63,7 @@ const ContactModal = ({
         />
 
         <textarea
+          name="contactOwnerNote"
           placeholder={isArabic ? "ملاحظة (اختياري)" : "Note (optional)"}
           className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
           rows={3}

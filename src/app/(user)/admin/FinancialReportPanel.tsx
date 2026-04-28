@@ -409,6 +409,7 @@ const FinancialReportPanel = () => {
             {t("من تاريخ", "From")}
             <input
               type="date"
+              name="reportDateFrom"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
               className="admin-input mt-1 w-full rounded-xl px-3 py-2 text-sm"
@@ -418,6 +419,7 @@ const FinancialReportPanel = () => {
           <label className="text-sm text-slate-300">
             {t("طريقة الدفع", "Payment Method")}
             <select
+              name="reportChannel"
               value={channel}
               onChange={(event) =>
                 setChannel(event.target.value as ReportChannel)
@@ -436,6 +438,7 @@ const FinancialReportPanel = () => {
             {t("إلى تاريخ", "To")}
             <input
               type="date"
+              name="reportDateTo"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
               className="admin-input mt-1 w-full rounded-xl px-3 py-2 text-sm"

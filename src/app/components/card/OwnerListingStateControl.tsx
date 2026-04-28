@@ -350,6 +350,7 @@ const OwnerListingStateControl = ({
               {isArabic ? "نوع الإيجار" : "Rent type"}
             </label>
             <select
+              name="ownerRentType"
               value={selectedRentType}
               onChange={(event) =>
                 setSelectedRentType(event.target.value as RentTypeKey)
@@ -371,6 +372,7 @@ const OwnerListingStateControl = ({
               </label>
               <input
                 type="number"
+                name="ownerRentalPeriods"
                 min={1}
                 step={1}
                 value={manualRentalPeriods}

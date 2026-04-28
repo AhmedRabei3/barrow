@@ -90,6 +90,7 @@ const StepOne = ({ filters, onChange }: StepOneProps) => {
       <QuestionContainer title={SEARCH_MODAL_TEXT.minPrice[locale]}>
         <input
           type="number"
+          name="stepOneMinPrice"
           className="w-full p-2 border rounded"
           value={filters.minPrice || ""}
           onChange={(e) => onChange("minPrice", e.target.value)}
@@ -98,6 +99,7 @@ const StepOne = ({ filters, onChange }: StepOneProps) => {
       <QuestionContainer title={SEARCH_MODAL_TEXT.maxPrice[locale]}>
         <input
           type="number"
+          name="stepOneMaxPrice"
           className="w-full p-2 border rounded"
           value={filters.maxPrice || ""}
           onChange={(e) => onChange("maxPrice", e.target.value)}

@@ -122,11 +122,20 @@ const SiteFooter = () => {
   const footerContent = isArabic ? footerLabels.ar : footerLabels.en;
 
   return (
-    <footer className="footer-shell mt-12">
+    <footer className="footer-shell mt-12" style={{ contain: "paint" }}>
       <Container>
-        <div className="space-y-8 py-12 md:space-y-10 md:py-16">
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-stretch">
-            <div className="footer-panel rounded-[28px] p-6 md:p-8">
+        <div
+          className="space-y-8 py-12 md:space-y-10 md:py-16"
+          style={{ contain: "content" }}
+        >
+          <section
+            className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-stretch"
+            style={{ minHeight: "auto" }}
+          >
+            <div
+              className="footer-panel rounded-[28px] p-6 md:p-8"
+              style={{ contain: "layout" }}
+            >
               <div className="mb-5 flex items-center gap-3">
                 <Logo
                   width={50}
@@ -173,8 +182,11 @@ const SiteFooter = () => {
             </div>
           </section>
 
-          <section className="grid gap-6 w-full">
-            <div className="rounded-3xl border border-blue-300/50 bg-blue-700 p-6 shadow-lg md:p-7">
+          <section className="grid gap-6 w-full" style={{ minHeight: "auto" }}>
+            <div
+              className="rounded-3xl border border-blue-300/50 bg-blue-700 p-6 shadow-lg md:p-7"
+              style={{ contain: "layout" }}
+            >
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
                 {isArabic ? "لماذا تختارنا" : "Why choose us"}
               </h3>

@@ -116,6 +116,7 @@ export const metadata: Metadata = {
   },
 };
 
+/* eslint-disable @next/next/no-page-custom-font */
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -133,6 +134,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Critical resource hints for performance */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link
           rel="preconnect"
@@ -140,8 +142,39 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
-        {/* Preload logo so MobileCategoryPicker LCP element arrives early */}
-        <link rel="preload" as="image" href="/images/logo.png" />
+        <link
+          rel="preconnect"
+          href="https://nominatim.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+
+        {/* Preload critical resources for LCP optimization */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/logo.png"
+          fetchPriority="high"
+        />
+        <link
+          rel="preload"
+          as="font"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=optional"
+          crossOrigin="anonymous"
+        />
+
+        {/* Async CSS loading to reduce render-blocking */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener('DOMContentLoaded', () => {
+                const linkTags = document.querySelectorAll('link[data-async="true"]');
+                linkTags.forEach(link => {
+                  link.media = 'all';
+                });
+              });
+            `,
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}
@@ -166,3 +199,4 @@ export default async function RootLayout({
     </html>
   );
 }
+/* eslint-enable @next/next/no-page-custom-font */

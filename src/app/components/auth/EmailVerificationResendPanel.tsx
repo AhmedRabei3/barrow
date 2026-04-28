@@ -256,6 +256,7 @@ export default function EmailVerificationResendPanel({
       <div className="mt-3 flex flex-col gap-3">
         <input
           type="email"
+          name="resendVerificationEmail"
           value={typedEmail}
           onChange={(event) => setTypedEmail(event.target.value)}
           placeholder={

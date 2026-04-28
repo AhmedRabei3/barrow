@@ -793,6 +793,7 @@ const Profile = () => {
                   </div>
                   <div className="relative hidden overflow-hidden sm:block">
                     <input
+                      name="referralLink"
                       className={`w-full overflow-hidden truncate border-none bg-transparent py-3 text-sm font-mono font-medium text-slate-700 focus:ring-0 dark:text-slate-200 ${
                         isArabic
                           ? "pr-4 pl-36 text-right"
@@ -1035,6 +1036,7 @@ const Profile = () => {
 
               <input
                 type="number"
+                name="shamCashWithdrawAmount"
                 min={0.01}
                 max={Math.max(0, availableToWithdraw)}
                 step="0.01"

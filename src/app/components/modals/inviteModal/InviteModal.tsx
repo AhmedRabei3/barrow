@@ -136,6 +136,7 @@ const InviteModal = () => {
             </p>
 
             <textarea
+              name="inviteMessage"
               className="invite-textarea"
               value={message}
               onChange={(e) => setMessage(e.target.value)}

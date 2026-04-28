@@ -48,6 +48,7 @@ const EditItemModal = ({
         <div className="space-y-3">
           <label className="block text-sm">{t("العنوان", "Title")}</label>
           <input
+            name="editItemTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded border px-2 py-1"

@@ -244,6 +244,7 @@ const ImageModerationPanel = () => {
             ) : null}
           </div>
           <select
+            name="imageModerationFilterType"
             value={filterType}
             onChange={(event) => {
               setPage(1);
@@ -479,6 +480,7 @@ const ImageModerationPanel = () => {
               {t("ملاحظة المراجعة", "Moderation note")}
             </label>
             <textarea
+              name="imageModerationRejectNote"
               value={rejectNote}
               onChange={(event) => setRejectNote(event.target.value)}
               rows={5}

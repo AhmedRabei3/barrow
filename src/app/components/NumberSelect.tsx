@@ -71,6 +71,7 @@ const NumberSelector = ({
 
         <input
           type="number"
+          name="numberSelectValue"
           className="focus:outline-none text-center text-lg font-semibold w-14 no-spinner"
           value={value}
           onChange={(e) => {

@@ -5,6 +5,7 @@ const CategoryMenu = () => {
     <div className="relative  h-fit mt-2">
       <input
         type="checkbox"
+        name="categoryMenuToggle"
         className="z-10 peer h-8 absolute w-full opacity-0"
       />
 

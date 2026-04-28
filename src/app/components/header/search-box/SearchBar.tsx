@@ -63,6 +63,7 @@ export default function SearchBar({
           </p>
           <input
             type="text"
+            name="searchQuery"
             placeholder={isArabic ? "ابحث... " : "Search ..."}
             className="mt-0.5 w-full bg-transparent text-sm text-slate-700 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
             value={localQuery}
@@ -100,10 +101,11 @@ export default function SearchBar({
         <div className="hidden lg:flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 px-3 py-1.5">
           <input
             type="number"
+            name="minPrice"
             value={minPrice ?? ""}
-            placeholder={isArabic ? "الحد الأدنى" : "Min"}
-            title={isArabic ? "الحد الأدنى للسعر" : "Minimum price"}
-            aria-label={isArabic ? "الحد الأدنى للسعر" : "Minimum price"}
+            placeholder={isArabic ? "أدنى سعر" : "Min price"}
+            title={isArabic ? "أدنى سعر" : "Minimum price"}
+            aria-label={isArabic ? "أدنى سعر" : "Minimum price"}
             className="w-20 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             onChange={(event) =>
               handleSetMinPrice?.(
@@ -115,10 +117,11 @@ export default function SearchBar({
           />
           <input
             type="number"
+            name="maxPrice"
             value={maxPrice ?? ""}
-            placeholder={isArabic ? "الحد الأعلى" : "Max"}
-            title={isArabic ? "الحد الأعلى للسعر" : "Maximum price"}
-            aria-label={isArabic ? "الحد الأعلى للسعر" : "Maximum price"}
+            placeholder={isArabic ? "أعلى سعر" : "Max price"}
+            title={isArabic ? "أعلى سعر" : "Maximum price"}
+            aria-label={isArabic ? "أعلى سعر" : "Maximum price"}
             className="w-20 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             onChange={(event) =>
               handleSetMaxPrice?.(

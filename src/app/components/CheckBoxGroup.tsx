@@ -64,7 +64,12 @@ const CheckboxGroup = ({ name, items, getValues, setValue }: Props) => {
                 className={isChecked ? "text-sky-600" : "hover:bg-sky-50"}
               />
             ) : (
-              <input type="checkbox" checked={isChecked} readOnly />
+              <input
+                type="checkbox"
+                name="checkboxGroupItem"
+                checked={isChecked}
+                readOnly
+              />
             )}
           </button>
         );
