@@ -62,6 +62,14 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
       }
 
       const counts = await fetchItemTypeCounts();
+      if (!counts) {
+        return categoryFetcher({
+          type,
+          withItemsOnly: false,
+          signal,
+        });
+      }
+
       if ((counts?.[type] ?? 0) <= 0) {
         return categoriesWithItems;
       }

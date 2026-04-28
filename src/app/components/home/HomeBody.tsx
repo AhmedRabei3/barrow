@@ -3,7 +3,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
-import CardListSkeleton from "./CardListSkeleton";
 import MapWrapper from "./MyMap";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
@@ -71,8 +70,8 @@ const HomeBody = ({
   if (loading && !items.length) {
     return (
       <Container>
-        <div className={CONTENT_LAYOUT_CLASS}>
-          <CardListSkeleton count={10} />
+        <div className="mt-6 rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
+          {isArabic ? "جار تحميل الإعلانات..." : "Loading listings..."}
         </div>
       </Container>
     );
@@ -85,12 +84,6 @@ const HomeBody = ({
   /** 🔹 المكون الرئيسي */
   return (
     <Container>
-      {isRefreshing && items.length > 0 && (
-        <div className="mb-4">
-          <CardListSkeleton count={3} />
-        </div>
-      )}
-
       {featuredItems !== undefined && topFeaturedItems.length > 0 && (
         <section
           className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:p-4"
