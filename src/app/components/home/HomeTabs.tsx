@@ -18,6 +18,7 @@ import {
 } from "@/lib/primaryCategories";
 import MainCatList from "./MainCatList";
 import categoryFetcher from "@/app/components/category/CategoryFetcher";
+import { request } from "@/app/utils/axios";
 
 const TAB_ICONS = {
   MdOutlineRealEstateAgent,
@@ -27,6 +28,58 @@ const TAB_ICONS = {
   MdOutlineChair,
   FaStethoscope,
 } as const;
+
+const hasItemsForType = async (type: string) => {
+  try {
+    const response = await request.get("/api/items", {
+      params: {
+        type,
+        page: 1,
+        limit: 1,
+      },
+      timeout: 7000,
+    });
+
+    const payload = response.data as
+      | { success?: boolean; items?: unknown[]; totalCount?: number }
+      | undefined;
+
+    if (!payload?.success) {
+      return false;
+    }
+
+    if (Array.isArray(payload.items) && payload.items.length > 0) {
+      return true;
+    }
+
+    return typeof payload.totalCount === "number" && payload.totalCount > 0;
+  } catch {
+    return false;
+  }
+};
+
+const fetchItemTypeCounts = async (): Promise<Record<
+  string,
+  number
+> | null> => {
+  try {
+    const response = await request.get("/api/items/counts", {
+      timeout: 7000,
+    });
+
+    const payload = response.data as
+      | { success?: boolean; counts?: Record<string, number> }
+      | undefined;
+
+    if (!payload?.success || !payload.counts) {
+      return null;
+    }
+
+    return payload.counts;
+  } catch {
+    return null;
+  }
+};
 
 interface HomeTabsProps {
   onSelectTab: (key: PrimaryCategoryKey) => void;
@@ -53,6 +106,19 @@ const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
   const selectedType = getPrimaryCategoryKey(type as never) ?? tabsList[0]?.key;
 
   const loadAvailableTabs = useCallback(async () => {
+    const countsByType = await fetchItemTypeCounts();
+
+    if (countsByType) {
+      const keysFromCounts = PRIMARY_CATEGORY_TABS.filter(
+        (tab) => (countsByType[tab.type] ?? 0) > 0,
+      ).map((tab) => tab.key);
+
+      if (keysFromCounts.length > 0) {
+        setAvailableKeys(keysFromCounts);
+        return;
+      }
+    }
+
     const results = await Promise.all(
       PRIMARY_CATEGORY_TABS.map(async (tab) => {
         const categories = await categoryFetcher({
@@ -60,7 +126,12 @@ const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
           withItemsOnly: true,
         });
 
-        return categories.length > 0 ? tab.key : null;
+        if (categories.length > 0) {
+          return tab.key;
+        }
+
+        const hasItems = await hasItemsForType(tab.type);
+        return hasItems ? tab.key : null;
       }),
     );
 

@@ -21,7 +21,7 @@ const PointsNavigation = ({
               type="button"
               onClick={() => handleDotClick(index)}
               aria-label={`Go to image ${index + 1}`}
-              className="flex w-fit items-center justify-center rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-sky-300/60"
+              className="flex min-w-6 items-center justify-center rounded-full p-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-sky-300/60"
             >
               <span
                 className={`block h-1 rounded-full transition-all duration-300 ${

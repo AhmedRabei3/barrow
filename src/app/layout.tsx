@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
 import ClientOnly from "./components/ClientOnly";
 import GlobalOverlays from "./components/GlobalOverlays";
@@ -123,9 +123,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const acceptLanguage = (await headers()).get("accept-language") ?? "";
-  const initialLocale = acceptLanguage.toLowerCase().startsWith("ar")
-    ? "ar"
-    : "en";
+  const cookieStore = await cookies();
+  const savedLocaleCookie = cookieStore.get("barrow-locale")?.value;
+  const initialLocale =
+    savedLocaleCookie === "ar" || savedLocaleCookie === "en"
+      ? savedLocaleCookie
+      : acceptLanguage.toLowerCase().startsWith("ar")
+        ? "ar"
+        : "en";
 
   return (
     <html
@@ -142,11 +147,6 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
-        <link
-          rel="preconnect"
-          href="https://nominatim.openstreetmap.org"
-          crossOrigin="anonymous"
-        />
 
         {/* Preload critical resources for LCP optimization */}
         <link

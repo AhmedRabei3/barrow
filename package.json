@@ -93,5 +93,12 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "browserslist": [
+    "chrome >= 93",
+    "firefox >= 92",
+    "safari >= 15.4",
+    "edge >= 93",
+    "not dead"
+  ]
 }

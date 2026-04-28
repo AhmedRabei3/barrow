@@ -86,7 +86,7 @@ const ICON_BUTTON_SKELETON_CLASS =
   "h-9 w-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
 
 const USER_MENU_SKELETON_CLASS =
-  "h-9 w-16 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
+  "h-11 w-[4.5rem] rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
 
 const TOP_BAR_CLASS =
   "fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-950/90";
@@ -263,7 +263,7 @@ const Navbar = ({
           <div className="flex items-center justify-center">
             <Logo />
           </div>
-          <div className="min-w-0 px-1">
+          <div className="min-w-0 px-1 md:hidden">
             <MobileSearchInput q={q} setQ={setQ} isArabic={isArabic} />
           </div>
           <div className="flex items-center justify-end gap-1">

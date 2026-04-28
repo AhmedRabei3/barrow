@@ -12,12 +12,36 @@ import { useStaleResource } from "@/app/hooks/useStaleResource";
 import Tryagain from "./Tryagain";
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
 import CategorySliderSkeleton from "./CategorySliderSkeleton";
+import { request } from "@/app/utils/axios";
 
 interface CategorySliderProps {
   type?: ItemType | null;
   setCatName: (c: string) => void;
   catName: string;
 }
+
+const fetchItemTypeCounts = async (): Promise<Record<
+  string,
+  number
+> | null> => {
+  try {
+    const response = await request.get("/api/items/counts", {
+      timeout: 7000,
+    });
+
+    const payload = response.data as
+      | { success?: boolean; counts?: Record<string, number> }
+      | undefined;
+
+    if (!payload?.success || !payload.counts) {
+      return null;
+    }
+
+    return payload.counts;
+  } catch {
+    return null;
+  }
+};
 
 const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
   const { isArabic } = useAppPreferences();
@@ -26,23 +50,46 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
     [type],
   );
   const fetchCategories = useCallback(
-    (signal: AbortSignal) =>
-      categoryFetcher({
+    async (signal: AbortSignal) => {
+      const categoriesWithItems = await categoryFetcher({
         type,
         withItemsOnly: true,
         signal,
-      }),
+      });
+
+      if (categoriesWithItems.length > 0 || !type) {
+        return categoriesWithItems;
+      }
+
+      const counts = await fetchItemTypeCounts();
+      if ((counts?.[type] ?? 0) <= 0) {
+        return categoriesWithItems;
+      }
+
+      return categoryFetcher({
+        type,
+        withItemsOnly: false,
+        signal,
+      });
+    },
     [type],
   );
 
-  const fallbackData = useMemo(
-    () =>
-      getCachedCategoriesSnapshot({
-        type,
-        withItemsOnly: true,
-      }),
-    [type],
-  );
+  const fallbackData = useMemo(() => {
+    const withItems = getCachedCategoriesSnapshot({
+      type,
+      withItemsOnly: true,
+    });
+
+    if (withItems?.length) {
+      return withItems;
+    }
+
+    return getCachedCategoriesSnapshot({
+      type,
+      withItemsOnly: false,
+    });
+  }, [type]);
 
   const { data, loading, refetch } = useStaleResource<CategoryItem[]>({
     cacheKey,

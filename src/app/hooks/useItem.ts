@@ -18,15 +18,76 @@ type CacheQueryKey = {
   longitude: number | null;
 };
 
-const itemsCache = new Map<
-  string,
-  { items: FormattedItem[]; totalItems: number }
->();
+type ItemsCacheSnapshot = { items: FormattedItem[]; totalItems: number };
+
+const itemsCache = new Map<string, ItemsCacheSnapshot>();
+
+const ITEMS_CACHE_STORAGE_PREFIX = "barrow:items-cache:";
+let itemsCacheHydrated = false;
 
 const fallbackCacheIndex = new Map<
   string,
   { items: FormattedItem[]; totalItems: number }
 >();
+
+const persistItemsSnapshot = (
+  cacheKey: string,
+  snapshot: ItemsCacheSnapshot,
+) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      `${ITEMS_CACHE_STORAGE_PREFIX}${cacheKey}`,
+      JSON.stringify(snapshot),
+    );
+  } catch {
+    // Ignore storage failures (private mode/quota exceeded).
+  }
+};
+
+const hydrateItemsCacheFromSessionStorage = () => {
+  if (itemsCacheHydrated || typeof window === "undefined") {
+    return;
+  }
+
+  itemsCacheHydrated = true;
+
+  try {
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (!key?.startsWith(ITEMS_CACHE_STORAGE_PREFIX)) {
+        continue;
+      }
+
+      const payload = window.sessionStorage.getItem(key);
+      if (!payload) {
+        continue;
+      }
+
+      const parsed = JSON.parse(payload) as unknown;
+      if (!parsed || typeof parsed !== "object") {
+        continue;
+      }
+
+      const maybeItems = (parsed as { items?: unknown }).items;
+      const maybeTotal = (parsed as { totalItems?: unknown }).totalItems;
+      if (!Array.isArray(maybeItems) || typeof maybeTotal !== "number") {
+        continue;
+      }
+
+      const cacheKey = key.slice(ITEMS_CACHE_STORAGE_PREFIX.length);
+      itemsCache.set(cacheKey, {
+        items: maybeItems as FormattedItem[],
+        totalItems: maybeTotal,
+      });
+    }
+  } catch {
+    // Ignore malformed session storage payloads.
+  }
+};
 
 const normalizeCategoryName = (value: string | null | undefined) =>
   (value ?? "").trim().toLowerCase();
@@ -191,19 +252,31 @@ const clearFallbackCacheIndex = () => {
 export const clearItemsCache = () => {
   itemsCache.clear();
   clearFallbackCacheIndex();
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(ITEMS_CACHE_STORAGE_PREFIX)) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach((key) => {
+      window.sessionStorage.removeItem(key);
+    });
+  } catch {
+    // Ignore storage access failures.
+  }
 };
 
 const useItems = ({ page, limit }: { page: number; limit: number }) => {
   const { filters } = useSearchFilters(); // ← جلب الفلاتر
 
-  const [items, setItems] = useState<FormattedItem[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshSeed, setRefreshSeed] = useState(0);
-
-  const controllerRef = useRef<AbortController | null>(null);
-  const itemsRef = useRef<FormattedItem[]>([]);
   const requestFilters = useMemo(
     () => ({
       type: filters.type,
@@ -246,11 +319,35 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
     [requestFilters, page, limit],
   );
 
+  const initialSnapshot = useMemo(() => {
+    hydrateItemsCacheFromSessionStorage();
+
+    return (
+      itemsCache.get(requestKey) ??
+      buildLocalCategorySnapshot(requestKey, requestQuery)
+    );
+  }, [requestKey, requestQuery]);
+
+  const [items, setItems] = useState<FormattedItem[]>(
+    () => initialSnapshot?.items ?? [],
+  );
+  const [totalItems, setTotalItems] = useState(
+    () => initialSnapshot?.totalItems ?? 0,
+  );
+  const [loading, setLoading] = useState(() => !Boolean(initialSnapshot));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshSeed, setRefreshSeed] = useState(0);
+
+  const controllerRef = useRef<AbortController | null>(null);
+  const itemsRef = useRef<FormattedItem[]>(initialSnapshot?.items ?? []);
+
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
 
   useEffect(() => {
+    hydrateItemsCacheFromSessionStorage();
+
     // إلغاء الطلب السابق إن وجد
     if (controllerRef.current) controllerRef.current.abort();
     const controller = new AbortController();
@@ -282,10 +379,12 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
       });
 
       if (result) {
-        itemsCache.set(requestKey, {
+        const nextSnapshot = {
           items: result.items,
           totalItems: result.totalCount,
-        });
+        };
+        itemsCache.set(requestKey, nextSnapshot);
+        persistItemsSnapshot(requestKey, nextSnapshot);
         clearFallbackCacheIndex();
       }
     })();

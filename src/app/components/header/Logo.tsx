@@ -57,6 +57,7 @@ const Logo = ({
         src={logoImage}
         width={displayWidth}
         height={displayHeight}
+        priority
       />
       <div className="flex flex-col leading-[0.9]">
         <span

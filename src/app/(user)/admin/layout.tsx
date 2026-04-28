@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import "./admin.css";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
