@@ -1,5 +1,6 @@
 "use client";
 
+import "./footer.css";
 import Link from "next/link";
 import { lazy, memo, Suspense, type ComponentType, useState } from "react";
 import { useSession } from "next-auth/react";

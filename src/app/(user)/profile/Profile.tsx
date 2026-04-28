@@ -1,5 +1,6 @@
 "use client";
 
+import "./profile.css";
 import { useProfile } from "@/app/hooks/useProfile";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ProfileHeader from "./ProfileHeader";

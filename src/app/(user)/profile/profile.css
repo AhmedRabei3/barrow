@@ -1,0 +1,59 @@
+.profile-modal-backdrop {
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.profile-modal-close {
+  border: 1px solid rgba(51, 65, 85, 0.88);
+  background: rgba(2, 6, 23, 0.84);
+  color: #e2e8f0;
+}
+
+.profile-modal-input {
+  width: 100%;
+  border: 1px solid rgba(51, 65, 85, 0.88);
+  background: rgba(2, 6, 23, 0.72);
+  color: #ffffff;
+}
+
+.profile-modal-input::placeholder {
+  color: #64748b;
+}
+
+.profile-modal-preview {
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.profile-modal-file-meta {
+  color: #64748b;
+}
+
+html:not(.dark) .profile-modal-backdrop {
+  background: rgba(226, 232, 240, 0.64);
+}
+
+html:not(.dark) .profile-modal-close {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: rgba(255, 255, 255, 0.95);
+  color: #334155;
+}
+
+html:not(.dark) .profile-modal-input {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+}
+
+html:not(.dark) .profile-modal-input::placeholder {
+  color: #94a3b8;
+}
+
+html:not(.dark) .profile-modal-preview {
+  border-color: rgba(103, 232, 249, 0.4);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+html:not(.dark) .profile-modal-file-meta {
+  color: #64748b;
+}

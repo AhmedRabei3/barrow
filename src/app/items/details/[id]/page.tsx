@@ -1,3 +1,4 @@
+import "./market.css";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {

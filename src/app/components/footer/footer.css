@@ -1,0 +1,77 @@
+.footer-shell {
+  border-top: 1px solid rgba(30, 41, 59, 0.9);
+  background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  color: #f8fafc;
+}
+
+.footer-panel {
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  background: radial-gradient(circle at top right, rgba(37, 100, 235, 0.716), transparent 45%), linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.96));
+}
+
+.footer-card {
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.footer-pill {
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  background: rgba(15, 23, 42, 0.92);
+  color: #94a3b8;
+}
+
+.footer-heading {
+  color: #ffffff;
+}
+
+.footer-text {
+  color: #94a3b8;
+}
+
+.footer-social {
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.footer-divider {
+  border-color: rgba(30, 41, 59, 0.9);
+}
+
+html:not(.dark) .footer-shell {
+  border-top-color: rgba(203, 213, 225, 0.92);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #0f172a;
+}
+
+html:not(.dark) .footer-panel {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 45%), linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+}
+
+html:not(.dark) .footer-card {
+  border-color: rgba(203, 213, 225, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+html:not(.dark) .footer-pill {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: rgba(255, 255, 255, 0.92);
+  color: #64748b;
+}
+
+html:not(.dark) .footer-heading {
+  color: #0f172a;
+}
+
+html:not(.dark) .footer-text {
+  color: #64748b;
+}
+
+html:not(.dark) .footer-social {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html:not(.dark) .footer-divider {
+  border-color: rgba(203, 213, 225, 0.92);
+}
