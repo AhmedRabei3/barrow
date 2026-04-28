@@ -178,6 +178,13 @@ const Card: FC<CardProps> = ({
           ? "إعلانك مخفي حاليًا ريثما تتم مراجعته من الإدارة."
           : "Your listing is hidden until review is completed by admin."
         : null;
+  const formattedModeratedAt = moderatedAt
+    ? new Intl.DateTimeFormat(isArabic ? "ar" : "en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
+      }).format(new Date(moderatedAt))
+    : null;
 
   return (
     <div className="w-full h-fit mx-auto">
@@ -231,9 +238,7 @@ const Card: FC<CardProps> = ({
             {moderatedAt ? (
               <div className="mt-1 text-[11px] text-amber-200/80">
                 {isArabic ? "آخر تحديث:" : "Last update:"}{" "}
-                {new Date(moderatedAt).toLocaleString(
-                  isArabic ? "ar" : "en-US",
-                )}
+                {formattedModeratedAt}
               </div>
             ) : null}
           </div>

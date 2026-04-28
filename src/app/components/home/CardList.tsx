@@ -2,7 +2,7 @@
 
 import { FormattedItem } from "./getItems";
 import Card from "../card/Card";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 
 interface CardListProps {
   items: FormattedItem[];
@@ -11,36 +11,16 @@ interface CardListProps {
 const getCardKey = (item: FormattedItem) => `${item.item.id}`;
 
 const CardList = ({ items }: CardListProps) => {
-  const [visibleCount, setVisibleCount] = useState(() =>
-    Math.min(items.length, 10),
-  );
-
-  useEffect(() => {
-    setVisibleCount(Math.min(items.length, 10));
-  }, [items]);
-
-  useEffect(() => {
-    if (visibleCount >= items.length) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setVisibleCount((current) => Math.min(current + 10, items.length));
-    }, 140);
-
-    return () => window.clearTimeout(timer);
-  }, [items.length, visibleCount]);
-
   const renderedItems = useMemo(
     () =>
-      items.slice(0, visibleCount).map((item, index) => ({
+      items.map((item, index) => ({
         item,
         key: getCardKey(item),
         delay: Math.min(index * 0.02, 0.2),
         // Keep high priority for only one above-the-fold image to avoid network contention.
         priority: index === 0,
       })),
-    [items, visibleCount],
+    [items],
   );
 
   return (
