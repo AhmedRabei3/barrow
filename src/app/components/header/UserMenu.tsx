@@ -249,15 +249,34 @@ const UserMenu = () => {
   const subscriptionIcon = isSubscriptionActive ? "MdGroupAdd" : "FaCheck";
 
   const handleInstallApp = useCallback(async () => {
-    if (!deferredInstallPrompt) {
-      return;
-    }
-
     closeMenu();
-    await deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    setDeferredInstallPrompt(null);
-  }, [closeMenu, deferredInstallPrompt]);
+
+    if (deferredInstallPrompt) {
+      // PWA installable: use native prompt
+      await deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      setDeferredInstallPrompt(null);
+    } else {
+      // Fallback: redirect to app store
+      const userAgent = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+
+      if (isIOS) {
+        window.location.href = "https://apps.apple.com/app/barrow/id6502484095";
+      } else if (isAndroid) {
+        window.location.href =
+          "https://play.google.com/store/apps/details?id=com.barrow.app";
+      } else {
+        // Desktop: show message (PWA)
+        alert(
+          isArabic
+            ? "يمكنك تثبيت التطبيق من قائمة المتصفح الرئيسية"
+            : "You can install the app from your browser's main menu",
+        );
+      }
+    }
+  }, [closeMenu, deferredInstallPrompt, isArabic]);
 
   const renderGuestMenuItems = () => (
     <>
@@ -315,14 +334,12 @@ const UserMenu = () => {
         badge={openTicketsCount > 0 ? String(openTicketsCount) : undefined}
       />
 
-      {deferredInstallPrompt ? (
-        <UserMenueItem
-          label={isArabic ? "تثبيت التطبيق" : "Install app"}
-          onClick={handleInstallApp}
-          iconName="MdInstallMobile"
-          isArabic={isArabic}
-        />
-      ) : null}
+      <UserMenueItem
+        label={isArabic ? "تنزيل التطبيق" : "Download app"}
+        onClick={handleInstallApp}
+        iconName="MdInstallMobile"
+        isArabic={isArabic}
+      />
 
       <UserMenueItem
         label={isArabic ? "تسجيل الخروج" : "Logout"}
@@ -525,7 +542,9 @@ const UserMenu = () => {
                                 onChange={(event) =>
                                   setDrawerMinPrice(event.target.value)
                                 }
-                                placeholder={isArabic ? "أدنى سعر" : "Min price"}
+                                placeholder={
+                                  isArabic ? "أدنى سعر" : "Min price"
+                                }
                                 className={quickFilterInputClass}
                               />
                               <input
@@ -535,7 +554,9 @@ const UserMenu = () => {
                                 onChange={(event) =>
                                   setDrawerMaxPrice(event.target.value)
                                 }
-                                placeholder={isArabic ? "أعلى سعر" : "Max price"}
+                                placeholder={
+                                  isArabic ? "أعلى سعر" : "Max price"
+                                }
                                 className={quickFilterInputClass}
                               />
                             </div>

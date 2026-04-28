@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   MdOutlineRealEstateAgent,
@@ -200,6 +201,32 @@ export default function MobileCategoryPicker({
   const registerModal = useRegisterModal();
   const isGuest = status !== "loading" && !session?.user;
 
+  /* ── fetch per-type counts and hide empty categories ──────────── */
+  const [typeCounts, setTypeCounts] = useState<Record<string, number> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/items/type-counts", { cache: "force-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data === "object") {
+          setTypeCounts(data as Record<string, number>);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* While counts are still loading show all; once loaded filter empties. */
+  const visibleCategories =
+    typeCounts === null
+      ? CATEGORIES
+      : CATEGORIES.filter((cat) => (typeCounts[cat.key] ?? 0) > 0);
+
   return (
     <motion.div
       key="mobile-picker"
@@ -275,7 +302,7 @@ export default function MobileCategoryPicker({
         animate="show"
         className="relative grid grid-cols-2 gap-4 px-5 pb-12"
       >
-        {CATEGORIES.map((cat) => (
+        {visibleCategories.map((cat) => (
           <CategoryCard key={cat.key} cat={cat} onPick={onPick} />
         ))}
       </motion.div>

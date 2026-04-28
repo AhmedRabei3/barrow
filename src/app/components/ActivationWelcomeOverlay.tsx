@@ -282,10 +282,10 @@ const ActivationWelcomeOverlay = () => {
 
   return (
     <div
-      className="activation-spotlight-overlay"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       dir={isArabic ? "rtl" : "ltr"}
     >
-      <div className="activation-spotlight-shell">
+      <div className="activation-spotlight-shell relative max-w-2xl mx-auto">
         <div className="activation-spotlight-glow" />
         <div className="activation-spotlight-frame">
           <div className="activation-spotlight-headline">
