@@ -18,7 +18,10 @@ const getCachedTypeCounts = unstable_cache(
   async () => {
     const pairs = await Promise.all(
       TYPE_ENTRIES.map(async ({ key, type }) => {
-        const count = await itemSearchRepository.countByType(type, BASE_WHERE);
+        const count = await itemSearchRepository.countByIndex({
+          ...BASE_WHERE,
+          itemType: type,
+        });
         return [key, count] as const;
       }),
     );

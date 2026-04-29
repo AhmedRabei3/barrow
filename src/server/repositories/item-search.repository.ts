@@ -1,134 +1,42 @@
-import { $Enums, Prisma } from "@prisma/client";
+/**
+ * item-search.repository.ts
+ *
+ * All search queries now go through the single ListingSearchIndex table.
+ * This replaces the previous 6-table fan-out (6 separate DB round trips -> 1).
+ *
+ * attachMetadataBatch (images / reviews / featured pins) is unchanged.
+ */
+
+import {
+  Prisma,
+  type ItemType,
+  type Availability,
+  type TransactionType,
+  type RentType,
+} from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import type { ItemSearchItemDto } from "@/features/items/types";
 import { getFeaturedCutoffDate } from "@/lib/featuredAds";
 import { prisma } from "@/lib/prisma";
 
-type ItemWhereInput = Record<string, unknown>;
-
-const defaultOrderBy = [
-  { createdAt: "desc" as const },
-  { id: "desc" as const },
-];
-
-const locationSelect = {
-  latitude: true,
-  longitude: true,
-  address: true,
-  city: true,
-  country: true,
-} as const;
-
-const categorySelect = {
-  id: true,
-  name: true,
-  type: true,
-} as const;
-
-const propertySelect = {
-  id: true,
-  title: true,
-  description: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  guests: true,
-  bedrooms: true,
-  bathrooms: true,
-  livingrooms: true,
-  kitchens: true,
-  area: true,
-  floor: true,
-  elvator: true,
-  petAllowed: true,
-  furnished: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.PropertySelect;
-
-const newCarSelect = {
-  id: true,
-  brand: true,
-  model: true,
-  year: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  color: true,
-  fuelType: true,
-  gearType: true,
-  description: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.NewCarSelect;
-
-const oldCarSelect = {
-  id: true,
-  brand: true,
-  model: true,
-  year: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  color: true,
-  fuelType: true,
-  gearType: true,
-  description: true,
-  mileage: true,
-  reAssembled: true,
-  repainted: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.OldCarSelect;
-
-const otherItemSelect = {
-  id: true,
-  name: true,
-  brand: true,
-  description: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.OtherItemSelect;
-
-const homeFurnitureSelect = {
-  id: true,
-  name: true,
-  brand: true,
-  description: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.HomeFurnitureSelect;
-
-const medicalDeviceSelect = {
-  id: true,
-  name: true,
-  manufacturer: true,
-  model: true,
-  description: true,
-  price: true,
-  sellOrRent: true,
-  rentType: true,
-  status: true,
-  createdAt: true,
-  location: { select: locationSelect },
-  category: { select: categorySelect },
-} satisfies Prisma.MedicalDeviceSelect;
+type IndexRow = {
+  id: string;
+  itemType: ItemType;
+  title: string;
+  brand: string | null;
+  ownerId: string;
+  categoryId: string | null;
+  status: Availability;
+  sellOrRent: TransactionType;
+  rentType: RentType | null;
+  price: Prisma.Decimal;
+  isDeleted: boolean;
+  createdAt: Date;
+  locationCity: string | null;
+  locationCountry: string | null;
+  locationLat: number | null;
+  locationLng: number | null;
+};
 
 const getCachedCategoryIdByName = unstable_cache(
   async (name: string) => {
@@ -143,46 +51,49 @@ const getCachedCategoryIdByName = unstable_cache(
       },
       select: { id: true },
     });
-
     return category?.id ?? null;
   },
   ["item-search-category-id"],
   { revalidate: 300, tags: ["categories"] },
 );
 
+function indexRowToDto(row: IndexRow): ItemSearchItemDto {
+  return {
+    id: row.id,
+    type: row.itemType,
+    title: row.title,
+    brand: row.brand,
+    price: Number(row.price),
+    sellOrRent: row.sellOrRent,
+    rentType: row.rentType,
+    status: row.status,
+    createdAt: row.createdAt,
+    category: row.categoryId ? { id: row.categoryId } : null,
+    location:
+      row.locationLat !== null && row.locationLng !== null
+        ? {
+            latitude: row.locationLat,
+            longitude: row.locationLng,
+            city: row.locationCity ?? undefined,
+            country: row.locationCountry ?? undefined,
+          }
+        : null,
+  };
+}
+
 export const itemSearchRepository = {
   async findCategoryIdByName(name: string) {
     return getCachedCategoryIdByName(name);
   },
 
-  async countByType(type: $Enums.ItemType, where: ItemWhereInput) {
-    switch (type) {
-      case $Enums.ItemType.NEW_CAR:
-        return prisma.newCar.count({ where: where as Prisma.NewCarWhereInput });
-      case $Enums.ItemType.USED_CAR:
-        return prisma.oldCar.count({ where: where as Prisma.OldCarWhereInput });
-      case $Enums.ItemType.PROPERTY:
-        return prisma.property.count({
-          where: where as Prisma.PropertyWhereInput,
-        });
-      case $Enums.ItemType.HOME_FURNITURE:
-        return prisma.homeFurniture.count({
-          where: where as Prisma.HomeFurnitureWhereInput,
-        });
-      case $Enums.ItemType.MEDICAL_DEVICE:
-        return prisma.medicalDevice.count({
-          where: where as Prisma.MedicalDeviceWhereInput,
-        });
-      case $Enums.ItemType.OTHER:
-        return prisma.otherItem.count({
-          where: where as Prisma.OtherItemWhereInput,
-        });
-    }
+  async countByIndex(
+    where: Prisma.ListingSearchIndexWhereInput,
+  ): Promise<number> {
+    return prisma.listingSearchIndex.count({ where });
   },
 
-  async findByType(
-    type: $Enums.ItemType,
-    where: ItemWhereInput,
+  async findByIndex(
+    where: Prisma.ListingSearchIndexWhereInput,
     options?: { skip?: number; take?: number },
   ): Promise<ItemSearchItemDto[]> {
     const pagination = {
@@ -190,120 +101,38 @@ export const itemSearchRepository = {
       ...(typeof options?.take === "number" ? { take: options.take } : {}),
     };
 
-    switch (type) {
-      case $Enums.ItemType.NEW_CAR: {
-        const items = await prisma.newCar.findMany({
-          where: where as Prisma.NewCarWhereInput,
-          select: newCarSelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
+    const rows = await prisma.listingSearchIndex.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      ...pagination,
+    });
 
-        return items.map((item) => ({
-          ...item,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-          fuelType: item.fuelType,
-          gearType: item.gearType,
-        }));
-      }
+    return rows.map(indexRowToDto);
+  },
 
-      case $Enums.ItemType.USED_CAR: {
-        const items = await prisma.oldCar.findMany({
-          where: where as Prisma.OldCarWhereInput,
-          select: oldCarSelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
+  /**
+   * Runs count + findMany in a single $transaction (1 connection acquisition).
+   * Use this instead of calling countByIndex + findByIndex separately.
+   */
+  async findAndCountByIndex(
+    where: Prisma.ListingSearchIndexWhereInput,
+    options?: { skip?: number; take?: number },
+  ): Promise<[number, ItemSearchItemDto[]]> {
+    const pagination = {
+      ...(typeof options?.skip === "number" ? { skip: options.skip } : {}),
+      ...(typeof options?.take === "number" ? { take: options.take } : {}),
+    };
 
-        return items.map((item) => ({
-          ...item,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-          fuelType: item.fuelType,
-          gearType: item.gearType,
-        }));
-      }
+    const [count, rows] = await Promise.all([
+      prisma.listingSearchIndex.count({ where }),
+      prisma.listingSearchIndex.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        ...pagination,
+      }),
+    ]);
 
-      case $Enums.ItemType.PROPERTY: {
-        const items = await prisma.property.findMany({
-          where: where as Prisma.PropertyWhereInput,
-          select: propertySelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
-
-        return items.map((item) => ({
-          ...item,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-        }));
-      }
-
-      case $Enums.ItemType.HOME_FURNITURE: {
-        const items = await prisma.homeFurniture.findMany({
-          where: where as Prisma.HomeFurnitureWhereInput,
-          select: homeFurnitureSelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
-
-        return items.map((item) => ({
-          ...item,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-        }));
-      }
-
-      case $Enums.ItemType.MEDICAL_DEVICE: {
-        const items = await prisma.medicalDevice.findMany({
-          where: where as Prisma.MedicalDeviceWhereInput,
-          select: medicalDeviceSelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
-
-        return items.map((item) => ({
-          ...item,
-          brand: item.manufacturer,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-        }));
-      }
-
-      case $Enums.ItemType.OTHER: {
-        const items = await prisma.otherItem.findMany({
-          where: where as Prisma.OtherItemWhereInput,
-          select: otherItemSelect,
-          orderBy: defaultOrderBy,
-          ...pagination,
-        });
-
-        return items.map((item) => ({
-          ...item,
-          type,
-          price: Number(item.price),
-          sellOrRent: item.sellOrRent,
-          rentType: item.rentType,
-          status: item.status,
-        }));
-      }
-    }
+    return [count, rows.map(indexRowToDto)];
   },
 
   async attachMetadataBatch(items: ItemSearchItemDto[]) {
@@ -332,11 +161,7 @@ export const itemSearchRepository = {
           createdAt: { gte: featuredCutoff },
         },
         orderBy: { createdAt: "desc" },
-        select: {
-          itemId: true,
-          itemType: true,
-          createdAt: true,
-        },
+        select: { itemId: true, itemType: true, createdAt: true },
       }),
     ]);
 
@@ -365,7 +190,6 @@ export const itemSearchRepository = {
         if (!current || pin.createdAt > current) {
           result[key] = pin.createdAt;
         }
-
         return result;
       },
       {},

@@ -10,6 +10,10 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import {
+  deleteListingIndex,
+  upsertListingIndex,
+} from "@/server/services/listing-index.service";
 
 const toOptionalBoolean = (value: FormDataEntryValue | null) => {
   if (value === null || value === "") return undefined;
@@ -135,6 +139,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     );
 
+    void upsertListingIndex(id, "MEDICAL_DEVICE");
+
     return NextResponse.json({
       success: true,
       item: updatedItem,
@@ -179,6 +185,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         data: { isDeleted: true, deletedAt: new Date() },
       });
     });
+
+    void deleteListingIndex(id);
 
     return NextResponse.json({
       success: true,

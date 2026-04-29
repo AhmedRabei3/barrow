@@ -274,7 +274,15 @@ export const clearItemsCache = () => {
   }
 };
 
-const useItems = ({ page, limit }: { page: number; limit: number }) => {
+const useItems = ({
+  page,
+  limit,
+  enabled = true,
+}: {
+  page: number;
+  limit: number;
+  enabled?: boolean;
+}) => {
   const { filters } = useSearchFilters(); // ← جلب الفلاتر
 
   const requestFilters = useMemo(
@@ -334,7 +342,9 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
   const [totalItems, setTotalItems] = useState(
     () => initialSnapshot?.totalItems ?? 0,
   );
-  const [loading, setLoading] = useState(() => !Boolean(initialSnapshot));
+  const [loading, setLoading] = useState(
+    () => enabled && !Boolean(initialSnapshot),
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshSeed, setRefreshSeed] = useState(0);
 
@@ -347,6 +357,12 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
 
   useEffect(() => {
     hydrateItemsCacheFromSessionStorage();
+
+    if (!enabled) {
+      setLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
 
     // إلغاء الطلب السابق إن وجد
     if (controllerRef.current) controllerRef.current.abort();
@@ -390,7 +406,15 @@ const useItems = ({ page, limit }: { page: number; limit: number }) => {
     })();
 
     return () => controller.abort();
-  }, [requestFilters, requestKey, requestQuery, page, limit, refreshSeed]);
+  }, [
+    enabled,
+    requestFilters,
+    requestKey,
+    requestQuery,
+    page,
+    limit,
+    refreshSeed,
+  ]);
 
   const refetch = useCallback(() => {
     setRefreshSeed((prev) => prev + 1);

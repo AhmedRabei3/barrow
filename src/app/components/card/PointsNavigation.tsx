@@ -23,7 +23,7 @@ const PointsNavigation = ({
               type="button"
               onClick={() => handleDotClick(index)}
               aria-label={`Go to image ${index + 1}`}
-              className="flex min-h-6 min-w-6 
+              className="flex 
               items-center justify-center 
               rounded-full p-1 focus:outline-none 
               focus-visible:ring-1 

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         query.userLat === null && query.userLng === null
           ? {
               "Cache-Control":
-                "public, s-maxage=60, stale-while-revalidate=300",
+                "public, s-maxage=300, stale-while-revalidate=600",
             }
           : {
               "Cache-Control": "private, no-store",

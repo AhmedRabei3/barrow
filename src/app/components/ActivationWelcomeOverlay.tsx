@@ -287,7 +287,7 @@ const ActivationWelcomeOverlay = () => {
     >
       <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header gradient background */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/10 dark:to-purple-500/10" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-linear-to-br from-blue-500/20 to-purple-500/20 dark:from-blue-500/10 dark:to-purple-500/10" />
 
         {/* Content */}
         <div className="relative p-8 sm:p-10">
@@ -396,7 +396,7 @@ const ActivationWelcomeOverlay = () => {
                 </button>
                 <button
                   type="button"
-                  className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg font-semibold transition shadow-lg"
+                  className="flex-1 px-6 py-3 text-white bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg font-semibold transition shadow-lg"
                   onClick={openPublishAssistant}
                 >
                   {t("نشر إعلان", "Publish")}
@@ -405,15 +405,10 @@ const ActivationWelcomeOverlay = () => {
             </>
           ) : (
             <>
-              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed text-center">
-                {t(
-                  "الاشتراك يمنحك 30 يوماً من النشر الكامل، ظهور أقوى لإعلاناتك، وصولاً أفضل للمشترين، وإمكانية دعوة الآخرين لزيادة أرباحك.",
-                  "Subscription gives you 30 days of full publishing access, stronger visibility, better buyer reach, and the ability to invite others.",
-                )}
-              </p>
-
               {/* Benefits Card */}
-              <div className="mb-8 p-6 border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
+              <div className="mb-8 p-6 border border-sky-200
+               dark:border-sky-900 bg-sky-50
+                dark:bg-sky-950/30 rounded-xl">
                 <h3 className="font-bold text-slate-900 dark:text-white mb-4">
                   {t("لماذا يستحق الاشتراك؟", "Why subscription is worth it")}
                 </h3>
@@ -464,7 +459,7 @@ const ActivationWelcomeOverlay = () => {
                 </button>
                 <button
                   type="button"
-                  className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg font-semibold transition shadow-lg"
+                  className="flex-1 px-6 py-3 text-white bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg font-semibold transition shadow-lg"
                   onClick={openActivation}
                 >
                   {t("تفعيل الاشتراك", "Activate subscription")}

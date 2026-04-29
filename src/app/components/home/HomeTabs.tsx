@@ -85,9 +85,15 @@ interface HomeTabsProps {
   onSelectTab: (key: PrimaryCategoryKey) => void;
   type: string | undefined;
   compact?: boolean;
+  isFiltering?: boolean;
 }
 
-const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
+const HomeTab = ({
+  onSelectTab,
+  type,
+  compact = false,
+  isFiltering = false,
+}: HomeTabsProps) => {
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
   const mainCategoryId = useId();
@@ -186,6 +192,7 @@ const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
         selectedType={selectedType}
         tabsList={tabsList}
         handleSelectType={handleSelectType}
+        isFiltering={isFiltering}
       />
       {/* Category tabs */}
       <div className={compact ? "hidden" : "hidden md:block"}>
@@ -215,6 +222,12 @@ const HomeTab = ({ onSelectTab, type, compact = false }: HomeTabsProps) => {
                     {isArabic ? item.nameAr : item.nameEn}
                   </span>
                 </div>
+
+                {isActive && isFiltering ? (
+                  <span className="pointer-events-none absolute bottom-1 left-1/2 h-0.5 w-14 -translate-x-1/2 overflow-hidden rounded-full bg-white/30 dark:bg-sky-900/60">
+                    <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-white to-transparent dark:via-sky-200 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
+                  </span>
+                ) : null}
               </button>
             );
           })}

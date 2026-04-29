@@ -114,6 +114,7 @@ interface NavbarProps {
   handleSetMaxPrice?: (max: number) => void;
   minPrice?: number;
   maxPrice?: number;
+  isFiltering?: boolean;
 }
 
 const Navbar = ({
@@ -124,6 +125,7 @@ const Navbar = ({
   sellOrRent,
   minPrice,
   maxPrice,
+  isFiltering = false,
 }: NavbarProps) => {
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith("/admin");
@@ -297,7 +299,11 @@ const Navbar = ({
           className={`${TABS_ROW_CLASS} overflow-hidden transition-all duration-300 ease-in-out`}
           style={tabsStyle}
         >
-          <HomeTabs onSelectTab={helper.handleSelectPrimaryTab} type={type} />
+          <HomeTabs
+            onSelectTab={helper.handleSelectPrimaryTab}
+            type={type}
+            isFiltering={isFiltering}
+          />
         </div>
       </Container>
     </div>

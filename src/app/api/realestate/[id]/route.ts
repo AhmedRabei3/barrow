@@ -10,6 +10,10 @@ import {
   syncManualRentalStatus,
 } from "../../utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import {
+  deleteListingIndex,
+  upsertListingIndex,
+} from "@/server/services/listing-index.service";
 
 /**
  * @description Delete property (soft delete) and remove all related data
@@ -67,6 +71,8 @@ export async function DELETE(
         },
       });
     });
+
+    void deleteListingIndex(id);
 
     return NextResponse.json(
       {
@@ -223,6 +229,8 @@ export async function PATCH(
         };
       },
     );
+
+    void upsertListingIndex(id, "PROPERTY");
 
     return NextResponse.json(
       {

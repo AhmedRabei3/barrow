@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
 import { updateItemStatus } from "../../utils/rentHelper";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 /**
  * @description موافقة أو رفض المالك على طلب الإيجار
@@ -101,6 +102,11 @@ export async function PATCH(req: NextRequest) {
         });
       });
 
+      void upsertListingIndex(
+        transaction.itemId,
+        transaction.itemType as import("@prisma/client").$Enums.ItemType,
+      );
+
       return NextResponse.json(
         { message: "تمت الموافقة على المعاملة" },
         { status: 200 },
@@ -150,6 +156,11 @@ export async function PATCH(req: NextRequest) {
           },
         });
       });
+
+      void upsertListingIndex(
+        transaction.itemId,
+        transaction.itemType as import("@prisma/client").$Enums.ItemType,
+      );
 
       return NextResponse.json(
         { message: "تم رفض المعاملة واسترجاع " },

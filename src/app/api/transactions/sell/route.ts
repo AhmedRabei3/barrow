@@ -6,6 +6,7 @@ import { Errors } from "@/app/api/lib/errors/errors";
 import { sellSchema } from "@/app/validations/sell.schema";
 import { TransactionStatus, TransactionType } from "@prisma/client";
 import { getRentableItem, updateItemStatus } from "@/app/api/utils/rentHelper";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 export async function POST(req: NextRequest) {
   const client = await authHelper();
@@ -84,6 +85,12 @@ export async function POST(req: NextRequest) {
       // 6️⃣ حجز العنصر
       await updateItemStatus(tx, itemType, itemId, "RESERVED");
     });
+
+    // Sync search index: item became RESERVED
+    void upsertListingIndex(
+      itemId,
+      itemType as import("@prisma/client").$Enums.ItemType,
+    );
 
     return NextResponse.json(
       { success: true, message: "تم إرسال العرض بنجاح", itemId },

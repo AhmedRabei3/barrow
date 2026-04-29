@@ -7,9 +7,15 @@ interface ListProps {
   list: CategoryItem[];
   setCatName: (c: string) => void;
   catName: string;
+  isFiltering?: boolean;
 }
 
-const CategoryList = ({ list, setCatName, catName }: ListProps) => {
+const CategoryList = ({
+  list,
+  setCatName,
+  catName,
+  isFiltering = false,
+}: ListProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const uniqueList = Array.from(
     new Map(list.map((item) => [item.name, item])).values(),
@@ -68,6 +74,12 @@ const CategoryList = ({ list, setCatName, catName }: ListProps) => {
             </span>
 
             <p className="text-sm">{item.name}</p>
+
+            {catName === item.name && isFiltering ? (
+              <span className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-sky-200/70 dark:bg-sky-900/60">
+                <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-sky-500 to-transparent dark:via-sky-300 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
+              </span>
+            ) : null}
           </div>
         ))}
       </div>

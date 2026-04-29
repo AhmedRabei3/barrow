@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { pendingReviewData } from "@/app/api/utils/moderation";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 export async function addNewCarAction(data: {
   brand: string;
@@ -20,7 +21,7 @@ export async function addNewCarAction(data: {
       return { success: false, message: "Not authenticated" };
     }
 
-    await prisma.newCar.create({
+    const created = await prisma.newCar.create({
       data: {
         brand: data.brand,
         model: data.model,
@@ -36,6 +37,9 @@ export async function addNewCarAction(data: {
         ...pendingReviewData,
       },
     });
+
+    void upsertListingIndex(created.id, "NEW_CAR");
+
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unexpected error";

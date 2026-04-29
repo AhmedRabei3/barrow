@@ -292,6 +292,11 @@ opacity: 0.5;
   to { opacity: 1; }
 }
 
+@keyframes tab-bar-sweep {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(400%); }
+}
+
 @keyframes spin {
     0%{
         --angle: 0deg;

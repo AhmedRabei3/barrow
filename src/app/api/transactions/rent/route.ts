@@ -11,6 +11,7 @@ import {
   getRentableItem,
   updateItemStatus,
 } from "../../utils/rentHelper";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 /**
  * @description route to rent item
@@ -88,6 +89,12 @@ export async function POST(req: NextRequest) {
 
       await updateItemStatus(tx, itemType, itemId, "RESERVED");
     });
+
+    // Sync search index: item became RESERVED
+    void upsertListingIndex(
+      itemId,
+      itemType as import("@prisma/client").$Enums.ItemType,
+    );
 
     return NextResponse.json({ success: true, itemId }, { status: 201 });
   } catch (error) {

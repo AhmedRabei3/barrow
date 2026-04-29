@@ -5,6 +5,7 @@ import {
   notifyAdminsOfModerationQueue,
   resetItemModeration,
 } from "@/app/api/utils/moderation";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 const isItemType = (value: string): value is ItemType =>
   Object.values(ItemType).includes(value as ItemType);
@@ -72,6 +73,9 @@ export async function POST(req: NextRequest) {
 
     await resetItemModeration(prisma, itemType, itemId);
     await notifyAdminsOfModerationQueue(itemType, itemId, "IMAGES_UPDATED");
+
+    // Sync search index: item went back to PENDING_REVIEW (fire-and-forget)
+    void upsertListingIndex(itemId, itemType);
 
     return NextResponse.json({
       success: true,

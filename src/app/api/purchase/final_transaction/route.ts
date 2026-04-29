@@ -11,6 +11,7 @@ import { authHelper } from "@/app/api/utils/authHelper";
 import { convertToTransactionSchema } from "@/app/validations/purchaseValidations";
 import { Errors } from "@/app/api/lib/errors/errors";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 /**
  * @description Convert Purchase Request to Transaction
@@ -151,6 +152,8 @@ export async function POST(req: NextRequest) {
 
       return newTransaction;
     });
+
+    void upsertListingIndex(request.itemId, request.itemType);
 
     /* =========================
        NOTIFICATIONS

@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { pendingReviewData } from "@/app/api/utils/moderation";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 type FormState = {
   success?: boolean;
@@ -37,6 +38,9 @@ export async function addNewCarAction(
         ownerId: session.user.id,
       },
     });
+
+    void upsertListingIndex(result.id, "NEW_CAR");
+
     const carId = result.id;
     return {
       success: true,

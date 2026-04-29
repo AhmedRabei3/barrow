@@ -14,6 +14,7 @@ import {
   notifyAdminsOfModerationQueue,
   pendingReviewData,
 } from "@/app/api/utils/moderation";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -194,6 +195,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         };
       },
     );
+
+    void upsertListingIndex(id, "NEW_CAR");
 
     if (hasNewImages) {
       await notifyAdminsOfModerationQueue("NEW_CAR", id, "UPDATED");

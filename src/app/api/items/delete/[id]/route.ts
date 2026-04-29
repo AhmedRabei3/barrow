@@ -9,6 +9,7 @@ import {
 import { Errors } from "@/app/api/lib/errors/errors";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { deleteFromCloudinary } from "@/app/api/utils/cloudinary";
+import { deleteListingIndex } from "@/server/services/listing-index.service";
 
 export async function DELETE(
   req: NextRequest,
@@ -54,6 +55,9 @@ export async function DELETE(
       // Soft delete للعنصر
       await softDeleteByType(tx, itemType, itemId);
     });
+
+    // Sync search index (fire-and-forget)
+    void deleteListingIndex(itemId);
 
     // حذف الصور من Cloudinary خارج transaction
     if (images.length) {

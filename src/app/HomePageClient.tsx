@@ -49,6 +49,22 @@ const HomePageClient = () => {
   const { data: session, status, update } = useSession();
   const { isArabic } = useAppPreferences();
   const limit = 24;
+  const orderedTabs = useMemo(
+    () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
+    [session?.user?.preferredInterestOrder],
+  );
+  const hasExplicitFilters =
+    filters.type !== undefined ||
+    filters.catName !== "All" ||
+    Boolean(filters.q) ||
+    Boolean(filters.city) ||
+    Boolean(filters.action) ||
+    Boolean(filters.minPrice) ||
+    Boolean(filters.maxPrice);
+  const shouldFetchItems =
+    hasExplicitFilters ||
+    Boolean(filters.type) ||
+    (status !== "loading" && !orderedTabs[0]);
 
   /* ── Mobile category picker state ──────────────────────────────── */
   const [isMobile, setIsMobile] = useState(false);
@@ -95,6 +111,7 @@ const HomePageClient = () => {
   const { items, totalItems, loading, isRefreshing, refetch } = useItems({
     page: currentPage,
     limit,
+    enabled: shouldFetchItems,
   });
   const helper = useSearchHelper(setCurrentPage);
 
@@ -105,10 +122,6 @@ const HomePageClient = () => {
       sessionStorage.setItem("mobile-category-picked", "1");
     },
     [helper],
-  );
-  const orderedTabs = useMemo(
-    () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
-    [session?.user?.preferredInterestOrder],
   );
   const minPrice = useMemo(
     () =>
@@ -164,15 +177,6 @@ const HomePageClient = () => {
       cacheKey: "items:featured:top-8",
       fetcher: fetchFeaturedItems,
     });
-
-  const hasExplicitFilters =
-    filters.type !== undefined ||
-    filters.catName !== "All" ||
-    Boolean(filters.q) ||
-    Boolean(filters.city) ||
-    Boolean(filters.action) ||
-    Boolean(filters.minPrice) ||
-    Boolean(filters.maxPrice);
 
   useEffect(() => {
     if (status === "loading" || hasExplicitFilters || !orderedTabs[0]) {
@@ -269,11 +273,13 @@ const HomePageClient = () => {
         handleSetMaxPrice={helper.handleSetMaxPrice}
         minPrice={minPrice}
         maxPrice={maxPrice}
+        isFiltering={loading || isRefreshing}
       />
       <CategorySlider
         type={filters.type}
         catName={filters.catName}
         setCatName={helper.handleSetCatName}
+        isFiltering={loading || isRefreshing}
       />
 
       <HomeBody

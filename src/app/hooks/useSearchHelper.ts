@@ -73,7 +73,7 @@ export const useSearchHelper = (setCurrentPage?: (page: number) => void) => {
   );
 
   const handleAction = useCallback(
-    (action: $Enums.TransactionType) => {
+    (action?: $Enums.TransactionType) => {
       update({ action });
     },
     [update],

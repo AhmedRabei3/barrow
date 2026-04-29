@@ -1,4 +1,14 @@
-import { $Enums } from "@prisma/client";
+/**
+ * item-search.service.ts
+ *
+ * Single-table search via ListingSearchIndex.
+ * The old 6-table fan-out is replaced with 1 count + 1 findMany query.
+ *
+ * Geo-sort path still fetches all matching rows then sorts in memory,
+ * the same as before but now with a single DB query instead of 6.
+ */
+
+import { Prisma, type TransactionType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import type {
   ItemSearchItemDto,
@@ -7,14 +17,9 @@ import type {
 } from "@/features/items/types";
 import { itemSearchRepository } from "@/server/repositories/item-search.repository";
 
-const ITEM_TYPES: $Enums.ItemType[] = [
-  $Enums.ItemType.NEW_CAR,
-  $Enums.ItemType.USED_CAR,
-  $Enums.ItemType.PROPERTY,
-  $Enums.ItemType.HOME_FURNITURE,
-  $Enums.ItemType.MEDICAL_DEVICE,
-  $Enums.ItemType.OTHER,
-];
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type SerializableSearchQuery = Omit<
   ItemSearchQueryDto,
@@ -23,6 +28,10 @@ type SerializableSearchQuery = Omit<
   userLat: null;
   userLng: null;
 };
+
+// ---------------------------------------------------------------------------
+// Query normalisation
+// ---------------------------------------------------------------------------
 
 const normalizeSearchQuery = (
   query: ItemSearchQueryDto,
@@ -37,11 +46,7 @@ const normalizeSearchQuery = (
 
 const toSerializableNonGeoQuery = (
   query: ItemSearchQueryDto,
-): SerializableSearchQuery => ({
-  ...query,
-  userLat: null,
-  userLng: null,
-});
+): SerializableSearchQuery => ({ ...query, userLat: null, userLng: null });
 
 const serializeNonGeoQuery = (query: SerializableSearchQuery) =>
   JSON.stringify({
@@ -59,197 +64,46 @@ const serializeNonGeoQuery = (query: SerializableSearchQuery) =>
     userLng: null,
   } satisfies SerializableSearchQuery);
 
-const buildSearchCondition = (type: $Enums.ItemType, q: string) => {
-  if (!q) {
-    return undefined;
-  }
+// ---------------------------------------------------------------------------
+// Filter helpers
+// ---------------------------------------------------------------------------
 
-  const contains = { contains: q, mode: "insensitive" as const };
-
-  switch (type) {
-    case $Enums.ItemType.NEW_CAR:
-    case $Enums.ItemType.USED_CAR:
-      return {
-        OR: [
-          { brand: contains },
-          { model: contains },
-          { description: contains },
-        ],
-      };
-    case $Enums.ItemType.PROPERTY:
-      return {
-        OR: [{ title: contains }, { description: contains }],
-      };
-    case $Enums.ItemType.HOME_FURNITURE:
-      return {
-        OR: [
-          { name: contains },
-          { brand: contains },
-          { description: contains },
-          { material: contains },
-          { roomType: contains },
-        ],
-      };
-    case $Enums.ItemType.MEDICAL_DEVICE:
-      return {
-        OR: [
-          { name: contains },
-          { manufacturer: contains },
-          { model: contains },
-          { description: contains },
-          { deviceClass: contains },
-        ],
-      };
-    case $Enums.ItemType.OTHER:
-      return {
-        OR: [
-          { name: contains },
-          { brand: contains },
-          { description: contains },
-        ],
-      };
-  }
-};
-
-const normalizeAction = (action?: string) => {
-  if (!action) {
-    return undefined;
-  }
-
-  if (action === "SELL" || action === "Buy") {
-    return $Enums.TransactionType.SELL;
-  }
-
-  if (action === "RENT" || action === "Rent") {
-    return $Enums.TransactionType.RENT;
-  }
-
+const normalizeAction = (action?: string): TransactionType | undefined => {
+  if (!action) return undefined;
+  if (action === "SELL" || action === "Buy") return "SELL";
+  if (action === "RENT" || action === "Rent") return "RENT";
   return undefined;
 };
 
-const haversineKm = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-) => {
-  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-  const earthRadiusKm = 6371;
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-
-  return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
-
-const sortByNearest = (
-  items: ItemSearchItemDto[],
-  userLat: number | null,
-  userLng: number | null,
-) => {
-  const resolveDistance = (item: ItemSearchItemDto) => {
-    if (userLat === null || userLng === null) {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    const lat = item.location?.latitude;
-    const lng = item.location?.longitude;
-    if (typeof lat !== "number" || typeof lng !== "number") {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    return haversineKm(userLat, userLng, lat, lng);
-  };
-
-  const resolveCreatedAt = (item: ItemSearchItemDto) => {
-    if (!item.createdAt) {
-      return 0;
-    }
-
-    const timestamp = new Date(item.createdAt).getTime();
-    return Number.isFinite(timestamp) ? timestamp : 0;
-  };
-
-  return [...items].sort((left, right) => {
-    const distanceDiff = resolveDistance(left) - resolveDistance(right);
-    if (distanceDiff !== 0) {
-      return distanceDiff;
-    }
-
-    const ratingDiff =
-      Number(right.averageRating ?? 0) - Number(left.averageRating ?? 0);
-    if (ratingDiff !== 0) {
-      return ratingDiff;
-    }
-
-    return resolveCreatedAt(right) - resolveCreatedAt(left);
-  });
-};
-
-const sortFeaturedFirst = (items: ItemSearchItemDto[]) => {
-  return [...items].sort((left, right) => {
-    const leftFeatured = Boolean(left.isFeatured);
-    const rightFeatured = Boolean(right.isFeatured);
-
-    if (leftFeatured !== rightFeatured) {
-      return leftFeatured ? -1 : 1;
-    }
-
-    const leftFeaturedAt = left.featuredAt
-      ? new Date(left.featuredAt).getTime()
-      : 0;
-    const rightFeaturedAt = right.featuredAt
-      ? new Date(right.featuredAt).getTime()
-      : 0;
-
-    return rightFeaturedAt - leftFeaturedAt;
-  });
-};
-
-const buildWhereForType = async (
+/**
+ * Build the ListingSearchIndex WHERE clause from a search query.
+ * Category lookup result (if applicable) must be passed in as categoryId.
+ */
+function buildIndexWhere(
   query: ItemSearchQueryDto,
-  type: $Enums.ItemType,
-) => {
-  const where: Record<string, unknown> = {
+  categoryId?: string | null,
+): Prisma.ListingSearchIndexWhereInput {
+  const where: Prisma.ListingSearchIndexWhereInput = {
     isDeleted: false,
     status: "AVAILABLE",
   };
 
-  const search = buildSearchCondition(type, query.q);
-  if (search) {
-    Object.assign(where, search);
+  if (query.type) where.itemType = query.type;
+
+  if (query.q) {
+    where.title = { contains: query.q, mode: "insensitive" };
   }
 
-  if (query.city || query.country) {
-    where.location = {
-      ...(query.city
-        ? {
-            city: {
-              contains: query.city,
-              mode: "insensitive",
-            },
-          }
-        : {}),
-      ...(query.country
-        ? {
-            country: {
-              equals: query.country,
-              mode: "insensitive",
-            },
-          }
-        : {}),
-    };
+  if (query.city) {
+    where.locationCity = { contains: query.city, mode: "insensitive" };
+  }
+
+  if (query.country) {
+    where.locationCountry = { equals: query.country, mode: "insensitive" };
   }
 
   const action = normalizeAction(query.action);
-  if (action) {
-    where.sellOrRent = action;
-  }
+  if (action) where.sellOrRent = action;
 
   if (
     typeof query.minPrice === "number" ||
@@ -262,163 +116,144 @@ const buildWhereForType = async (
   }
 
   if (query.catName && query.catName !== "All") {
-    const categoryId = await itemSearchRepository.findCategoryIdByName(
-      query.catName,
-    );
     where.categoryId = categoryId ?? "__missing_category__";
   }
 
   return where;
+}
+
+// ---------------------------------------------------------------------------
+// Sorting helpers
+// ---------------------------------------------------------------------------
+
+const haversineKm = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
+
+const sortByNearest = (
+  items: ItemSearchItemDto[],
+  userLat: number | null,
+  userLng: number | null,
+) => {
+  const dist = (item: ItemSearchItemDto) => {
+    if (userLat === null || userLng === null) return Number.POSITIVE_INFINITY;
+    const lat = item.location?.latitude;
+    const lng = item.location?.longitude;
+    if (typeof lat !== "number" || typeof lng !== "number")
+      return Number.POSITIVE_INFINITY;
+    return haversineKm(userLat, userLng, lat, lng);
+  };
+
+  const ts = (item: ItemSearchItemDto) => {
+    if (!item.createdAt) return 0;
+    const t = new Date(item.createdAt).getTime();
+    return Number.isFinite(t) ? t : 0;
+  };
+
+  return [...items].sort((a, b) => {
+    const dd = dist(a) - dist(b);
+    if (dd !== 0) return dd;
+    const rd = Number(b.averageRating ?? 0) - Number(a.averageRating ?? 0);
+    if (rd !== 0) return rd;
+    return ts(b) - ts(a);
+  });
+};
+
+const sortFeaturedFirst = (items: ItemSearchItemDto[]) =>
+  [...items].sort((a, b) => {
+    const aF = Boolean(a.isFeatured);
+    const bF = Boolean(b.isFeatured);
+    if (aF !== bF) return aF ? -1 : 1;
+    const aT = a.featuredAt ? new Date(a.featuredAt).getTime() : 0;
+    const bT = b.featuredAt ? new Date(b.featuredAt).getTime() : 0;
+    return bT - aT;
+  });
+
+// ---------------------------------------------------------------------------
+// Core search (uncached)
+// ---------------------------------------------------------------------------
 
 async function searchItemsUncached(
   query: ItemSearchQueryDto,
 ): Promise<ItemSearchResponseDto> {
-  const { page, limit, type, userLat, userLng } = query;
+  const { page, limit, userLat, userLng } = query;
   const skip = (page - 1) * limit;
   const hasGeoSort = userLat !== null && userLng !== null;
 
-  if (!type) {
-    const whereEntries = await Promise.all(
-      ITEM_TYPES.map(
-        async (itemType) =>
-          [itemType, await buildWhereForType(query, itemType)] as const,
-      ),
-    );
-    const whereByType = new Map(whereEntries);
+  const categoryId =
+    query.catName && query.catName !== "All"
+      ? await itemSearchRepository.findCategoryIdByName(query.catName)
+      : undefined;
 
-    if (!hasGeoSort) {
-      const counts = await Promise.all(
-        ITEM_TYPES.map((itemType) =>
-          itemSearchRepository.countByType(
-            itemType,
-            whereByType.get(itemType) ?? {},
-          ),
-        ),
-      );
+  const where = buildIndexWhere(query, categoryId);
 
-      const totalCount = counts.reduce((sum, count) => sum + count, 0);
-      if (totalCount === 0) {
-        return { success: true, page, limit, totalCount, items: [] };
-      }
+  // ── Non-geo: 2 parallel queries (count + page) ──────────────────────────
+  if (!hasGeoSort) {
+    const [totalCount, pagedItems] = await itemSearchRepository.findAndCountByIndex(where, { skip, take: limit });
 
-      let remainingSkip = skip;
-      let remainingTake = limit;
-      const pagedItems: ItemSearchItemDto[] = [];
-
-      for (let index = 0; index < ITEM_TYPES.length; index += 1) {
-        const itemType = ITEM_TYPES[index];
-        const currentCount = counts[index];
-
-        if (remainingTake <= 0) {
-          break;
-        }
-
-        if (remainingSkip >= currentCount) {
-          remainingSkip -= currentCount;
-          continue;
-        }
-
-        const take = Math.min(remainingTake, currentCount - remainingSkip);
-        const batch = await itemSearchRepository.findByType(
-          itemType,
-          whereByType.get(itemType) ?? {},
-          { skip: remainingSkip, take },
-        );
-
-        pagedItems.push(...batch);
-        remainingTake -= take;
-        remainingSkip = 0;
-      }
-
-      const enrichedItems =
-        await itemSearchRepository.attachMetadataBatch(pagedItems);
-
-      return {
-        success: true,
-        page,
-        limit,
-        totalCount,
-        items: sortFeaturedFirst(enrichedItems),
-      };
+    if (totalCount === 0) {
+      return { success: true, page, limit, totalCount, items: [] };
     }
 
-    const resultSets = await Promise.all(
-      ITEM_TYPES.map((itemType) =>
-        itemSearchRepository.findByType(
-          itemType,
-          whereByType.get(itemType) ?? {},
-        ),
-      ),
-    );
-
-    const enrichedItems = await itemSearchRepository.attachMetadataBatch(
-      resultSets.flat(),
-    );
-    const sortedItems = sortByNearest(enrichedItems, userLat, userLng);
-
-    return {
-      success: true,
-      page,
-      limit,
-      totalCount: sortedItems.length,
-      items: sortFeaturedFirst(sortedItems.slice(skip, skip + limit)),
-    };
-  }
-
-  const where = await buildWhereForType(query, type);
-
-  if (!hasGeoSort) {
-    const [totalCount, pagedItems] = await Promise.all([
-      itemSearchRepository.countByType(type, where),
-      itemSearchRepository.findByType(type, where, { skip, take: limit }),
-    ]);
-
-    const enrichedItems =
-      await itemSearchRepository.attachMetadataBatch(pagedItems);
-
+    const enriched = await itemSearchRepository.attachMetadataBatch(pagedItems);
     return {
       success: true,
       page,
       limit,
       totalCount,
-      items: sortFeaturedFirst(enrichedItems),
+      items: sortFeaturedFirst(enriched),
     };
   }
 
-  const allItems = await itemSearchRepository.findByType(type, where);
-  const enrichedItems =
-    await itemSearchRepository.attachMetadataBatch(allItems);
-  const sortedItems = sortByNearest(enrichedItems, userLat, userLng);
+  // ── Geo-sort: fetch all matching, sort in-memory ─────────────────────────
+  const allItems = await itemSearchRepository.findByIndex(where);
+  const enriched = await itemSearchRepository.attachMetadataBatch(allItems);
+  const sorted = sortByNearest(enriched, userLat, userLng);
 
   return {
     success: true,
     page,
     limit,
-    totalCount: sortedItems.length,
-    items: sortFeaturedFirst(sortedItems.slice(skip, skip + limit)),
+    totalCount: sorted.length,
+    items: sortFeaturedFirst(sorted.slice(skip, skip + limit)),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Public API (with Next.js unstable_cache for non-geo queries)
+// ---------------------------------------------------------------------------
 
 const getCachedNonGeoSearch = unstable_cache(
   async (serializedQuery: string) => {
     const query = JSON.parse(serializedQuery) as SerializableSearchQuery;
     return searchItemsUncached(query);
   },
-  ["item-search-results-v3"],
-  { revalidate: 60, tags: ["item-search"] },
+  ["item-search-results-v4"],
+  { revalidate: 300, tags: ["item-search"] },
 );
 
 export async function searchItems(
   query: ItemSearchQueryDto,
 ): Promise<ItemSearchResponseDto> {
-  const normalizedQuery = normalizeSearchQuery(query);
+  const normalized = normalizeSearchQuery(query);
 
-  if (normalizedQuery.userLat === null && normalizedQuery.userLng === null) {
+  if (normalized.userLat === null && normalized.userLng === null) {
     return getCachedNonGeoSearch(
-      serializeNonGeoQuery(toSerializableNonGeoQuery(normalizedQuery)),
+      serializeNonGeoQuery(toSerializableNonGeoQuery(normalized)),
     );
   }
 
-  return searchItemsUncached(normalizedQuery);
+  return searchItemsUncached(normalized);
 }

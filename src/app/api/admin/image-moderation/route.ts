@@ -5,6 +5,7 @@ import { requireAdminUser } from "@/app/api/utils/authHelper";
 import { clearCategoriesRouteCache } from "@/app/api/categories/cache";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { prisma } from "@/lib/prisma";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 const ITEM_TYPES = [
   ItemType.PROPERTY,
@@ -560,6 +561,9 @@ export async function POST(req: NextRequest) {
       revalidateTag("featured-items");
       revalidatePath("/");
     }
+
+    // Sync search index: status changed to AVAILABLE or MAINTENANCE
+    void upsertListingIndex(body.itemId, body.itemType);
 
     return NextResponse.json({
       success: true,

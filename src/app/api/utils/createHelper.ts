@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { CloudinaryUploadResult, deleteFromCloudinary } from "./cloudinary";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -32,11 +33,8 @@ export async function createItemWithLocation<T extends { id: string }>({
   createItem,
 }: CreateItemWithLocationParams<T>) {
   try {
-    return await prisma.$transaction(async (tx: TxClient) => {
-      // 1️⃣ Create Item (بدون Location)
-      const item = await createItem(tx);
-
-      // 2️⃣ Create Location وربطه بالـ Item
+    const item = await prisma.$transaction(async (tx: TxClient) => {
+      const createdItem = await createItem(tx);
       await tx.location.create({
         data: {
           latitude: location.latitude,
@@ -45,39 +43,40 @@ export async function createItemWithLocation<T extends { id: string }>({
           address: location.address,
           state: location.state || "",
           country: location.country,
-
-          // الربط الصحيح حسب نوع العنصر
-          ...(itemType === "OTHER" && { otherItemId: item.id }),
-          ...(itemType === "PROPERTY" && { propertyId: item.id }),
-          ...(itemType === "NEW_CAR" && { newCarId: item.id }),
-          ...(itemType === "USED_CAR" && { oldCarId: item.id }),
-          ...(itemType === "HOME_FURNITURE" && { homeFurnitureId: item.id }),
-          ...(itemType === "MEDICAL_DEVICE" && { medicalDeviceId: item.id }),
+          ...(itemType === "OTHER" && { otherItemId: createdItem.id }),
+          ...(itemType === "PROPERTY" && { propertyId: createdItem.id }),
+          ...(itemType === "NEW_CAR" && { newCarId: createdItem.id }),
+          ...(itemType === "USED_CAR" && { oldCarId: createdItem.id }),
+          ...(itemType === "HOME_FURNITURE" && {
+            homeFurnitureId: createdItem.id,
+          }),
+          ...(itemType === "MEDICAL_DEVICE" && {
+            medicalDeviceId: createdItem.id,
+          }),
         },
       });
-
-      // 3️⃣ Save Images
       if (images.length > 0) {
         await tx.itemImage.createMany({
           data: images.map((img) => ({
-            itemId: item.id,
+            itemId: createdItem.id,
             itemType,
             url: img.secure_url,
             publicId: img.public_id ?? "",
           })),
         });
       }
-
-      return item;
+      return createdItem;
     });
+    void upsertListingIndex(
+      item.id,
+      itemType as import("@prisma/client").$Enums.ItemType,
+    );
+    return item;
   } catch (error) {
-    console.error("❌ Transaction failed:", error);
-
-    // 🔥 Rollback Cloudinary
+    console.error("Transaction failed:", error);
     if (images.length > 0) {
       await deleteFromCloudinary(images);
     }
-
     throw error;
   }
 }

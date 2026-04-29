@@ -37,6 +37,9 @@ const QUICK_FILTER_ACTION_CLASS =
 const QUICK_FILTER_RESET_CLASS =
   "flex-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700";
 
+const QUICK_FILTER_TOGGLE_BASE_CLASS =
+  "flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors";
+
 const PREFERENCES_WRAP_CLASS =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 p-2";
 
@@ -49,6 +52,7 @@ const UserMenu = () => {
     useState<DeferredPromptEvent | null>(null);
   const [drawerQuery, setDrawerQuery] = useState("");
   const [drawerCity, setDrawerCity] = useState("");
+  const [drawerAction, setDrawerAction] = useState<"SELL" | "RENT" | "">("");
   const [drawerMinPrice, setDrawerMinPrice] = useState("");
   const [drawerMaxPrice, setDrawerMaxPrice] = useState("");
   const loginModal = useLoginModal();
@@ -109,6 +113,11 @@ const UserMenu = () => {
 
     setDrawerQuery(filters.q || "");
     setDrawerCity(filters.city || "");
+    setDrawerAction(
+      filters.action === "SELL" || filters.action === "RENT"
+        ? filters.action
+        : "",
+    );
     setDrawerMinPrice(
       typeof filters.minPrice === "number"
         ? String(filters.minPrice)
@@ -177,6 +186,7 @@ const UserMenu = () => {
   const applyQuickFilters = () => {
     searchHelper.handleSearch(drawerQuery.trim());
     searchHelper.handleSetCity(drawerCity.trim());
+    searchHelper.handleAction(drawerAction === "" ? undefined : drawerAction);
     searchHelper.handleSetMinPrice(
       drawerMinPrice.trim() === "" ? null : Number(drawerMinPrice),
     );
@@ -191,10 +201,12 @@ const UserMenu = () => {
   const resetQuickFilters = () => {
     setDrawerQuery("");
     setDrawerCity("");
+    setDrawerAction("");
     setDrawerMinPrice("");
     setDrawerMaxPrice("");
     searchHelper.handleSearch("");
     searchHelper.handleSetCity("");
+    searchHelper.handleAction(undefined);
     searchHelper.handleSetMinPrice(null);
     searchHelper.handleSetMaxPrice(null);
     setShowQuickFilters(false);
@@ -533,6 +545,39 @@ const UserMenu = () => {
                               placeholder={isArabic ? "المدينة" : "City"}
                               className={quickFilterInputClass}
                             />
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDrawerAction((prev) =>
+                                    prev === "SELL" ? "" : "SELL",
+                                  )
+                                }
+                                className={`${QUICK_FILTER_TOGGLE_BASE_CLASS} ${
+                                  drawerAction === "SELL"
+                                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/20 dark:text-emerald-100"
+                                    : "border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                }`}
+                              >
+                                {isArabic ? "متاح للبيع" : "For sale"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDrawerAction((prev) =>
+                                    prev === "RENT" ? "" : "RENT",
+                                  )
+                                }
+                                className={`${QUICK_FILTER_TOGGLE_BASE_CLASS} ${
+                                  drawerAction === "RENT"
+                                    ? "border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-500/20 dark:text-sky-100"
+                                    : "border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                }`}
+                              >
+                                {isArabic ? "متاح للإيجار" : "For rent"}
+                              </button>
+                            </div>
 
                             <div className="grid grid-cols-2 gap-2">
                               <input

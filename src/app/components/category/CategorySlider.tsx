@@ -18,6 +18,7 @@ interface CategorySliderProps {
   type?: ItemType | null;
   setCatName: (c: string) => void;
   catName: string;
+  isFiltering?: boolean;
 }
 
 const fetchItemTypeCounts = async (): Promise<Record<
@@ -43,7 +44,12 @@ const fetchItemTypeCounts = async (): Promise<Record<
   }
 };
 
-const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
+const CategorySlider = ({
+  type,
+  setCatName,
+  catName,
+  isFiltering = false,
+}: CategorySliderProps) => {
   const { isArabic } = useAppPreferences();
   const cacheKey = useMemo(
     () => `categories:${type ?? "ALL"}:with-items`,
@@ -187,7 +193,12 @@ const CategorySlider = ({ type, setCatName, catName }: CategorySliderProps) => {
        ease-out
       "
     >
-      <CategoryList list={list} setCatName={setCatName} catName={catName} />
+      <CategoryList
+        list={list}
+        setCatName={setCatName}
+        catName={catName}
+        isFiltering={isFiltering}
+      />
     </div>,
   );
 };

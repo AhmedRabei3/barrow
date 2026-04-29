@@ -10,6 +10,7 @@ import {
   syncManualRentalStatus,
 } from "@/app/api/utils/manualRentalStatus";
 import { Availability, TransactionType, type RentType } from "@prisma/client";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -148,6 +149,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         };
       },
     );
+
+    void upsertListingIndex(id, "USED_CAR");
 
     return NextResponse.json(
       {

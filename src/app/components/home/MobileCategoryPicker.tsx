@@ -129,9 +129,11 @@ const cardVariants = {
 function CategoryCard({
   cat,
   onPick,
+  isArabic,
 }: {
   cat: CategoryCardConfig;
   onPick: (key: PrimaryCategoryKey) => void;
+  isArabic: boolean;
 }) {
   return (
     <motion.button
@@ -140,12 +142,10 @@ function CategoryCard({
       whileHover={{ y: -5, transition: { type: "spring", stiffness: 300 } }}
       onClick={() => onPick(cat.key)}
       aria-label={cat.nameAr}
-      className="relative flex flex-col items-center justify-center gap-3 rounded-3xl overflow-hidden text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 select-none"
+      className="relative flex min-h-32 flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] px-3 py-4 text-white select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:min-h-35 sm:gap-3 sm:px-4 sm:py-5"
       style={{
         background: `linear-gradient(145deg, ${cat.gradFrom}, ${cat.gradTo})`,
         boxShadow: `0 10px 30px ${cat.shadow}, 0 2px 8px rgba(0,0,0,0.1)`,
-        minHeight: "156px",
-        padding: "24px 16px 20px",
       }}
     >
       {/* Shine overlay */}
@@ -161,8 +161,8 @@ function CategoryCard({
       <div
         className="relative flex items-center justify-center rounded-2xl"
         style={{
-          width: 60,
-          height: 60,
+          width: 52,
+          height: 52,
           background: "rgba(255,255,255,0.22)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
@@ -170,17 +170,29 @@ function CategoryCard({
             "0 2px 8px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.3)",
         }}
       >
-        <cat.Icon style={{ fontSize: "1.85rem", color: "#fff" }} />
+        <cat.Icon style={{ fontSize: "1.65rem", color: "#fff" }} />
       </div>
 
       {/* Text */}
       <div className="relative text-center">
-        <p className="text-[15px] font-bold leading-snug tracking-wide">
-          {cat.nameAr}
+        <p
+          className={
+            isArabic
+              ? "text-[14px] font-extrabold leading-[1.55] tracking-[0.02em] sm:text-[15px]"
+              : "text-[14px] font-extrabold leading-snug tracking-[0.01em] sm:text-[15px]"
+          }
+        >
+          {isArabic ? cat.nameAr : cat.nameEn}
         </p>
-        <p className="mt-0.5 text-[11px] text-white/95 font-semibold tracking-wider uppercase">
-          {cat.nameEn}
-        </p>
+        {isArabic ? (
+          <p className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-white/80 sm:text-[11px]">
+            {cat.nameEn}
+          </p>
+        ) : (
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 sm:text-[11px]">
+            {cat.nameAr}
+          </p>
+        )}
       </div>
     </motion.button>
   );
@@ -234,7 +246,7 @@ export default function MobileCategoryPicker({
       initial="hidden"
       animate="show"
       exit="exit"
-      className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 overflow-y-auto"
+      className="flex min-h-screen flex-col overflow-y-auto bg-slate-50 dark:bg-slate-950"
     >
       {/* Decorative ambient blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -265,86 +277,122 @@ export default function MobileCategoryPicker({
       </div>
 
       {/* Header */}
-      <motion.header
-        variants={headerVariants}
-        initial="hidden"
-        animate="show"
-        className="relative flex flex-col items-center pt-14 pb-7 px-6 text-center"
-      >
-        <Image
-          src={logoImage}
-          alt="مشهور"
-          width={logoImage.width}
-          height={logoImage.height}
-          priority
-          className="block"
-          style={{ width: 76, height: "auto" }}
-        />
-
-        <h1 className="mt-4 text-[26px] font-extrabold tracking-wide text-slate-800 dark:text-slate-100">
-          {isArabic ? "مـشـهـور" : "Mashhoor"}
-        </h1>
-
-        <p className="mt-1.5 text-[13.5px] text-slate-500 dark:text-slate-400 leading-relaxed">
-          {isArabic
-            ? "اختر الفئة التي تريدها"
-            : "Choose what you're looking for"}
-        </p>
-
-        {/* Subtle divider */}
-        <div className="mt-5 w-10 h-0.5 rounded-full bg-slate-200 dark:bg-slate-700" />
-      </motion.header>
-
-      {/* Category grid */}
-      <motion.div
-        variants={gridVariants}
-        initial="hidden"
-        animate="show"
-        className="relative grid grid-cols-2 gap-4 px-5 pb-12"
-      >
-        {visibleCategories.map((cat) => (
-          <CategoryCard key={cat.key} cat={cat} onPick={onPick} />
-        ))}
-      </motion.div>
-
-      {/* Auth buttons – shown only for guests */}
-      {isGuest && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            transition: { delay: 0.55, duration: 0.35, ease: "easeOut" },
-          }}
-          className="px-5 pb-10 flex flex-col gap-3"
+      <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-6 pt-6 sm:px-5">
+        <motion.header
+          variants={headerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative flex flex-col items-center px-3 pb-5 text-center"
         >
-          <div className="relative flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-            <span className="text-[12px] text-slate-600 dark:text-slate-300 font-semibold">
-              {isArabic ? "أو انضم إلينا" : "or join us"}
-            </span>
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-          </div>
+          <Image
+            src={logoImage}
+            alt="مشهور"
+            width={logoImage.width}
+            height={logoImage.height}
+            priority
+            className="block"
+            style={{ width: 64, height: "auto" }}
+          />
 
-          <button
-            onClick={() => registerModal.onOpen()}
-            className="w-full h-12 rounded-2xl font-bold text-[15px] text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500"
-            style={{
-              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
-              boxShadow: "0 6px 20px rgba(14,165,233,0.35)",
-            }}
+          <h1
+            className={
+              isArabic
+                ? "mt-3 text-[25px] font-black tracking-[0.14em] text-slate-800 dark:text-slate-100"
+                : "mt-3 text-[24px] font-extrabold tracking-[0.08em] text-slate-800 dark:text-slate-100"
+            }
           >
-            {isArabic ? "إنشاء حساب" : "Create account"}
-          </button>
+            {isArabic ? "مـشـهـور" : "Mashhoor"}
+          </h1>
 
-          <button
-            onClick={() => loginModal.onOpen()}
-            className="w-full h-12 rounded-2xl font-bold text-[15px] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+          <p
+            className={
+              isArabic
+                ? "mt-1.5 max-w-[18rem] text-[13.5px] leading-7 text-slate-500 dark:text-slate-400"
+                : "mt-1.5 max-w-[18rem] text-[13px] leading-relaxed text-slate-500 dark:text-slate-400"
+            }
           >
-            {isArabic ? "تسجيل الدخول" : "Sign in"}
-          </button>
+            {isArabic
+              ? "اختر الفئة التي تريدها وابدأ التصفح بسرعة"
+              : "Choose your category and start browsing quickly"}
+          </p>
+
+          <div className="mt-4 h-0.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+        </motion.header>
+
+        <motion.div
+          variants={gridVariants}
+          initial="hidden"
+          animate="show"
+          className="relative grid grid-cols-2 gap-3"
+        >
+          {visibleCategories.map((cat) => (
+            <CategoryCard
+              key={cat.key}
+              cat={cat}
+              onPick={onPick}
+              isArabic={isArabic}
+            />
+          ))}
         </motion.div>
-      )}
+
+        {isGuest && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { delay: 0.55, duration: 0.35, ease: "easeOut" },
+            }}
+            className={
+              isArabic
+                ? "mt-5 rounded-[28px] border border-amber-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,251,235,0.92))] p-3 shadow-[0_18px_42px_rgba(120,53,15,0.12)] backdrop-blur dark:border-amber-900/50 dark:bg-[linear-gradient(180deg,rgba(30,27,22,0.92),rgba(23,23,23,0.9))]"
+                : "mt-5 rounded-[28px] border border-white/65 bg-white/80 p-3 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/75"
+            }
+          >
+            <div className="relative mb-3 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <span
+                className={
+                  isArabic
+                    ? "text-[11px] font-bold tracking-[0.08em] text-amber-700 dark:text-amber-200"
+                    : "text-[11px] font-semibold tracking-[0.12em] text-slate-500 dark:text-slate-300"
+                }
+              >
+                {isArabic ? "انضم الآن" : "JOIN NOW"}
+              </span>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => registerModal.onOpen()}
+                className="h-11 rounded-2xl px-3 text-[14px] font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                style={{
+                  background: isArabic
+                    ? "linear-gradient(135deg, #d97706, #b45309)"
+                    : "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+                  boxShadow: isArabic
+                    ? "0 8px 22px rgba(180,83,9,0.24)"
+                    : "0 6px 20px rgba(14,165,233,0.28)",
+                }}
+              >
+                {isArabic ? "إنشاء حساب" : "Create account"}
+              </button>
+
+              <button
+                onClick={() => loginModal.onOpen()}
+                className={
+                  isArabic
+                    ? "h-11 rounded-2xl border border-amber-200 bg-white/90 px-3 text-[14px] font-bold text-amber-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:border-amber-900/60 dark:bg-slate-800 dark:text-amber-100"
+                    : "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-[14px] font-bold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }
+              >
+                {isArabic ? "تسجيل الدخول" : "Sign in"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </motion.div>
   );
 }

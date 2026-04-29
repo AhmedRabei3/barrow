@@ -1,0 +1,155 @@
+
+> mashhoor@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.5.15
+   - Environments: .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+     ┬╖ optimizePackageImports
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 7.9min
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/99) ...
+   Generating static pages (24/99) 
+   Generating static pages (49/99) 
+   Generating static pages (74/99) 
+ Γ£ô Generating static pages (99/99)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                                 Size  First Load JS
+Γöî ╞Æ /                                                                    22.2 kB        1.79 MB
+Γö£ ╞Æ /_not-found                                                            391 B         104 kB
+Γö£ ╞Æ /admin                                                               5.53 MB        7.66 MB
+Γö£ ╞Æ /admin/purchase-request                                              6.18 kB         544 kB
+Γö£ ╞Æ /admin/purchase-request/[requestId]                                  7.18 kB         111 kB
+Γö£ ╞Æ /admin/purchase-request/my-req                                       6.89 kB         539 kB
+Γö£ ╞Æ /admin/purchase-request/my-req/assigned                                391 B         104 kB
+Γö£ ╞Æ /api/activate                                                          391 B         104 kB
+Γö£ ╞Æ /api/admin/achivment                                                   391 B         104 kB
+Γö£ ╞Æ /api/admin/active_code                                                 391 B         104 kB
+Γö£ ╞Æ /api/admin/active_code/send                                            391 B         104 kB
+Γö£ ╞Æ /api/admin/dashboard                                                   391 B         104 kB
+Γö£ ╞Æ /api/admin/dashboard/actions                                           391 B         104 kB
+Γö£ ╞Æ /api/admin/financial-report                                            391 B         104 kB
+Γö£ ╞Æ /api/admin/identity-verifications                                      391 B         104 kB
+Γö£ ╞Æ /api/admin/image-moderation                                            391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings                                            391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/check-password                             391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/owner-withdrawals                          391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/reset-password/confirm                     391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/reset-password/request                     391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/reset-password/verify                      391 B         104 kB
+Γö£ ╞Æ /api/admin/payment-settings/set-password                               391 B         104 kB
+Γö£ ╞Æ /api/admin/purchase-req/details/[requestId]                            391 B         104 kB
+Γö£ ╞Æ /api/admin/purchase-req/my-req                                         391 B         104 kB
+Γö£ ╞Æ /api/admin/purchase-req/my-req/[requestId]                             391 B         104 kB
+Γö£ ╞Æ /api/admin/purchase-req/unassigned                                     391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests                                391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests/approve                        391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests/notify-user                    391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests/reject                         391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests/shamcash-manual-withdrawals    391 B         104 kB
+Γö£ ╞Æ /api/admin/shamcash-activation-requests/shamcash-payout-jobs           391 B         104 kB
+Γö£ ╞Æ /api/admin/support/broadcast                                           391 B         104 kB
+Γö£ ╞Æ /api/admin/support/messages                                            391 B         104 kB
+Γö£ ╞Æ /api/admin/support/reply                                               391 B         104 kB
+Γö£ ╞Æ /api/analytics/web-vitals                                              391 B         104 kB
+Γö£ ╞Æ /api/auth/[...nextauth]                                                391 B         104 kB
+Γö£ ╞Æ /api/auth/verify-email                                                 391 B         104 kB
+Γö£ ╞Æ /api/cars                                                              391 B         104 kB
+Γö£ ╞Æ /api/cars/new_car/[id]                                                 391 B         104 kB
+Γö£ ╞Æ /api/cars/used_car                                                     391 B         104 kB
+Γö£ ╞Æ /api/cars/used_car/[id]                                                391 B         104 kB
+Γö£ ╞Æ /api/categories                                                        391 B         104 kB
+Γö£ ╞Æ /api/charging_account                                                  391 B         104 kB
+Γö£ ╞Æ /api/favorites                                                         391 B         104 kB
+Γö£ ╞Æ /api/geocode/reverse                                                   391 B         104 kB
+Γö£ ╞Æ /api/homeFurniture                                                     391 B         104 kB
+Γö£ ╞Æ /api/homeFurniture/[id]                                                391 B         104 kB
+Γö£ ╞Æ /api/items                                                             391 B         104 kB
+Γö£ ╞Æ /api/items/counts                                                      391 B         104 kB
+Γö£ ╞Æ /api/items/delete/[id]                                                 391 B         104 kB
+Γö£ ╞Æ /api/items/details/[id]                                                391 B         104 kB
+Γö£ ╞Æ /api/items/featured                                                    391 B         104 kB
+Γö£ ╞Æ /api/items/type-counts                                                 391 B         104 kB
+Γö£ ╞Æ /api/medicalDevices                                                    391 B         104 kB
+Γö£ ╞Æ /api/medicalDevices/[id]                                               391 B         104 kB
+Γö£ ╞Æ /api/notifications                                                     391 B         104 kB
+Γö£ ╞Æ /api/notifications/[id]/read                                           391 B         104 kB
+Γö£ ╞Æ /api/notifications/stream                                              391 B         104 kB
+Γö£ ╞Æ /api/notifications/unread-count                                        391 B         104 kB
+Γö£ ╞Æ /api/otherItems                                                        391 B         104 kB
+Γö£ ╞Æ /api/otherItems/[id]                                                   391 B         104 kB
+Γö£ ╞Æ /api/pay/paypal/capture                                                391 B         104 kB
+Γö£ ╞Æ /api/pay/paypal/order                                                  391 B         104 kB
+Γö£ ╞Æ /api/pay/paypal/withdraw                                               391 B         104 kB
+Γö£ ╞Æ /api/pay/settings                                                      391 B         104 kB
+Γö£ ╞Æ /api/pay/shamcash-verify                                               391 B         104 kB
+Γö£ ╞Æ /api/pay/shamcash/request                                              391 B         104 kB
+Γö£ ╞Æ /api/pay/shamcash/status                                               391 B         104 kB
+Γö£ ╞Æ /api/pay/shamcash/withdraw                                             391 B         104 kB
+Γö£ ╞Æ /api/profile                                                           391 B         104 kB
+Γö£ ╞Æ /api/profile-image                                                     391 B         104 kB
+Γö£ ╞Æ /api/profile/[id]                                                      391 B         104 kB
+Γö£ ╞Æ /api/profile/edit-verification/send-code                               391 B         104 kB
+Γö£ ╞Æ /api/profile/edit-verification/verify-code                             391 B         104 kB
+Γö£ ╞Æ /api/profile/identity-verification                                     391 B         104 kB
+Γö£ ╞Æ /api/profile/summary                                                   391 B         104 kB
+Γö£ ╞Æ /api/profile/withdrawals/shamcash                                      391 B         104 kB
+Γö£ ╞Æ /api/purchase                                                          391 B         104 kB
+Γö£ ╞Æ /api/purchase/admin_aggremental                                        391 B         104 kB
+Γö£ ╞Æ /api/purchase/admin_claim                                              391 B         104 kB
+Γö£ ╞Æ /api/purchase/final_transaction                                        391 B         104 kB
+Γö£ ╞Æ /api/purchase/owner_decision                                           391 B         104 kB
+Γö£ ╞Æ /api/ratings/item                                                      391 B         104 kB
+Γö£ ╞Æ /api/ratings/property                                                  391 B         104 kB
+Γö£ ╞Æ /api/ratings/user                                                      391 B         104 kB
+Γö£ ╞Æ /api/realestate                                                        391 B         104 kB
+Γö£ ╞Æ /api/realestate/[id]                                                   391 B         104 kB
+Γö£ ╞Æ /api/realestate/update                                                 391 B         104 kB
+Γö£ ╞Æ /api/set-locale                                                        391 B         104 kB
+Γö£ ╞Æ /api/support/activation-code-request                                   391 B         104 kB
+Γö£ ╞Æ /api/support/contact                                                   391 B         104 kB
+Γö£ ╞Æ /api/support/tickets                                                   391 B         104 kB
+Γö£ ╞Æ /api/support/tickets/[ticketId]                                        391 B         104 kB
+Γö£ ╞Æ /api/support/tickets/[ticketId]/reply                                  391 B         104 kB
+Γö£ ╞Æ /api/transactions/manage                                               391 B         104 kB
+Γö£ ╞Æ /api/transactions/rent                                                 391 B         104 kB
+Γö£ ╞Æ /api/transactions/sell                                                 391 B         104 kB
+Γö£ ╞Æ /api/upload                                                            391 B         104 kB
+Γö£ ╞Æ /api/verify-email                                                      391 B         104 kB
+Γö£ ╞Æ /api/webhooks/fatora                                                   391 B         104 kB
+Γö£ ╞Æ /api/webhooks/shamcash                                                 391 B         104 kB
+Γö£ ╞Æ /api/ws                                                                391 B         104 kB
+Γö£ ╞Æ /categories/[typeSegment]/[categoryId]/[slug]                          597 B        1.07 MB
+Γö£ ╞Æ /items/details/[id]                                                    261 B         1.2 MB
+Γö£ ╞Æ /items/details/[id]/[slug]                                             240 B         1.2 MB
+Γö£ ╞Æ /items/details/[id]/opengraph-image                                    391 B         104 kB
+Γö£ ╞Æ /items/details/[id]/twitter-image                                      391 B         104 kB
+Γö£ Γùï /manifest.webmanifest                                                  391 B         104 kB
+Γö£ Γùï /opengraph-image                                                       391 B         104 kB
+Γö£ ╞Æ /pages/search-res                                                      214 B         109 kB
+Γö£ ╞Æ /payment                                                             5.56 kB         138 kB
+Γö£ ╞Æ /privacy-policy                                                      4.14 kB         111 kB
+Γö£ ╞Æ /profile                                                             32.8 kB        1.57 MB
+Γö£ ╞Æ /reset-password                                                      2.52 kB         106 kB
+Γö£ Γùï /robots.txt                                                            391 B         104 kB
+Γö£ ╞Æ /sitemap.xml                                                           391 B         104 kB
+Γö£ ╞Æ /sitemap/[id]                                                          391 B         104 kB
+Γö£ Γùï /twitter-image                                                         391 B         104 kB
+Γöö ╞Æ /verify-email                                                        1.24 kB         105 kB
++ First Load JS shared by all                                             104 kB
+  Γö£ chunks/1255-c689bccdcaaca5b4.js                                      45.7 kB
+  Γö£ chunks/4bd1b696-16dcc2bec6e1bff8.js                                  54.3 kB
+  Γöö other shared chunks (total)                                          3.55 kB
+
+
+╞Æ Middleware                                                             34.2 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

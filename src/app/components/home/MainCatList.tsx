@@ -7,6 +7,7 @@ interface MainCatListProps {
   selectedType: string;
   tabsList: { key: string; nameEn: string; nameAr: string }[];
   handleSelectType: (value: string) => void;
+  isFiltering?: boolean;
 }
 
 const MainCatList = ({
@@ -16,6 +17,7 @@ const MainCatList = ({
   selectedType,
   tabsList,
   handleSelectType,
+  isFiltering = false,
 }: MainCatListProps) => {
   return (
     <div className={compact ? "w-full" : "w-full md:hidden"}>
@@ -41,6 +43,12 @@ const MainCatList = ({
             </option>
           ))}
         </select>
+
+        {isFiltering ? (
+          <span className="pointer-events-none absolute -bottom-1 left-1/2 h-0.5 w-20 -translate-x-1/2 overflow-hidden rounded-full bg-indigo-200/80 dark:bg-indigo-900/70">
+            <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-indigo-500 to-transparent dark:via-indigo-300 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
+          </span>
+        ) : null}
       </div>
     </div>
   );

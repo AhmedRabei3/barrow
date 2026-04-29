@@ -11,6 +11,7 @@ import {
   notifyAdminsOfModerationQueue,
   pendingReviewData,
 } from "@/app/api/utils/moderation";
+import { upsertListingIndex } from "@/server/services/listing-index.service";
 
 /**
  * @descriptions Update property
@@ -70,6 +71,8 @@ export async function PUT(req: NextRequest) {
         ...pendingReviewData,
       } as Prisma.PropertyUncheckedUpdateInput,
     });
+
+    void upsertListingIndex(id, "PROPERTY");
 
     await notifyAdminsOfModerationQueue("PROPERTY", id, "UPDATED", isArabic);
 
