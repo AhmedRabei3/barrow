@@ -2,6 +2,7 @@ import Image from "next/image";
 import React, { FC, useState } from "react";
 import { FaCamera } from "react-icons/fa";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
+import { getUiLocale } from "@/lib/locale-format";
 
 interface ProfileHeaderProps {
   user: {
@@ -70,7 +71,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({ user, onImageEdit }) => {
           <p className="text-sm text-gray-500">
             {t("عضو منذ", "Member since")}{" "}
             {new Date(user.createdAt || Date.now()).toLocaleDateString(
-              isArabic ? "ar-SA" : "en-US",
+              getUiLocale(isArabic),
             )}
           </p>
         </div>

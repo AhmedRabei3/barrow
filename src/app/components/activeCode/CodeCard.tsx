@@ -2,6 +2,7 @@
 
 import toast from "react-hot-toast";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { getUiLocale } from "@/lib/locale-format";
 
 export interface ActiveCode {
   code: string;
@@ -66,7 +67,7 @@ const CodeCard = ({ code }: CodeCardProps) => {
       {code.createdAt && (
         <p className="text-slate-400 dark:text-slate-500 text-xs mt-2">
           {t("تاريخ الإنشاء", "Created")}:{" "}
-          {new Date(code.createdAt).toLocaleString(isArabic ? "ar" : "en-US")}
+          {new Date(code.createdAt).toLocaleString(getUiLocale(isArabic))}
         </p>
       )}
     </div>

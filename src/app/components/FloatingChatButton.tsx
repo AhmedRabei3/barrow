@@ -131,11 +131,11 @@ const FloatingChatButton = () => {
       {open && (
         <div
           ref={panelRef}
-          className="fixed bottom-40 right-4 left-4 sm:left-auto sm:right-6 z-60"
+          className="fixed inset-x-3 bottom-3 top-18 z-60 flex items-end sm:inset-x-auto sm:right-6 sm:top-24 sm:bottom-24"
         >
           {isSessionLoading ? (
             <div
-              className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+              className="pointer-events-auto w-full sm:w-98 max-w-104 max-h-full bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.25)] backdrop-blur-xl overflow-hidden"
               dir={isArabic ? "rtl" : "ltr"}
             >
               <div className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
@@ -148,7 +148,7 @@ const FloatingChatButton = () => {
             <Suspense
               fallback={
                 <div
-                  className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+                  className="pointer-events-auto w-full sm:w-98 max-w-104 max-h-full bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.25)] backdrop-blur-xl overflow-hidden"
                   dir={isArabic ? "rtl" : "ltr"}
                 >
                   <div className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
@@ -163,7 +163,7 @@ const FloatingChatButton = () => {
             </Suspense>
           ) : (
             <div
-              className="w-full sm:w-97.5 max-w-104 bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden"
+              className="pointer-events-auto w-full sm:w-98 max-w-104 max-h-full bg-white/92 dark:bg-slate-900/92 border border-neutral-200/80 dark:border-slate-700/80 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.25)] backdrop-blur-xl overflow-hidden"
               dir={isArabic ? "rtl" : "ltr"}
             >
               <div className="px-4 py-3 border-b border-neutral-100 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800">

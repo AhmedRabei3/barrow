@@ -1,5 +1,6 @@
 import React, { FC } from "react";
 import { FaWallet, FaMoneyBillWave, FaHourglass } from "react-icons/fa";
+import { ARABIC_LATIN_DIGITS_LOCALE } from "@/lib/locale-format";
 
 interface BalanceSectionProps {
   totalBalance: number;
@@ -13,7 +14,7 @@ const BalanceSection: FC<BalanceSectionProps> = ({
   readyToWithdraw = 0,
 }) => {
   const formatCurrency = (amount: number) => {
-    return amount.toLocaleString("ar-SA", {
+    return amount.toLocaleString(ARABIC_LATIN_DIGITS_LOCALE, {
       style: "currency",
       currency: "SAR",
     });

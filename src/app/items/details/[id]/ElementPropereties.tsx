@@ -2,6 +2,7 @@
 
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { formatNumber } from "@/lib/locale-format";
 
 type ItemDetailsData = {
   // Common
@@ -136,7 +137,7 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
     },
     {
       label: isArabic ? "السعر" : "Price",
-      value: `${Number(data.price ?? 0).toLocaleString(isArabic ? "ar-SA" : "en-US")} $${
+      value: `${formatNumber(Number(data.price ?? 0), isArabic)} $${
         rentType
           ? ` / ${(rentTypeLabelMap[rentType]?.[isArabic ? "ar" : "en"] ?? rentType).toLowerCase()}`
           : ""
@@ -220,7 +221,7 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
         isUsedCar && data.mileage != null
           ? {
               label: isArabic ? "المسافة المقطوعة" : "Mileage",
-              value: `${Number(data.mileage).toLocaleString(isArabic ? "ar-SA" : "en-US")} km`,
+              value: `${formatNumber(Number(data.mileage), isArabic)} km`,
             }
           : null,
         data.status

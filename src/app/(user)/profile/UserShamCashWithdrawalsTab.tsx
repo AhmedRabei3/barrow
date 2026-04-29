@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { useStaleResource } from "@/app/hooks/useStaleResource";
+import { getUiLocale } from "@/lib/locale-format";
 
 type WithdrawalStatus =
   | "ALL"
@@ -148,7 +149,7 @@ const UserShamCashWithdrawalsTab = ({
   isWithdrawingShamCash,
 }: UserShamCashWithdrawalsTabProps) => {
   const { isArabic } = useAppPreferences();
-  const locale = isArabic ? "ar" : "en";
+  const locale = getUiLocale(isArabic);
   const t = useCallback(
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],

@@ -1,5 +1,6 @@
 import React, { FC } from "react";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
+import { formatDate, formatNumber, getUiLocale } from "@/lib/locale-format";
 
 interface Order {
   id: string;
@@ -81,30 +82,27 @@ const OrdersList: FC<OrdersListProps> = ({ orders = [], type = "current" }) => {
           <div className="flex-1">
             <h4 className="font-semibold text-gray-900">{order.itemName}</h4>
             <p className="text-sm text-gray-500">
-              {new Date(order.createdAt).toLocaleDateString(
-                isArabic ? "ar-SA" : "en-US",
-                {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                },
-              )}
+              {formatDate(order.createdAt, isArabic, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </p>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-600">
-                {order.amount.toLocaleString(isArabic ? "ar-SA" : "en-US")}{" "}
+                {formatNumber(order.amount, isArabic)} {" "}
                 {t("ر.س", "SAR")}
               </p>
               {order.completedAt && (
                 <p className="text-xs text-gray-500">
                   {t("مكتمل في", "Completed on")}{" "}
                   {new Date(order.completedAt).toLocaleDateString(
-                    isArabic ? "ar-SA" : "en-US",
+                    getUiLocale(isArabic),
                   )}
                 </p>
               )}

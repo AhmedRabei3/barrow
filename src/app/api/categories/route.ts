@@ -119,21 +119,18 @@ const buildCategoryCacheKey = ({
 const getDistinctCategoryIds = async (
   type: ItemType | null,
 ): Promise<string[]> => {
-  if (type === ItemType.NEW_CAR) {
+  if (type === ItemType.NEW_CAR || type === ItemType.USED_CAR) {
     const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
       SELECT DISTINCT "categoryId"
-      FROM "NewCar"
-      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
-    `;
-
-    return rows.map((row) => row.categoryId);
-  }
-
-  if (type === ItemType.USED_CAR) {
-    const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
-      SELECT DISTINCT "categoryId"
-      FROM "OldCar"
-      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+      FROM (
+        SELECT "categoryId"
+        FROM "NewCar"
+        WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+        UNION
+        SELECT "categoryId"
+        FROM "OldCar"
+        WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+      ) AS active_car_categories
     `;
 
     return rows.map((row) => row.categoryId);
@@ -298,8 +295,11 @@ export async function GET(req: NextRequest) {
           { status: 400 },
         );
       }
-      // Used cars share categories with new cars — include both types
-      if (normalizedType === ItemType.USED_CAR) {
+      // New and used cars share one category family.
+      if (
+        normalizedType === ItemType.USED_CAR ||
+        normalizedType === ItemType.NEW_CAR
+      ) {
         whereClause.type = { in: [ItemType.NEW_CAR, ItemType.USED_CAR] };
       } else {
         whereClause.type = normalizedType;

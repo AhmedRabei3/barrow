@@ -14,6 +14,7 @@ import {
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
+import { getUiLocale } from "@/lib/locale-format";
 
 const typeStyles: Record<NotificationType, string> = {
   INFO: "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/50",
@@ -135,7 +136,7 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
           {title}
         </h4>
         <span className="text-xs text-gray-500 dark:text-slate-400">
-          {new Date(createdAt).toLocaleString(isArabic ? "ar" : "en")}
+          {new Date(createdAt).toLocaleString(getUiLocale(isArabic))}
         </span>
       </div>
 

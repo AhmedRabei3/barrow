@@ -212,7 +212,9 @@ export const renderListingDetailsPage = async (
       )}
       <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         {item ? (
-          <ItemDetails item={item} />
+          <div className="rounded-[30px] border border-slate-200/70 bg-linear-to-br from-white/96 via-white to-slate-50/95 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm dark:border-slate-700/70 dark:from-slate-900/95 dark:via-slate-900 dark:to-slate-950/95">
+            <ItemDetails item={item} />
+          </div>
         ) : (
           <div className="market-panel rounded-[28px] px-6 py-12 text-center text-slate-200">
             <h2 className="text-xl font-bold">

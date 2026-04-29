@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import ContactModal from "./ContactModal";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { useSession } from "next-auth/react";
+import { formatNumber } from "@/lib/locale-format";
 
 interface ContactOwnerElementProps {
   itemType: ItemType;
@@ -124,7 +125,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
             </p>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-3xl font-black dark:text-sky-300">
-                {price.toLocaleString()}
+                {formatNumber(price, isArabic)}
               </span>
               <span className="text-sm dark:text-slate-400">{currency}</span>
             </div>

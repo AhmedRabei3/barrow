@@ -105,6 +105,7 @@ const HomePageClient = () => {
   const showPicker = isMobile && !mobileCategoryPicked && !skipPicker;
 
   const handleMobileBack = useCallback(() => {
+    setSkipPicker(false);
     setMobileCategoryPicked(false);
     sessionStorage.removeItem("mobile-category-picked");
   }, []);

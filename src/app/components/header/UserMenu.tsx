@@ -50,6 +50,8 @@ const UserMenu = () => {
   const [showQuickFilters, setShowQuickFilters] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] =
     useState<DeferredPromptEvent | null>(null);
+  const [isRunningInsideInstalledApp, setIsRunningInsideInstalledApp] =
+    useState(false);
   const [drawerQuery, setDrawerQuery] = useState("");
   const [drawerCity, setDrawerCity] = useState("");
   const [drawerAction, setDrawerAction] = useState<"SELL" | "RENT" | "">("");
@@ -157,6 +159,27 @@ const UserMenu = () => {
   }, [isOpen, user, isArabic]);
 
   useEffect(() => {
+    const checkInstalledShell = () => {
+      const isStandaloneDisplayMode =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(display-mode: standalone)").matches;
+      const isIosStandalone =
+        typeof navigator !== "undefined" &&
+        "standalone" in navigator &&
+        Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+      const ua = navigator.userAgent || "";
+      const isInWebView =
+        /\bwv\b/i.test(ua) ||
+        /FBAN|FBAV|Instagram|Line\//i.test(ua) ||
+        /BarrowApp|Barrow\/Mobile/i.test(ua);
+
+      setIsRunningInsideInstalledApp(
+        isStandaloneDisplayMode || isIosStandalone || isInWebView,
+      );
+    };
+
+    checkInstalledShell();
+
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event as DeferredPromptEvent);
@@ -317,12 +340,14 @@ const UserMenu = () => {
         iconName={subscriptionIcon}
         isArabic={isArabic}
       />
-      <UserMenueItem
-        label={isArabic ? "الصفحة الشخصية" : "Profile"}
-        onClick={goToProfile}
-        iconName="MdPerson"
-        isArabic={isArabic}
-      />
+      {!user?.isOwner && (
+        <UserMenueItem
+          label={isArabic ? "الصفحة الشخصية" : "Profile"}
+          onClick={goToProfile}
+          iconName="MdPerson"
+          isArabic={isArabic}
+        />
+      )}
       <UserMenueItem
         label={
           isArabic ? "طلبات الشراء والإيجار" : "Purchase & rental requests"
@@ -346,12 +371,14 @@ const UserMenu = () => {
         badge={openTicketsCount > 0 ? String(openTicketsCount) : undefined}
       />
 
-      <UserMenueItem
-        label={isArabic ? "تنزيل التطبيق" : "Download app"}
-        onClick={handleInstallApp}
-        iconName="MdInstallMobile"
-        isArabic={isArabic}
-      />
+      {!isRunningInsideInstalledApp && (
+        <UserMenueItem
+          label={isArabic ? "تنزيل التطبيق" : "Download app"}
+          onClick={handleInstallApp}
+          iconName="MdInstallMobile"
+          isArabic={isArabic}
+        />
+      )}
 
       <UserMenueItem
         label={isArabic ? "تسجيل الخروج" : "Logout"}

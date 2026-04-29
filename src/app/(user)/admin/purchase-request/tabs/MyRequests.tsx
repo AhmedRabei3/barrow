@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MdOutlineRefresh } from "react-icons/md";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { ARABIC_LATIN_DIGITS_LOCALE } from "@/lib/locale-format";
 
 interface PurchaseRequest {
   id: string;
@@ -94,7 +95,9 @@ export default function MyPurchaseRequests() {
               </div>
 
               <span className="text-xs text-slate-400 dark:text-slate-500">
-                {new Date(req.createdAt).toLocaleString()}
+                {new Date(req.createdAt).toLocaleString(
+                  ARABIC_LATIN_DIGITS_LOCALE,
+                )}
               </span>
             </div>
 

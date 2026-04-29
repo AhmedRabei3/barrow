@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MdOutlineRefresh } from "react-icons/md";
 import toast from "react-hot-toast";
+import { ARABIC_LATIN_DIGITS_LOCALE } from "@/lib/locale-format";
 
 interface PurchaseRequest {
   id: string;
@@ -119,7 +120,9 @@ export default function UnassignedPurchaseRequests() {
                   </button>
                 </div>
                 <span className="text-xs text-gray-400 flex justify-self-end">
-                  {new Date(request.createdAt).toLocaleString()}
+                  {new Date(request.createdAt).toLocaleString(
+                    ARABIC_LATIN_DIGITS_LOCALE,
+                  )}
                 </span>
 
                 <div className="text-sm text-gray-700">

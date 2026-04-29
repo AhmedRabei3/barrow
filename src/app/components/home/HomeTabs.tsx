@@ -106,10 +106,13 @@ const HomeTab = ({
     [session?.user?.preferredInterestOrder],
   );
   const tabsList =
-    availableKeys && availableKeys.length > 0
+    availableKeys !== null
       ? orderedTabs.filter((tab) => availableKeys.includes(tab.key))
       : orderedTabs;
-  const selectedType = getPrimaryCategoryKey(type as never) ?? tabsList[0]?.key;
+  const selectedType =
+    getPrimaryCategoryKey(type as never) ??
+    tabsList[0]?.key ??
+    orderedTabs[0]?.key;
 
   const loadAvailableTabs = useCallback(async () => {
     const countsByType = await fetchItemTypeCounts();
@@ -118,11 +121,8 @@ const HomeTab = ({
       const keysFromCounts = PRIMARY_CATEGORY_TABS.filter(
         (tab) => (countsByType[tab.type] ?? 0) > 0,
       ).map((tab) => tab.key);
-
-      if (keysFromCounts.length > 0) {
-        setAvailableKeys(keysFromCounts);
-        return;
-      }
+      setAvailableKeys(keysFromCounts);
+      return;
     }
 
     const results = await Promise.all(
@@ -209,6 +209,7 @@ const HomeTab = ({
                 className={`
                   group relative mx-0.5 flex cursor-pointer select-none items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-all duration-300 xl:px-4
                   ${isActive ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white shadow-md" : "text-gray-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300"}
+                  ${isActive && isFiltering ? "animate-pulse shadow-lg shadow-blue-400/35 dark:shadow-sky-500/30" : ""}
                 `}
               >
                 <div className="relative z-10 flex flex-col items-center gap-1 md:flex-col lg:flex-row lg:items-center lg:gap-1">
@@ -224,9 +225,11 @@ const HomeTab = ({
                 </div>
 
                 {isActive && isFiltering ? (
-                  <span className="pointer-events-none absolute bottom-1 left-1/2 h-0.5 w-14 -translate-x-1/2 overflow-hidden rounded-full bg-white/30 dark:bg-sky-900/60">
-                    <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-white to-transparent dark:via-sky-200 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
-                  </span>
+                  <span className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-white/55 dark:ring-sky-300/50 animate-pulse" />
+                ) : null}
+
+                {isActive && isFiltering ? (
+                  <span className="pointer-events-none absolute top-1.5 inset-e-1.5 h-2 w-2 rounded-full bg-white/90 dark:bg-sky-200 animate-pulse" />
                 ) : null}
               </button>
             );

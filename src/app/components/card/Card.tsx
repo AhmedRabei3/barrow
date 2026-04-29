@@ -14,6 +14,7 @@ import { FormattedItem } from "../home/getItems";
 import { $Enums } from "@prisma/client";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { buildListingDetailsPath } from "@/lib/listingSeo";
+import { getUiLocale } from "@/lib/locale-format";
 
 type CardItem = {
   item: {
@@ -179,7 +180,7 @@ const Card: FC<CardProps> = ({
           : "Your listing is hidden until review is completed by admin."
         : null;
   const formattedModeratedAt = moderatedAt
-    ? new Intl.DateTimeFormat(isArabic ? "ar" : "en-US", {
+    ? new Intl.DateTimeFormat(getUiLocale(isArabic), {
         dateStyle: "medium",
         timeStyle: "short",
         timeZone: "UTC",

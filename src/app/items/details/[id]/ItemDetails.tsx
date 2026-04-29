@@ -94,7 +94,7 @@ interface ItemDetailsProps {
 
 const ItemDetails = ({ item }: ItemDetailsProps) => {
   const { data: session } = useSession();
-    const { isArabic } = useAppPreferences();
+  const { isArabic } = useAppPreferences();
   const { data, images, type, location, reviews } = item;
   const normalizedData = normalizeItemDetailsData(data);
   const normalizedLocation = location ?? {
@@ -105,12 +105,18 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
     city: "",
     country: "",
   };
-  const title = normalizedData.title || normalizedData.name || normalizedData.brand || "Listing";
+  const title =
+    normalizedData.title ||
+    normalizedData.name ||
+    normalizedData.brand ||
+    "Listing";
   const subtitle = [normalizedData.model, location?.city, location?.country]
     .filter(Boolean)
     .join(" • ");
   const priceLabel = Number(normalizedData.price ?? 0).toLocaleString("en-US");
-  const isOwner = Boolean(normalizedData.ownerId && session?.user?.id === normalizedData.ownerId);
+  const isOwner = Boolean(
+    normalizedData.ownerId && session?.user?.id === normalizedData.ownerId,
+  );
   const manualRentalEndsAt = getManualRentalEndsAtFromTransactions(
     item.transactions,
     normalizedData.ownerId,
@@ -122,10 +128,10 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 
   return (
-    <div className="market-shell rounded-[28px] px-4 py-5 sm:px-6 lg:px-7 lg:py-7">
+    <div className="market-shell rounded-[28px] border border-slate-200/70 bg-linear-to-br from-white/95 via-white to-slate-50/90 px-4 py-5 shadow-[0_24px_48px_rgba(15,23,42,0.1)] sm:px-6 lg:px-7 lg:py-7 dark:border-slate-700/70 dark:from-slate-900/95 dark:via-slate-900 dark:to-slate-950/95">
       <GoBackBtn />
       <div className="relative z-10 flex flex-col gap-6">
-        <div className="market-panel rounded-[26px] px-5 py-5 sm:px-6">
+        <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-slate-900/95 via-slate-900/90 to-slate-950/90 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
           <p className="market-kicker">Listing overview</p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
@@ -150,7 +156,9 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                 align="right"
                 variant="hero"
               />
-              <div className={`${isArabic ? "rtl" : "ltr"} dark:bg-slate-950/55 px-4 py-3 text-right`}>
+              <div
+                className={`${isArabic ? "rtl" : "ltr"} rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 text-right shadow-sm dark:border-slate-700 dark:bg-slate-950/55`}
+              >
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                   {isArabic ? "السعر" : "PRICE"}
                 </p>
@@ -164,7 +172,7 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
           <div className="flex min-w-0 flex-col gap-6">
-            <div className="market-panel rounded-[26px] p-4 sm:p-5">
+            <div className="market-panel rounded-[26px] border border-slate-200/70 bg-white/96 p-4 shadow-sm sm:p-5 dark:border-slate-700/80 dark:bg-slate-900/80">
               <DetailImages images={images} />
             </div>
             <ElementPropereties
@@ -195,13 +203,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="
-                        inline-flex items-center 
+                        inline-flex items-center
                         gap-2 rounded-xl border 
-                       dark:border-slate-700 
-                       dark:bg-slate-900/80 
-                       px-3 py-2 text-xs font-semibold 
-                       dark:text-slate-100 transition 
-                       hover:border-sky-500 hover:text-sky-300
+                        border-slate-300 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700
+                        shadow-sm transition hover:border-sky-500 hover:text-sky-600 dark:border-slate-700
+                        dark:bg-slate-900/80 dark:text-slate-100 dark:hover:text-sky-300
                       "
                       aria-label="Open with Google Maps"
                     >
@@ -218,7 +224,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                       <Map
                         latitude={location?.latitude}
                         longitude={location?.longitude}
-                          name={normalizedData.brand || normalizedData.title || normalizedData.name}
+                        name={
+                          normalizedData.brand ||
+                          normalizedData.title ||
+                          normalizedData.name
+                        }
                       />
                     </div>
                   </div>

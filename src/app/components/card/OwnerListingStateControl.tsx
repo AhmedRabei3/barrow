@@ -16,6 +16,7 @@ import {
   type OwnerActionKey,
   type RentTypeKey,
 } from "./ownerListingState";
+import { getUiLocale } from "@/lib/locale-format";
 
 type ListingStatePayload = {
   status: string | null;
@@ -39,7 +40,7 @@ interface OwnerListingStateControlProps {
 }
 
 const formatEndDate = (value: Date, isArabic: boolean) =>
-  new Intl.DateTimeFormat(isArabic ? "ar" : "en-US", {
+  new Intl.DateTimeFormat(getUiLocale(isArabic), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(value);

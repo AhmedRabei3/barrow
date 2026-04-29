@@ -36,6 +36,7 @@ const MainCatList = ({
               focus:outline-none focus:ring-2 focus:ring-indigo-500
               dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100
             "
+          data-loading={isFiltering ? "true" : "false"}
         >
           {tabsList.map((item) => (
             <option key={item.key} value={item.key}>
@@ -45,9 +46,10 @@ const MainCatList = ({
         </select>
 
         {isFiltering ? (
-          <span className="pointer-events-none absolute -bottom-1 left-1/2 h-0.5 w-20 -translate-x-1/2 overflow-hidden rounded-full bg-indigo-200/80 dark:bg-indigo-900/70">
-            <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-indigo-500 to-transparent dark:via-indigo-300 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
-          </span>
+          <>
+            <span className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-indigo-300/65 dark:ring-indigo-400/50 animate-pulse" />
+            <span className="pointer-events-none absolute top-1.5 inset-e-1.5 h-2 w-2 rounded-full bg-indigo-500/90 dark:bg-indigo-300 animate-pulse" />
+          </>
         ) : null}
       </div>
     </div>

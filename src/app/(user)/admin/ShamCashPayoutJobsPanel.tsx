@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { getUiLocale } from "@/lib/locale-format";
 
 type QueueStatus = "ALL" | "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 type FilterTab = "ALL" | "ACTIVE" | "COMPLETED" | "FAILED" | "MANUAL";
@@ -121,7 +122,7 @@ const ShamCashPayoutJobsPanel = ({
     (ar: string, en: string) => (isArabic ? ar : en),
     [isArabic],
   );
-  const locale = isArabic ? "ar" : "en";
+  const locale = getUiLocale(isArabic);
 
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [loading, setLoading] = useState<boolean>(true);

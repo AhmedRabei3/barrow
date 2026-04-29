@@ -48,10 +48,11 @@ const CategoryList = ({
         className="flex overflow-x-auto scroll-smooth gap-3 px-4 sm:gap-4 sm:px-8 no-scrollbar scrollbar-hide"
       >
         {uniqueList.map((item, index) => (
-          <div
+          <button
             key={index}
+            type="button"
             className={`
-             flex flex-col items-center 
+             relative flex flex-col items-center 
              justify-center cursor-pointer 
              rounded-lg transform
              transition-transform duration-300 
@@ -60,8 +61,11 @@ const CategoryList = ({
              dark:text-neutral-400 
              dark:hover:text-neutral-200
              ${catName === item.name && "text-sky-400 bg-sky-50 dark:bg-gray-700 dark:text-sky-300"}
+             ${catName === item.name && isFiltering ? "animate-pulse shadow-sm shadow-sky-400/35 dark:shadow-sky-500/30" : ""}
              `}
             onClick={() => setCatName(item.name)}
+            aria-pressed={catName === item.name}
+            aria-label={item.name}
           >
             <span className="flex h-8 w-8 items-center justify-center text-slate-700  dark:text-slate-200">
               {item.icon ? (
@@ -76,11 +80,12 @@ const CategoryList = ({
             <p className="text-sm">{item.name}</p>
 
             {catName === item.name && isFiltering ? (
-              <span className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-sky-200/70 dark:bg-sky-900/60">
-                <span className="block h-full w-1/2 bg-linear-to-r from-transparent via-sky-500 to-transparent dark:via-sky-300 animate-[tab-bar-sweep_1s_ease-in-out_infinite]" />
-              </span>
+              <>
+                <span className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-sky-300/70 dark:ring-sky-500/50 animate-pulse" />
+                <span className="pointer-events-none absolute top-1.5 inset-e-1.5 h-2 w-2 rounded-full bg-sky-500/90 dark:bg-sky-300 animate-pulse" />
+              </>
             ) : null}
-          </div>
+          </button>
         ))}
       </div>
       <button

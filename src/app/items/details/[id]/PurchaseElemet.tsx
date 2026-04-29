@@ -4,6 +4,7 @@ import { memo, useState } from "react";
 import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { formatNumber } from "@/lib/locale-format";
 
 interface PurchaseElementProps {
   itemType: ItemType;
@@ -75,7 +76,7 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
 
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-bold text-emerald-700">
-          {price.toLocaleString()}
+          {formatNumber(price, isArabic)}
         </span>
         <span className="text-sm text-gray-600">{currency}</span>
       </div>
