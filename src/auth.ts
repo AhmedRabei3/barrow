@@ -7,7 +7,6 @@ import {
   getSessionCookieName,
   shouldUseSecureAuthCookie,
 } from "@/lib/auth-cookie";
-import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 import authConfig from "./auth.config";
 
 const LOCAL_AUTH_URL_PATTERN =
@@ -40,8 +39,52 @@ const isDatabaseUnavailableError = (error: unknown) => {
   return (
     error instanceof Prisma.PrismaClientInitializationError ||
     (error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P1001")
+      (error.code === "P1001" || error.code === "P2024"))
   );
+};
+
+type SessionUserSnapshot = {
+  balance: number;
+  isActive: boolean;
+  isAdmin: boolean;
+  isOwner: boolean;
+  isIdentityVerified: boolean;
+  activeUntil: Date | null;
+  pendingReferralEarnings: number;
+  preferredInterestOrder: string[];
+  notifications: Array<{
+    id: string;
+    title: string;
+    message: string;
+    createdAt: Date;
+  }>;
+};
+
+const SESSION_USER_CACHE_TTL_MS = 30 * 1000;
+const sessionUserCache = new Map<
+  string,
+  { expiresAt: number; value: SessionUserSnapshot }
+>();
+
+const readSessionUserCache = (userId: string): SessionUserSnapshot | null => {
+  const cached = sessionUserCache.get(userId);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    sessionUserCache.delete(userId);
+    return null;
+  }
+
+  return cached.value;
+};
+
+const writeSessionUserCache = (userId: string, value: SessionUserSnapshot) => {
+  sessionUserCache.set(userId, {
+    expiresAt: Date.now() + SESSION_USER_CACHE_TTL_MS,
+    value,
+  });
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -190,47 +233,63 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         : [];
 
       try {
-        await ensureOwnerAccount();
+        let snapshot = readSessionUserCache(token.sub);
 
-        // جلب البيانات الحديثة من DB لضمان اللحظية
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: {
-            balance: true,
-            isActive: true,
-            isAdmin: true,
-            isOwner: true,
-            isIdentityVerified: true,
-            activeUntil: true,
-            pendingReferralEarnings: true,
-            preferredInterestOrder: true,
-            notifications: {
-              where: { isRead: false },
-              select: {
-                id: true,
-                title: true,
-                message: true,
-                createdAt: true,
+        if (!snapshot) {
+          // جلب البيانات الحديثة من DB عند عدم توفر نسخة حديثة في الذاكرة
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: {
+              balance: true,
+              isActive: true,
+              isAdmin: true,
+              isOwner: true,
+              isIdentityVerified: true,
+              activeUntil: true,
+              pendingReferralEarnings: true,
+              preferredInterestOrder: true,
+              notifications: {
+                where: { isRead: false },
+                select: {
+                  id: true,
+                  title: true,
+                  message: true,
+                  createdAt: true,
+                },
               },
             },
-          },
-        });
+          });
 
-        session.user.balance = Number(dbUser?.balance ?? session.user.balance);
-        session.user.isActive = dbUser?.isActive ?? session.user.isActive;
-        session.user.isAdmin = dbUser?.isAdmin ?? session.user.isAdmin;
-        session.user.isOwner = dbUser?.isOwner ?? session.user.isOwner;
-        session.user.isIdentityVerified =
-          dbUser?.isIdentityVerified ?? session.user.isIdentityVerified;
-        session.user.activeUntil =
-          dbUser?.activeUntil ?? session.user.activeUntil;
-        session.user.pendingReferralEarnings = Number(
-          dbUser?.pendingReferralEarnings ??
-            session.user.pendingReferralEarnings,
-        );
-        session.user.preferredInterestOrder =
-          dbUser?.preferredInterestOrder ?? session.user.preferredInterestOrder;
-        session.user.notifications = dbUser?.notifications ?? [];
+          snapshot = {
+            balance: Number(dbUser?.balance ?? session.user.balance),
+            isActive: dbUser?.isActive ?? session.user.isActive,
+            isAdmin: dbUser?.isAdmin ?? session.user.isAdmin,
+            isOwner: dbUser?.isOwner ?? session.user.isOwner,
+            isIdentityVerified:
+              dbUser?.isIdentityVerified ?? session.user.isIdentityVerified,
+            activeUntil: dbUser?.activeUntil ?? session.user.activeUntil,
+            pendingReferralEarnings: Number(
+              dbUser?.pendingReferralEarnings ??
+                session.user.pendingReferralEarnings,
+            ),
+            preferredInterestOrder:
+              dbUser?.preferredInterestOrder ??
+              session.user.preferredInterestOrder,
+            notifications: dbUser?.notifications ?? [],
+          };
+
+          writeSessionUserCache(token.sub, snapshot);
+        }
+
+        session.user.balance = snapshot.balance;
+        session.user.isActive = snapshot.isActive;
+        session.user.isAdmin = snapshot.isAdmin;
+        session.user.isOwner = snapshot.isOwner;
+        session.user.isIdentityVerified = snapshot.isIdentityVerified;
+        session.user.activeUntil = snapshot.activeUntil;
+        session.user.pendingReferralEarnings = snapshot.pendingReferralEarnings;
+        session.user.preferredInterestOrder = snapshot.preferredInterestOrder;
+        session.user.notifications = snapshot.notifications;
       } catch (error) {
         if (isDatabaseUnavailableError(error)) {
           if (process.env.NODE_ENV === "development") {

@@ -1,5 +1,6 @@
 import { PrismaClient, type Notification } from "@prisma/client";
 import { realtimeBus } from "./realtimeBus";
+import { logger } from "./logger";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
@@ -118,7 +119,7 @@ export const prisma = prismaClient.$extends({
             });
           }
         } catch (error) {
-          console.error("Failed to push realtime notification:", error);
+          logger.error("Failed to push realtime notification:", error);
         }
 
         return result;

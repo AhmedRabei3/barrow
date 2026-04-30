@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: true,
   compress: true,
   poweredByHeader: false,
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",

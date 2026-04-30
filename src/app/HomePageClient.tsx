@@ -61,15 +61,13 @@ const HomePageClient = () => {
     Boolean(filters.action) ||
     Boolean(filters.minPrice) ||
     Boolean(filters.maxPrice);
-  const shouldFetchItems =
-    hasExplicitFilters ||
-    Boolean(filters.type) ||
-    (status !== "loading" && !orderedTabs[0]);
+  const shouldFetchItems = hasExplicitFilters || Boolean(filters.type);
 
   /* ── Mobile category picker state ──────────────────────────────── */
   const [isMobile, setIsMobile] = useState(false);
   const [mobileCategoryPicked, setMobileCategoryPicked] = useState(false);
   const [skipPicker, setSkipPicker] = useState(false);
+  const [pickerRequestedFromFab, setPickerRequestedFromFab] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -102,9 +100,12 @@ const HomePageClient = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const showPicker = isMobile && !mobileCategoryPicked && !skipPicker;
+  const showPicker =
+    isMobile &&
+    (pickerRequestedFromFab || (!mobileCategoryPicked && !skipPicker));
 
   const handleMobileBack = useCallback(() => {
+    setPickerRequestedFromFab(true);
     setSkipPicker(false);
     setMobileCategoryPicked(false);
     sessionStorage.removeItem("mobile-category-picked");
@@ -119,6 +120,8 @@ const HomePageClient = () => {
   const handleMobilePick = useCallback(
     (key: PrimaryCategoryKey) => {
       helper.handleSelectPrimaryTab(key);
+      setPickerRequestedFromFab(false);
+      setSkipPicker(true);
       setMobileCategoryPicked(true);
       sessionStorage.setItem("mobile-category-picked", "1");
     },
@@ -180,12 +183,51 @@ const HomePageClient = () => {
     });
 
   useEffect(() => {
-    if (status === "loading" || hasExplicitFilters || !orderedTabs[0]) {
+    if (hasExplicitFilters || filters.type || !orderedTabs[0]) {
       return;
     }
 
-    helper.handleSelectPrimaryTab(orderedTabs[0].key);
-  }, [hasExplicitFilters, helper, orderedTabs, status]);
+    let isCancelled = false;
+
+    const pickInitialTab = async () => {
+      try {
+        const response = await request.get("/api/items/counts", {
+          timeout: 7000,
+        });
+
+        const payload = response.data as
+          | { success?: boolean; counts?: Record<string, number> }
+          | undefined;
+
+        if (!payload?.success || !payload.counts) {
+          if (!isCancelled) {
+            helper.handleSelectPrimaryTab(orderedTabs[0].key);
+          }
+          return;
+        }
+
+        const firstAvailableTab = orderedTabs.find(
+          (tab) => (payload.counts?.[tab.type] ?? 0) > 0,
+        );
+
+        if (!isCancelled) {
+          helper.handleSelectPrimaryTab(
+            (firstAvailableTab ?? orderedTabs[0]).key,
+          );
+        }
+      } catch {
+        if (!isCancelled) {
+          helper.handleSelectPrimaryTab(orderedTabs[0].key);
+        }
+      }
+    };
+
+    void pickInitialTab();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filters.type, hasExplicitFilters, helper, orderedTabs]);
 
   useEffect(() => {
     if (typeof window === "undefined" || status !== "authenticated") {

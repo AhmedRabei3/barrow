@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { logger } from "./logger";
 
 export const SITE_NAME = "Mashhoor";
 export const SITE_SHORT_NAME = "Mashhoor";
@@ -59,13 +60,13 @@ export const buildMetadata = ({
   let safeDescription = description;
   if (process.env.NODE_ENV !== "production") {
     if (safeTitle.length > TITLE_MAX || safeTitle.length < TITLE_MIN) {
-      console.warn(
+      logger.warn(
         `[SEO] Title length (${safeTitle.length}) out of recommended range (${TITLE_MIN}-${TITLE_MAX}):`,
         safeTitle,
       );
     }
     if (description.length > DESC_MAX || description.length < DESC_MIN) {
-      console.warn(
+      logger.warn(
         `[SEO] Description length (${description.length}) out of recommended range (${DESC_MIN}-${DESC_MAX}):`,
         description,
       );

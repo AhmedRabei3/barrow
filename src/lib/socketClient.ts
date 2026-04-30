@@ -9,10 +9,21 @@ let startupFailureCount = 0;
 const MAX_STARTUP_FAILURES = 2;
 let heartbeatInterval: NodeJS.Timeout | null = null;
 const WS_DEBUG = false;
+const isClientDev = process.env.NODE_ENV !== "production";
 
 const wsLog = (...args: unknown[]) => {
   if (!WS_DEBUG) return;
   console.log(...args);
+};
+
+const wsWarn = (...args: unknown[]) => {
+  if (!isClientDev) return;
+  console.warn(...args);
+};
+
+const wsError = (...args: unknown[]) => {
+  if (!isClientDev) return;
+  console.error(...args);
 };
 
 export const initializeWebSocket = (userId: string) => {
@@ -84,7 +95,7 @@ export const initializeWebSocket = (userId: string) => {
           try {
             ws.send(JSON.stringify({ type: "ping" }));
           } catch (error) {
-            console.error("❌ Error sending ping:", error);
+            wsError("Error sending ping:", error);
           }
         }
       }, 25000);
@@ -110,7 +121,7 @@ export const initializeWebSocket = (userId: string) => {
           wsLog("📩 Unknown message type:", data.type, data);
         }
       } catch (e) {
-        console.error("❌ Failed to parse message:", e, "data:", event.data);
+        wsError("Failed to parse message:", e, "data:", event.data);
       }
     };
 
@@ -118,16 +129,16 @@ export const initializeWebSocket = (userId: string) => {
       // فشل الاتصال الأولي متوقع عندما لا يكون خادم ws شغالاً (مثل npm run dev فقط)
       if (!didOpen) {
         if (process.env.NODE_ENV === "development") {
-          console.warn(
+          wsWarn(
             "⚠️ WebSocket server unavailable. Start dev with npm run dev:ws to enable realtime notifications.",
           );
         }
         return;
       }
 
-      console.error("❌ WebSocket error event:", error);
+      wsError("WebSocket error event:", error);
       if (error instanceof ErrorEvent && error.message) {
-        console.error("❌ Error message:", error.message);
+        wsError("Error message:", error.message);
       }
     };
 
@@ -154,7 +165,7 @@ export const initializeWebSocket = (userId: string) => {
         if (startupFailureCount >= MAX_STARTUP_FAILURES) {
           allowReconnect = false;
           if (process.env.NODE_ENV === "development") {
-            console.warn(
+            wsWarn(
               "⚠️ WebSocket retries paused after repeated startup failures.",
             );
           }
@@ -199,7 +210,7 @@ const attemptReconnect = (userId: string) => {
       initializeWebSocket(userId);
     }, delay);
   } else {
-    console.error(
+    wsError(
       `❌ Max reconnection attempts reached (${MAX_RECONNECT_ATTEMPTS}), giving up`,
     );
     // إعادة تعيين العداد بعد فترة طويلة

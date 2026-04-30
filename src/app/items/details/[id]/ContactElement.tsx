@@ -113,29 +113,33 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       {title && (
         <div className="py-2">
           <p className="market-kicker">{t("التواصل", "Contact")}</p>
-          <h3 className="mt-2 text-xl font-bold text-white">{title}</h3>
+          <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+            {title}
+          </h3>
         </div>
       )}
 
-      <div className="rounded-[22px] dark:bg-slate-950/45 p-4">
+      <div className="rounded-[22px] border border-blue-200/80 bg-blue-50/55 p-4 dark:border-slate-600/80 dark:bg-slate-950/70">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
               {t("السعر الحالي", "Current price")}
             </p>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black dark:text-sky-300">
+              <span className="text-3xl font-black text-blue-700 dark:text-sky-300">
                 {formatNumber(price, isArabic)}
               </span>
-              <span className="text-sm dark:text-slate-400">{currency}</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">
+                {currency}
+              </span>
             </div>
           </div>
 
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
               isAvailable
-                ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
-                : "border border-rose-500/25 bg-rose-500/10 text-rose-300"
+                ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 dark:border-emerald-400/35 dark:bg-emerald-500/15 dark:text-emerald-200"
+                : "border border-rose-500/25 bg-rose-500/10 text-rose-300 dark:border-rose-400/35 dark:bg-rose-500/15 dark:text-rose-200"
             }`}
           >
             {isAvailable
@@ -146,12 +150,8 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div
-          className=" 
-         px-4 py-3 text-sm 
-        dark:text-slate-300"
-        >
-          <p className="font-semibold dark:text-white">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900/55 dark:text-slate-200">
+          <p className="font-semibold text-slate-900 dark:text-white">
             {t("شراء آمن", "Safe communication")}
           </p>
           <p className="mt-1 text-slate-500 dark:text-slate-400">
@@ -161,8 +161,8 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
             )}
           </p>
         </div>
-        <div className="px-4 py-3 text-sm dark:text-slate-300">
-          <p className="font-semibold dark:text-white">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900/55 dark:text-slate-200">
+          <p className="font-semibold text-slate-900 dark:text-white">
             {t("تنسيق مباشر", "Direct request")}
           </p>
           <p className="mt-1 text-slate-500 dark:text-slate-400">
@@ -177,10 +177,10 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       <button
         disabled={!isAvailable}
         onClick={() => setOpen(true)}
-        className={`w-full rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
+        className={`w-full  rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
           isAvailable
-            ? "market-primary-btn"
-            : "cursor-not-allowed border dark:border-slate-800 dark:bg-slate-900 text-slate-500"
+            ? "market-primary-btn bg-blue-600 text-blue-200 ring-1 ring-blue-300 shadow-md  hover:-translate-y-0.5 dark:ring-sky-400 dark:shadow-[0_20px_40px_rgba(14,165,233,0.28)]"
+            : "cursor-not-allowed border border-slate-300 bg-blue-400 text-slate-200"
         }`}
       >
         {requestTitle}
@@ -201,7 +201,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         />
       )}
 
-      <p className="text-center text-xs leading-6 text-rose-500 dark:text-rose-400 mt-4">
+      <p className="mt-4 text-center text-xs leading-6 text-rose-600 dark:text-rose-400">
         {t(
           "المنصة وسيط عرض وتواصل فقط، ولا تتدخل في الدفع أو الاتفاق النهائي بين الطرفين.",
           "The platform only facilitates listing display and contact, and does not handle payment or final agreement between both parties.",

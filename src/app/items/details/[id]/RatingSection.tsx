@@ -107,11 +107,11 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="market-kicker">{isArabic ? "التقييمات" : "Ratings"}</p>
-          <h3 className="mt-2 text-base font-semibold text-white sm:text-lg">
+          <h3 className="mt-2 text-base font-semibold text-slate-900 dark:text-white sm:text-lg">
             {isArabic ? "تقييم العنصر" : "Item rating"}
           </h3>
         </div>
-        <span className="inline-flex items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300 sm:text-sm">
+        <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-400/35 dark:bg-emerald-500/15 dark:text-emerald-200 sm:text-sm">
           {count > 0
             ? `${average.toFixed(1)} (${count})`
             : isArabic
@@ -121,7 +121,9 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
         </span>
       </div>
 
-      <div className={`mt-4 flex flex-wrap items-center gap-1 ${isArabic ? "rtl" : "ltr"} dark:bg-slate-950/40 p-3`}>
+      <div
+        className={`mt-4 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white/70 p-3 ${isArabic ? "rtl" : "ltr"} dark:border-slate-700 dark:bg-slate-950/70`}
+      >
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= (myRate || Math.round(average));
           return (
@@ -130,7 +132,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
               type="button"
               onClick={() => submitRate(star)}
               disabled={saving || isSessionLoading}
-              className="rounded-xl p-2 transition hover:bg-yellow-200/70 disabled:opacity-60"
+              className="rounded-xl p-2 transition hover:bg-yellow-200/70 dark:hover:bg-yellow-300/15 disabled:opacity-60"
               aria-label={`${isArabic ? "تقييم" : "Rate"} ${star}`}
             >
               <FaStar
@@ -142,7 +144,7 @@ const RatingSection = ({ itemId, itemType, reviews }: RatingSectionProps) => {
         })}
       </div>
 
-      <p className="mt-3 text-xs leading-6 text-slate-400">
+      <p className="mt-3 text-xs leading-6 text-slate-600 dark:text-slate-400">
         {isSessionLoading
           ? isArabic
             ? "جارٍ التحقق من حالة الحساب..."

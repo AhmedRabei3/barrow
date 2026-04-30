@@ -131,7 +131,7 @@ const FloatingChatButton = () => {
       {open && (
         <div
           ref={panelRef}
-          className="fixed inset-x-3 bottom-3 top-18 z-60 flex items-end sm:inset-x-auto sm:right-6 sm:top-24 sm:bottom-24"
+          className="fixed left-3 right-3 z-60 flex min-h-0 flex-col top-[max(0.75rem,env(safe-area-inset-top))] bottom-[max(5.25rem,env(safe-area-inset-bottom)+4.5rem)] sm:left-auto sm:right-6 sm:top-24 sm:bottom-20"
         >
           {isSessionLoading ? (
             <div

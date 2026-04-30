@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket as WSWebSocket } from "ws";
 import { IncomingMessage } from "http";
 import { Server as HTTPServer } from "http";
+import { logger } from "./logger";
 
 interface ExtendedWebSocket extends WSWebSocket {
   userId?: string;
@@ -41,7 +42,7 @@ wsGlobals.__mashhoorWsClients = clients;
  */
 export function initializeWebSocketServer(config: WebSocketServerConfig) {
   if (wss) {
-    console.log("✅ WebSocket server already initialized");
+    logger.debug("WebSocket server already initialized");
     return wss;
   }
 
@@ -51,16 +52,16 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
   });
   wsGlobals.__mashhoorWss = wss;
 
-  console.log("🔧 Setting up WebSocket upgrade handler...");
+  logger.debug("Setting up WebSocket upgrade handler...");
 
   // معالجة أخطاء WebSocket server
   wss.on("error", (error: Error) => {
-    console.error("❌ WebSocket Server Error:", error.message);
+    logger.error("WebSocket Server Error:", error.message);
   });
 
   /* معالجة upgrade من HTTP إلى WebSocket */
   config.server.on("upgrade", (request: IncomingMessage, socket, head) => {
-    console.log("📡 Upgrade event received from:", request.url);
+    logger.debug("Upgrade event received from:", request.url);
 
     const url = new URL(request.url || "", `http://${request.headers.host}`);
     const pathname = url.pathname;
@@ -71,21 +72,21 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
 
     const userId = url.searchParams.get("userId");
 
-    console.log(`🔑 Extracted userId: ${userId}`);
+    logger.debug(`Extracted userId: ${userId}`);
 
     if (!userId) {
-      console.warn("❌ No userId in request, destroying socket");
+      logger.warn("No userId in request, destroying socket");
       socket.destroy();
       return;
     }
 
-    console.log(`✅ Valid userId ${userId}, handling upgrade...`);
+    logger.debug(`Valid userId ${userId}, handling upgrade...`);
 
     wss!.handleUpgrade(request, socket, head, (ws: WSWebSocket) => {
       const extWs = ws as ExtendedWebSocket;
       extWs.userId = userId;
-      console.log(
-        `🔗 Upgrade successful for user ${userId}, emitting connection event`,
+      logger.debug(
+        `Upgrade successful for user ${userId}, emitting connection event`,
       );
       wss!.emit("connection", extWs, request);
     });
@@ -95,8 +96,8 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
   wss.on("connection", (ws: ExtendedWebSocket) => {
     const userId = ws.userId!;
 
-    console.log(`🔌 Client connected: ${userId}`);
-    console.log(`📊 Total clients now: ${clients.size + 1}`);
+    logger.debug(`Client connected: ${userId}`);
+    logger.debug(`Total clients now: ${clients.size + 1}`);
 
     /* إضافة المستخدم إلى المجموعة */
     if (!clients.has(userId)) {
@@ -108,7 +109,7 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
-      console.log(`💓 Pong received from ${userId}`);
+      logger.debug(`Pong received from ${userId}`);
     });
 
     /* معالجة الرسائل */
@@ -128,32 +129,30 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
             break;
 
           default:
-            console.warn(
-              `Unknown message type: ${message.type} from ${userId}`,
-            );
+            logger.warn(`Unknown message type: ${message.type} from ${userId}`);
         }
       } catch (error) {
-        console.error(`❌ Error processing message from ${userId}:`, error);
+        logger.error(`Error processing message from ${userId}:`, error);
       }
     });
 
     /* معالجة الفصل */
     ws.on("close", (code: number, reason: string) => {
-      console.log(
-        `❌ Client disconnected: ${userId} (code: ${code}, reason: ${reason || "no reason"})`,
+      logger.debug(
+        `Client disconnected: ${userId} (code: ${code}, reason: ${reason || "no reason"})`,
       );
       clients.get(userId)?.delete(ws);
 
       if (clients.get(userId)?.size === 0) {
         clients.delete(userId);
-        console.log(`🗑️ Removed user ${userId} from clients map`);
+        logger.debug(`Removed user ${userId} from clients map`);
       }
     });
 
     /* معالجة الأخطاء */
     ws.on("error", (error: Error) => {
-      console.error(
-        `❌ WebSocket error for ${userId}:`,
+      logger.error(
+        `WebSocket error for ${userId}:`,
         error.message,
         error.stack,
       );
@@ -171,22 +170,19 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
                 message: "Successfully connected to WebSocket server",
               }),
             );
-            console.log(`✅ Welcome message sent to ${userId}`);
+            logger.debug(`Welcome message sent to ${userId}`);
           } catch (error) {
-            console.error(
-              `❌ Error sending welcome message to ${userId}:`,
-              error,
-            );
+            logger.error(`Error sending welcome message to ${userId}:`, error);
           }
         } else {
-          console.warn(
-            `⚠️ WebSocket closed before sending welcome message (state: ${ws.readyState})`,
+          logger.warn(
+            `WebSocket closed before sending welcome message (state: ${ws.readyState})`,
           );
         }
       }, 50); // تأخير 50ms فقط
     } else {
-      console.warn(
-        `⚠️ WebSocket not open when trying to send welcome message (state: ${ws.readyState})`,
+      logger.warn(
+        `WebSocket not open when trying to send welcome message (state: ${ws.readyState})`,
       );
     }
   });
@@ -197,14 +193,14 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
   }
 
   wsGlobals.__mashhoorWsHeartbeat = setInterval(() => {
-    console.log(`💓 Health check... (${wss!.clients.size} connected clients)`);
+    logger.debug(`Health check... (${wss!.clients.size} connected clients)`);
 
     wss!.clients.forEach((ws: WSWebSocket) => {
       const extWs = ws as ExtendedWebSocket;
 
       if (extWs.isAlive === false) {
-        console.log(
-          `⚠️ Client ${extWs.userId} not responding to ping, terminating...`,
+        logger.warn(
+          `Client ${extWs.userId} not responding to ping, terminating...`,
         );
         ws.terminate();
         return;
@@ -215,7 +211,7 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
     });
   }, 30000);
 
-  console.log("🚀 WebSocket server initialized");
+  logger.info("WebSocket server initialized");
 
   return wss;
 }
@@ -230,7 +226,7 @@ export function sendNotificationToUser(
   const userClients = clients.get(userId);
 
   if (!userClients || userClients.size === 0) {
-    console.log(`⚠️ No connected clients for user ${userId}`);
+    logger.debug(`No connected clients for user ${userId}`);
     return;
   }
 
@@ -245,7 +241,7 @@ export function sendNotificationToUser(
     }
   });
 
-  console.log(
+  logger.debug(
     `📨 Notification sent to user ${userId} (${userClients.size} client(s))`,
   );
 }
@@ -269,7 +265,7 @@ export function broadcastNotification(
   notification: RealtimeNotificationPayload,
 ) {
   if (!wss) {
-    console.warn("⚠️ WebSocket server not initialized");
+    logger.warn("WebSocket server not initialized");
     return;
   }
 
@@ -284,7 +280,7 @@ export function broadcastNotification(
     }
   });
 
-  console.log(
+  logger.debug(
     `📢 Broadcast notification to all users (${wss.clients.size} client(s))`,
   );
 }

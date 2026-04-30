@@ -5,57 +5,59 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 import { formatNumber } from "@/lib/locale-format";
 
 type ItemDetailsData = {
+  [key: string]: unknown;
   // Common
-  brand?: string;
-  title?: string;
-  name?: string;
-  model?: string;
-  color?: string;
-  status?: string;
-  rentType?: string;
-  price?: number;
-  description?: string;
-  sellOrRent?: string;
-  type?: string;
+  brand?: string | null;
+  title?: string | null;
+  name?: string | null;
+  model?: string | null;
+  color?: string | null;
+  status?: string | null;
+  rentType?: string | null;
+  price?: number | null;
+  description?: string | null;
+  sellOrRent?: string | null;
+  type?: string | null;
   // Car-specific
-  fuelType?: string;
-  gearType?: string;
-  year?: number;
-  mileage?: number;
-  repainted?: boolean;
-  reAssembled?: boolean;
-  furnitureCondition?: string;
-  furnitureMaterial?: string;
-  furnitureRoomType?: string;
-  furnitureDimensions?: string;
-  furnitureAssemblyIncluded?: boolean;
-  medicalCondition?: string;
-  medicalDeviceFunction?: string;
-  medicalManufactureYear?: number;
-  medicalDimensions?: string;
-  medicalWeight?: string;
-  medicalManufacturerPlace?: string;
-  medicalIsUsed?: boolean;
-  medicalWarrantyMonths?: number;
-  medicalUsageHours?: number;
+  fuelType?: string | null;
+  gearType?: string | null;
+  year?: number | null;
+  mileage?: number | null;
+  repainted?: boolean | null;
+  reAssembled?: boolean | null;
+  furnitureCondition?: string | null;
+  furnitureMaterial?: string | null;
+  furnitureRoomType?: string | null;
+  furnitureDimensions?: string | null;
+  furnitureAssemblyIncluded?: boolean | null;
+  medicalCondition?: string | null;
+  medicalDeviceFunction?: string | null;
+  medicalManufactureYear?: number | null;
+  medicalDimensions?: string | null;
+  medicalWeight?: string | null;
+  medicalManufacturerPlace?: string | null;
+  medicalIsUsed?: boolean | null;
+  medicalWarrantyMonths?: number | null;
+  medicalUsageHours?: number | null;
   // Property-specific
-  bedrooms?: number;
-  bathrooms?: number;
-  guests?: number;
-  livingrooms?: number;
-  kitchens?: number;
-  area?: number;
-  floor?: number;
-  furnished?: boolean;
-  petAllowed?: boolean;
-  elvator?: boolean;
-  direction?: string[];
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  guests?: number | null;
+  livingrooms?: number | null;
+  kitchens?: number | null;
+  area?: number | null;
+  floor?: number | null;
+  furnished?: boolean | null;
+  petAllowed?: boolean | null;
+  elvator?: boolean | null;
+  direction?: string[] | null;
 };
 
 interface elementPropereties {
   data: ItemDetailsData;
   type: string;
   location: { state: string; country: string; address: string; city: string };
+  isArabic: boolean;
 }
 
 const BoolBadge = ({
@@ -68,10 +70,10 @@ const BoolBadge = ({
   <li
     className={`market-panel-soft rounded-2xl px-4 py-3 ${!value ? "opacity-50" : ""}`}
   >
-    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
       {label}
     </p>
-    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-100">
+    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
       <span
         className={`inline-block h-3 w-3 rounded-full ${value ? "bg-emerald-500" : "bg-slate-600"}`}
       />
@@ -90,14 +92,14 @@ const SpecItem = ({
   colorPreview?: string;
 }) => (
   <li className="market-panel-soft rounded-2xl px-4 py-3">
-    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
       {label}
     </p>
-    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-100">
+    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
       {colorPreview ? (
         <span
           style={{ backgroundColor: colorPreview }}
-          className="inline-block h-4 w-4 rounded-full border border-white/20"
+          className="inline-block h-4 w-4 rounded-full border border-slate-300/90 dark:border-white/20"
         />
       ) : null}
       <span>{value}</span>
@@ -105,8 +107,12 @@ const SpecItem = ({
   </li>
 );
 
-const ElementPropereties = ({ data, type, location }: elementPropereties) => {
-  const { isArabic } = useAppPreferences();
+const ElementPropereties = ({
+  data,
+  type,
+  location,
+  isArabic,
+}: elementPropereties) => {
   const rentType = data?.rentType;
 
   const isProperty = type === "PROPERTY";
@@ -344,7 +350,7 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
           <p className="market-kicker">
             {isArabic ? "المواصفات" : "Specifications"}
           </p>
-          <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
+          <h2 className="mt-2 text-xl font-bold text-slate-950 dark:text-slate-50 sm:text-2xl">
             {isArabic ? "تفاصيل العنصر" : "Listing details"}
           </h2>
         </div>
@@ -418,14 +424,19 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
         )}
 
         {locationText ? (
-          <div className="market-panel-soft rounded-2xl px-4 py-3 text-sm text-slate-300">
-            <p className="mb-2 flex items-center gap-2 font-bold text-slate-100">
-              <DynamicIcon iconName="MdLocationPin" className="text-sky-300" />
+          <div className="market-panel-soft rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200">
+            <p className="mb-2 flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">
+              <DynamicIcon
+                iconName="MdLocationPin"
+                className="text-blue-600 dark:text-sky-300"
+              />
               {isArabic ? "الموقع" : "Location"}
             </p>
             <p>{locationText}</p>
             {location?.address ? (
-              <p className="mt-1 text-slate-400">{location.address}</p>
+              <p className="mt-1 text-slate-600 dark:text-slate-300">
+                {location.address}
+              </p>
             ) : null}
           </div>
         ) : null}
@@ -435,7 +446,7 @@ const ElementPropereties = ({ data, type, location }: elementPropereties) => {
             <p className="market-kicker">
               {isArabic ? "الوصف" : "Description"}
             </p>
-            <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-[15px]">
+            <p className="mt-3 text-sm leading-7 text-slate-800 dark:text-slate-200 sm:text-[15px]">
               {data.description}
             </p>
           </div>

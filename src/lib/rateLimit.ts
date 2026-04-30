@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
 
 type RateLimitEntry = {
   count: number;
@@ -165,10 +166,7 @@ export const enforceRateLimit = async ({
 
       return null;
     } catch (error) {
-      console.error(
-        "Redis rate limiting failed, using memory fallback:",
-        error,
-      );
+      logger.error("Redis rate limiting failed, using memory fallback:", error);
     }
   }
 

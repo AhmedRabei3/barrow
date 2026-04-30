@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logger } from "./logger";
 
 type RedisClientInstance = ReturnType<typeof createClient>;
 
@@ -21,7 +22,7 @@ const createRedisConnection = async (): Promise<RedisClientInstance | null> => {
   });
 
   client.on("error", (error) => {
-    console.error("Redis client error:", error);
+    logger.error("Redis client error:", error);
   });
 
   await client.connect();
@@ -40,7 +41,7 @@ export const getRedisClient = async (): Promise<RedisClientInstance | null> => {
         return client;
       })
       .catch((error) => {
-        console.error("Failed to connect Redis:", error);
+        logger.error("Failed to connect Redis:", error);
         globals.__mashhoorRedisClient = undefined;
         return null;
       })

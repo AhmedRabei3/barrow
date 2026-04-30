@@ -41,10 +41,6 @@ export const SMART_CHAT_TEXT = {
     ar: "إرسال",
     en: "Send",
   },
-  editAnswer: {
-    ar: "تعديل إجابة",
-    en: "Edit answer",
-  },
   submitting: {
     ar: "جاري الإضافة...",
     en: "Submitting...",

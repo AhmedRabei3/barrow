@@ -1387,20 +1387,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     return -1;
   };
 
-  const getPreviousVisibleIndex = (
-    startFrom: number,
-    sourceAnswers: FieldValues,
-  ) => {
-    let prevIndex = startFrom - 1;
-    while (prevIndex >= 0) {
-      const candidate = questions[prevIndex];
-      if (!candidate.condition || candidate.condition(sourceAnswers))
-        return prevIndex;
-      prevIndex -= 1;
-    }
-    return -1;
-  };
-
   const moveToNextQuestion = (
     startFrom: number,
     sourceAnswers: FieldValues,
@@ -1687,28 +1673,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     moveToNextQuestion(currentQuestion.index, nextAnswers);
   };
 
-  const handleNavigatePrevious = () => {
-    if (!itemType) return;
-
-    const startFrom = currentQuestion?.index ?? questions.length;
-    const previousIndex = getPreviousVisibleIndex(startFrom, answers);
-    if (previousIndex === -1) return;
-
-    setIsReadyToSubmit(false);
-    setActiveIndex(previousIndex);
-
-    const previousQuestion = questions[previousIndex];
-    if (
-      previousQuestion.type === "text" ||
-      previousQuestion.type === "number"
-    ) {
-      const existing = answers[previousQuestion.key];
-      setTextInput(
-        existing === undefined || existing === null ? "" : String(existing),
-      );
-    }
-  };
-
   const handleSelectEditField = (questionIndex: number, fieldLabel: string) => {
     setEditingMessageId(null);
     setSelectedEditableMessageId(null);
@@ -1829,12 +1793,12 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
   return (
     <div
-      className="flex h-[min(80dvh-2rem,44rem)] min-h-0 w-full max-w-104 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90 sm:rounded-2xl"
+      className="flex h-full min-h-0 w-full max-w-104 flex-col overflow-hidden rounded-2xl border border-slate-200/85 bg-white/96 shadow-[0_24px_64px_rgba(15,23,42,0.32)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/96 sm:rounded-3xl"
       dir={isArabic ? "rtl" : "ltr"}
       style={panelStyle}
     >
       <div
-        className={`border-b border-blue-100/70 bg-linear-to-r from-blue-600 via-teal-600 to-cyan-600 text-white dark:border-slate-700 ${
+        className={`border-b border-sky-300/55 bg-linear-to-r from-sky-600 via-blue-600 to-cyan-600 text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.18)] dark:border-slate-700 ${
           isCompactViewport ? "px-3 py-2.5" : "px-4 py-3"
         }`}
       >
@@ -1866,9 +1830,12 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
 
       <div
         ref={messagesContainerRef}
-        className={`flex-1 overflow-y-auto bg-linear-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 ${
-          isCompactViewport ? "space-y-1.5 p-2.5" : "space-y-2 p-3"
-        }`}
+        className={`flex-1 overflow-y-auto bg-[#e7eff8] 
+          [radial-gradient(rgba(148,163,184,0.18)_0.75px,transparent_0.75px)] 
+          bg-size-[20px_20px] dark:bg-slate-900 
+          dark:bg-[radial-gradient(rgba(100,116,139,0.18)_0.75px,transparent_0.75px)] ${
+            isCompactViewport ? "space-y-1.5 p-2.5" : "space-y-2 p-3"
+          }`}
       >
         <AnimatePresence initial={false}>
           {messages.map((message) => (
@@ -1917,7 +1884,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                             current === message.id ? null : message.id,
                           )
                         }
-                        className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed text-start bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md transition-all ${
+                        className={`max-w-[88%] text-sm px-3 py-2 rounded-[1.15rem] whitespace-pre-line leading-relaxed text-start bg-linear-to-r from-emerald-500 to-teal-500 text-white ${userBubbleClass} shadow-[0_8px_20px_rgba(5,150,105,0.28)] transition-all ${
                           isSelectedMessage
                             ? "ring-2 ring-blue-200 dark:ring-blue-400/60"
                             : "hover:shadow-lg"
@@ -1927,10 +1894,10 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                       </button>
                     ) : (
                       <div
-                        className={`max-w-[88%] text-sm px-3 py-2 rounded-2xl whitespace-pre-line leading-relaxed ${
+                        className={`max-w-[88%] text-sm px-3 py-2 rounded-[1.15rem] whitespace-pre-line leading-relaxed ${
                           message.role === "assistant"
-                            ? `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 ${assistantBubbleClass} shadow-sm`
-                            : `bg-linear-to-r from-blue-600 to-teal-600 text-white ${userBubbleClass} shadow-md`
+                            ? `bg-white/98 dark:bg-slate-800/96 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-100 ${assistantBubbleClass} shadow-[0_6px_16px_rgba(15,23,42,0.12)]`
+                            : `bg-linear-to-r from-emerald-500 to-teal-500 text-white ${userBubbleClass} shadow-[0_8px_20px_rgba(5,150,105,0.28)]`
                         }`}
                       >
                         {message.content}
@@ -1973,7 +1940,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       </div>
 
       <div
-        className={`border-t border-slate-200 bg-white/85 dark:border-slate-700 dark:bg-slate-900/85 ${
+        className={`border-t border-slate-200/90 bg-white/92 dark:border-slate-700 dark:bg-slate-900/92 ${
           isCompactViewport ? "space-y-1.5 p-2.5" : "space-y-2 p-3"
         }`}
       >
@@ -2281,27 +2248,6 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               <DynamicIcon iconName="BsSendFill" size={18} />
             </button>
           </div>
-        )}
-
-        {itemType && !isReadyToSubmit && (
-          <motion.div
-            className={`grid grid-cols-3 ${
-              isCompactViewport ? "gap-1.5" : "gap-2"
-            }`}
-            variants={staggerContainerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.button
-              type="button"
-              onClick={handleNavigatePrevious}
-              disabled={isLoading}
-              variants={staggerItemVariants}
-              className="px-2 py-2 rounded-xl border border-blue-300/80 text-blue-700 dark:text-blue-300 text-xs disabled:opacity-50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-            >
-              {tc("editAnswer")}
-            </motion.button>
-          </motion.div>
         )}
 
         {itemType && isReadyToSubmit && (
