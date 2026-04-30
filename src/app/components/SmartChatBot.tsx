@@ -236,8 +236,8 @@ const SCHEMA_BY_TYPE = {
 } as const;
 
 const FRIENDLY_WELCOME_PREFIXES = {
-  ar: [`🌟 أهلاً بك مع ${ASSISTANT_NAME_AR}.`],
-  en: [`🌟 Welcome to ${ASSISTANT_NAME_EN}.`],
+  ar: [`${ASSISTANT_NAME_AR}.`],
+  en: [`${ASSISTANT_NAME_EN}.`],
 } as const;
 
 const locationQuestions: Question[] = [
