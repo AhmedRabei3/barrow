@@ -1,7 +1,6 @@
 "use client";
 
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
-import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { formatNumber } from "@/lib/locale-format";
 
 type ItemDetailsData = {

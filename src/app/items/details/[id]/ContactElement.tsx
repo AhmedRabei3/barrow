@@ -119,7 +119,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         </div>
       )}
 
-      <div className="rounded-[22px] border border-blue-200/80 bg-blue-50/55 p-4 dark:border-slate-600/80 dark:bg-slate-950/70">
+      <div className="rounded-[22px] mb-2 border border-blue-200/80 bg-blue-50/55 p-4 dark:border-slate-600/80 dark:bg-slate-950/70">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -177,7 +177,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       <button
         disabled={!isAvailable}
         onClick={() => setOpen(true)}
-        className={`w-full  rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
+        className={`w-full mt-2  rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
           isAvailable
             ? "market-primary-btn bg-blue-600 text-blue-200 ring-1 ring-blue-300 shadow-md  hover:-translate-y-0.5 dark:ring-sky-400 dark:shadow-[0_20px_40px_rgba(14,165,233,0.28)]"
             : "cursor-not-allowed border border-slate-300 bg-blue-400 text-slate-200"

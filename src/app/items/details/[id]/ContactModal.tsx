@@ -31,7 +31,11 @@ const ContactModal = ({
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md"
+      className="
+      fixed inset-0 z-50 flex items-center 
+      justify-center bg-slate-950/75 px-4 
+      backdrop-blur-md h-100dvh
+      "
     >
       <div className="market-panel w-full max-w-md rounded-[26px] p-6 space-y-4">
         <h4 className="text-lg font-semibold text-white">

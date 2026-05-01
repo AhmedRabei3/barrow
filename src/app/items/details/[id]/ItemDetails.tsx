@@ -13,6 +13,7 @@ import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/own
 import { FaGoogle, FaExternalLinkAlt } from "react-icons/fa";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import type { ListingDetailsDto } from "@/server/services/listing-details.service";
+import LocationSection from "./LocatonSection";
 
 interface ItemDetailsProps {
   item: Pick<
@@ -53,18 +54,18 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 
   return (
-    <div className="market-shell rounded-[28px] border border-slate-200/75 px-4 py-5 shadow-[0_24px_64px_rgba(15,23,42,0.2)] dark:border-slate-700/70 dark:shadow-[0_26px_70px_rgba(2,6,23,0.55)] sm:px-6 lg:px-7 lg:py-7">
+    <div className="market-shell rounded-[28px] shadow-[0_24px_64px_rgba(15,23,42,0.2)] dark:shadow-[0_26px_70px_rgba(2,6,23,0.55)] sm:px-6 lg:px-7 lg:py-7">
       <GoBackBtn />
       <div className="relative z-10 flex flex-col gap-6">
-        <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-slate-900/95 via-slate-900/90 to-slate-950/90 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
-          <p className="market-kicker">Listing overview</p>
+        <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-blue-600/95 via-sky-900/90 to-indigo-600 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
+          <p className="market-kicker text-sky-200">Listing overview</p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
-              <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50 sm:text-3xl lg:text-[2.15rem]">
+              <h1 className="text-2xl font-black tracking-tight text-sky-50 sm:text-3xl lg:text-[2.15rem]">
                 {title}
               </h1>
               {subtitle ? (
-                <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 sm:text-base">
+                <p className="mt-2 text-sm text-blue-200 sm:text-base">
                   {subtitle}
                 </p>
               ) : null}
@@ -122,46 +123,14 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
           </div>
 
           <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-            {location?.latitude !== undefined &&
-              location?.longitude !== undefined && (
-                <div className="market-panel overflow-hidden rounded-[26px] p-3">
-                  <div className="mb-3 flex items-center justify-between px-2">
-                    <div>
-                      <p className="market-kicker">Location</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {location?.address || subtitle || title}
-                      </p>
-                    </div>
-                    <a
-                      href={googleMapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl border border-blue-300 bg-blue-100/90 px-3 py-2 text-xs font-semibold text-blue-800 transition hover:border-blue-600 hover:bg-blue-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-sky-400 dark:hover:text-sky-200"
-                      aria-label="Open with Google Maps"
-                    >
-                      <FaGoogle className="text-sm" aria-hidden="true" />
-                      <span>فتح باستخدام Google Maps </span>
-                      <FaExternalLinkAlt
-                        className="text-[10px]"
-                        aria-hidden="true"
-                      />
-                    </a>
-                  </div>
-                  <div className="overflow-hidden rounded-[22px] border border-slate-300 bg-white/95 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-700/90 dark:bg-slate-950/70">
-                    <div className="aspect-16/10 overflow-hidden rounded-[18px]">
-                      <Map
-                        latitude={location?.latitude}
-                        longitude={location?.longitude}
-                        name={
-                          normalizedData.brand ||
-                          normalizedData.title ||
-                          normalizedData.name
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+            <LocationSection 
+              location={location}
+              subtitle={subtitle}
+              title={title}
+              normalizedData={normalizedData}
+              googleMapsUrl={googleMapsUrl}
+              isArabic={isArabic}
+            />
             <ContactElement
               itemType={type}
               data={{

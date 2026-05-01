@@ -14,7 +14,8 @@ const GoBackBtn = () => {
        border border-white/70 dark:border-slate-700/70
        shadow-md hover:shadow-lg
        hover:bg-white/85 dark:hover:bg-slate-900/85
-       w-fit p-2.5 rounded-full
+       w-fit p-2.5 rounded-full hover:text-rose-500 
+       transition-colors duration-300
        backdrop-blur-md
        z-30
        fixed
