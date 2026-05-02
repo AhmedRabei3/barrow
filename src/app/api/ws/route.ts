@@ -1,3 +1,4 @@
+// src/app/api/ws/route.ts
 import { NextRequest } from "next/server";
 import { authHelper } from "@/app/api/utils/authHelper";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";

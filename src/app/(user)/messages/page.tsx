@@ -54,6 +54,8 @@ export default function MessagesPage() {
   const directConversationId = params.get("conversationId") ?? "";
   const itemType = params.get("itemType") ?? "";
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState("");
@@ -61,6 +63,9 @@ export default function MessagesPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
+
+  const lastMessageCountRef = useRef(0);
+  const isUserScrollingUpRef = useRef(false);
 
   const preferredConversationId = useMemo(() => {
     if (directConversationId) {
@@ -79,17 +84,45 @@ export default function MessagesPage() {
   }, [directConversationId, listingIdFromQuery, ownerId, userId]);
 
   useEffect(() => {
-    const container = messagesEndRef.current?.parentElement;
+    const container = messagesContainerRef.current;
     if (!container) return;
 
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      100;
+    const handleScroll = () => {
+      const threshold = 60;
 
-    if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+
+      const atBottom = distanceFromBottom < threshold;
+
+      setIsAtBottom(atBottom);
+      isUserScrollingUpRef.current = !atBottom;
+    };
+
+    container.addEventListener("scroll", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const newMessagesCount = messages.length;
+    const prevMessagesCount = lastMessageCountRef.current;
+
+    const hasNewMessage = newMessagesCount > prevMessagesCount;
+
+    // لا تعمل scroll إلا إذا:
+    // 1. في رسالة جديدة
+    // 2. المستخدم أصلاً في الأسفل
+    if (hasNewMessage && isAtBottom && !isUserScrollingUpRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
-  }, [messages]);
+
+    lastMessageCountRef.current = newMessagesCount;
+  }, [messages, isAtBottom]);
   useEffect(() => {
     let mounted = true;
 
@@ -293,6 +326,8 @@ export default function MessagesPage() {
       }
 
       setInput("");
+      setIsAtBottom(true);
+      isUserScrollingUpRef.current = false;
 
       const refreshResponse = await fetch("/api/chat/conversations", {
         cache: "no-store",
@@ -428,7 +463,10 @@ export default function MessagesPage() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto px-4 py-5 sm:px-6"
+          >
             {!selectedConversationId ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
                 {isArabic
@@ -477,6 +515,16 @@ export default function MessagesPage() {
                 })}
                 <div ref={messagesEndRef} />
               </div>
+            )}
+            {!isAtBottom && (
+              <button
+                onClick={() =>
+                  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="fixed bottom-24 right-6 rounded-full bg-sky-600 text-white px-4 py-2 shadow-lg"
+              >
+                ↓ {isArabic ? "الرسائل الجديدة" : "New messages"}
+              </button>
             )}
           </div>
 
