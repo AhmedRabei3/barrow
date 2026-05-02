@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { buildChatConversationId } from "@/lib/chatConversation";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+import { getWebSocket } from "@/lib/socketClient";
 import GoBackBtn from "@/app/components/GoBackBtn";
 
 type ChatMessage = {
@@ -66,6 +67,7 @@ export default function MessagesPage() {
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
+  const WS = getWebSocket();
 
   const preferredConversationId = useMemo(() => {
     if (directConversationId) {
@@ -105,6 +107,7 @@ export default function MessagesPage() {
       container.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -206,15 +209,46 @@ export default function MessagesPage() {
     };
 
     void loadMessages();
-    const interval = window.setInterval(() => {
-      void loadMessages();
-    }, 2000);
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
     };
   }, [selectedConversationId, userId]);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent;
+
+      const { data, conversationId } = custom.detail;
+
+      if (conversationId !== selectedConversationId) return;
+
+      setMessages((prev) => {
+        // منع التكرار (حتى لو ID مختلف قليلاً)
+        if (
+          prev.some(
+            (m) =>
+              m.id === data.id ||
+              (m.text === data.text &&
+                m.senderId === data.senderId &&
+                Math.abs(
+                  new Date(m.createdAt).getTime() -
+                    new Date(data.createdAt).getTime(),
+                ) < 2000),
+          )
+        ) {
+          return prev;
+        }
+
+        return [...prev, data];
+      });
+    };
+
+    window.addEventListener("chat_message", handler);
+
+    return () => {
+      window.removeEventListener("chat_message", handler);
+    };
+  }, [selectedConversationId]);
 
   useEffect(() => {
     if (!userId) {
@@ -301,8 +335,25 @@ export default function MessagesPage() {
     if (!input.trim() || !recipientUserId || !listingId) {
       return;
     }
+
+    // ⚠️ حل مشكلة conversationId
+    const effectiveConversationId =
+      selectedConversationId || preferredConversationId;
+
+    const tempMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      senderId: userId!,
+      recipientId: recipientUserId,
+      text: input.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    // ✅ Optimistic UI
+    setMessages((prev) => [...prev, tempMessage]);
+
     try {
       setSending(true);
+
       const response = await fetch("/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -316,35 +367,41 @@ export default function MessagesPage() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to send message");
       }
 
       const nextConversationId = String(data.conversationId || "");
+
+      // ✅ تحديث conversationId فوراً
       if (nextConversationId && !selectedConversationId) {
         setSelectedConversationId(nextConversationId);
+      }
+
+      // ✅ WebSocket بعد معرفة conversationId الصحيح
+      if (WS && WS.readyState === WebSocket.OPEN) {
+        WS.send(
+          JSON.stringify({
+            type: "chat_message",
+            payload: {
+              conversationId: nextConversationId || effectiveConversationId,
+              message: tempMessage,
+            },
+          }),
+        );
       }
 
       setInput("");
       setIsAtBottom(true);
       isUserScrollingUpRef.current = false;
-
-      const refreshResponse = await fetch("/api/chat/conversations", {
-        cache: "no-store",
-      });
-      const refreshData = (await refreshResponse.json()) as {
-        conversations?: ConversationItem[];
-      };
-      if (refreshResponse.ok && refreshData.conversations) {
-        setConversations(refreshData.conversations);
-        if (nextConversationId) {
-          setSelectedConversationId(nextConversationId);
-        }
-      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to send message",
       );
+
+      // rollback
+      setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
     } finally {
       setSending(false);
     }

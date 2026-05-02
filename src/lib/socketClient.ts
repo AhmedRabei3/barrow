@@ -1,3 +1,4 @@
+// src/lib/socketClient.ts
 "use client";
 
 let ws: WebSocket | null = null;
@@ -120,6 +121,13 @@ export const initializeWebSocket = (userId: string) => {
         } else {
           wsLog("📩 Unknown message type:", data.type, data);
         }
+
+        if (data.type === "chat_message") {
+          window.dispatchEvent(
+            new CustomEvent("chat_message", { detail: data }),
+          );
+        }
+        
       } catch (e) {
         wsError("Failed to parse message:", e, "data:", event.data);
       }

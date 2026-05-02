@@ -30,16 +30,12 @@ type WebSocketGlobals = typeof globalThis & {
 const wsGlobals = globalThis as WebSocketGlobals;
 
 let wss: WebSocketServer | null = wsGlobals.__mashhoorWss ?? null;
-const clients: Map<
-  string,
-  Set<ExtendedWebSocket>
-> = wsGlobals.__mashhoorWsClients ?? new Map<string, Set<ExtendedWebSocket>>();
+
+const clients: Map<string, Set<ExtendedWebSocket>> =
+  wsGlobals.__mashhoorWsClients ?? new Map();
 
 wsGlobals.__mashhoorWsClients = clients;
 
-/**
- * تهيئة WebSocket server
- */
 export function initializeWebSocketServer(config: WebSocketServerConfig) {
   if (wss) {
     logger.debug("WebSocket server already initialized");
@@ -48,165 +44,134 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
 
   wss = new WebSocketServer({
     noServer: true,
-    perMessageDeflate: false, // تقليل الضغط لسرعة أفضل
+    perMessageDeflate: false,
   });
+
   wsGlobals.__mashhoorWss = wss;
 
-  logger.debug("Setting up WebSocket upgrade handler...");
-
-  // معالجة أخطاء WebSocket server
-  wss.on("error", (error: Error) => {
-    logger.error("WebSocket Server Error:", error.message);
-  });
-
-  /* معالجة upgrade من HTTP إلى WebSocket */
+  /* ================= UPGRADE ================= */
   config.server.on("upgrade", (request: IncomingMessage, socket, head) => {
-    logger.debug("Upgrade event received from:", request.url);
-
     const url = new URL(request.url || "", `http://${request.headers.host}`);
-    const pathname = url.pathname;
 
-    if (pathname !== "/ws") {
-      return;
-    }
+    if (url.pathname !== "/ws") return;
 
     const userId = url.searchParams.get("userId");
 
-    logger.debug(`Extracted userId: ${userId}`);
-
     if (!userId) {
-      logger.warn("No userId in request, destroying socket");
       socket.destroy();
       return;
     }
 
-    logger.debug(`Valid userId ${userId}, handling upgrade...`);
-
-    wss!.handleUpgrade(request, socket, head, (ws: WSWebSocket) => {
+    wss!.handleUpgrade(request, socket, head, (ws) => {
       const extWs = ws as ExtendedWebSocket;
       extWs.userId = userId;
-      logger.debug(
-        `Upgrade successful for user ${userId}, emitting connection event`,
-      );
+
       wss!.emit("connection", extWs, request);
     });
   });
 
-  /* معالجة الاتصالات الجديدة */
+  /* ================= CONNECTION ================= */
   wss.on("connection", (ws: ExtendedWebSocket) => {
     const userId = ws.userId!;
 
-    logger.debug(`Client connected: ${userId}`);
-    logger.debug(`Total clients now: ${clients.size + 1}`);
-
-    /* إضافة المستخدم إلى المجموعة */
     if (!clients.has(userId)) {
       clients.set(userId, new Set());
     }
+
     clients.get(userId)!.add(ws);
 
-    /* Health check */
     ws.isAlive = true;
+
     ws.on("pong", () => {
       ws.isAlive = true;
-      logger.debug(`Pong received from ${userId}`);
     });
 
-    /* معالجة الرسائل */
-    ws.on("message", async (data: Buffer) => {
+    /* ================= MESSAGE ================= */
+    ws.on("message", (buffer: Buffer) => {
       try {
-        const message = JSON.parse(data.toString());
+        const parsed = JSON.parse(buffer.toString());
 
-        switch (message.type) {
+        switch (parsed.type) {
           case "ping":
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: "pong" }));
-            }
+            ws.send(JSON.stringify({ type: "pong" }));
             break;
 
-          case "mark_read":
-            /* سيتم التعامل معه في البيانات */
+          case "chat_message": {
+            const payload = parsed.payload;
+
+            if (!payload) return;
+
+            const { conversationId, message: msg } = payload;
+
+            if (!msg?.recipientId) return;
+
+            const outgoing = JSON.stringify({
+              type: "chat_message",
+              data: msg,
+              conversationId,
+            });
+
+            // recipient
+            clients.get(msg.recipientId)?.forEach((client) => {
+              if (client.readyState === WSWebSocket.OPEN) {
+                client.send(outgoing);
+              }
+            });
+
+            // sender (multi-tabs sync)
+            clients.get(userId)?.forEach((client) => {
+              if (client.readyState === WSWebSocket.OPEN) {
+                client.send(outgoing);
+              }
+            });
+
             break;
+          }
 
           default:
-            logger.warn(`Unknown message type: ${message.type} from ${userId}`);
+            logger.warn(`Unknown WS type: ${parsed.type}`);
         }
-      } catch (error) {
-        logger.error(`Error processing message from ${userId}:`, error);
+      } catch (err) {
+        logger.error("WS message parse error:", err);
       }
     });
 
-    /* معالجة الفصل */
-    ws.on("close", (code: number, reason: string) => {
-      logger.debug(
-        `Client disconnected: ${userId} (code: ${code}, reason: ${reason || "no reason"})`,
-      );
+    /* ================= CLOSE ================= */
+    ws.on("close", () => {
       clients.get(userId)?.delete(ws);
 
       if (clients.get(userId)?.size === 0) {
         clients.delete(userId);
-        logger.debug(`Removed user ${userId} from clients map`);
       }
     });
 
-    /* معالجة الأخطاء */
-    ws.on("error", (error: Error) => {
-      logger.error(
-        `WebSocket error for ${userId}:`,
-        error.message,
-        error.stack,
-      );
+    ws.on("error", (err) => {
+      logger.error(`WS error (${userId}):`, err.message);
     });
 
-    /* إرسال رسالة ترحيب */
-    if (ws.readyState === WebSocket.OPEN) {
-      // تأخير صغير للتأكد من استقرار الاتصال
-      setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send(
-              JSON.stringify({
-                type: "connected",
-                message: "Successfully connected to WebSocket server",
-              }),
-            );
-            logger.debug(`Welcome message sent to ${userId}`);
-          } catch (error) {
-            logger.error(`Error sending welcome message to ${userId}:`, error);
-          }
-        } else {
-          logger.warn(
-            `WebSocket closed before sending welcome message (state: ${ws.readyState})`,
-          );
-        }
-      }, 50); // تأخير 50ms فقط
-    } else {
-      logger.warn(
-        `WebSocket not open when trying to send welcome message (state: ${ws.readyState})`,
-      );
-    }
+    /* welcome */
+    setTimeout(() => {
+      if (ws.readyState === WSWebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "connected" }));
+      }
+    }, 50);
   });
 
-  /* Health check كل 30 ثانية */
+  /* ================= HEARTBEAT ================= */
   if (wsGlobals.__mashhoorWsHeartbeat) {
     clearInterval(wsGlobals.__mashhoorWsHeartbeat);
   }
 
   wsGlobals.__mashhoorWsHeartbeat = setInterval(() => {
-    logger.debug(`Health check... (${wss!.clients.size} connected clients)`);
+    wss!.clients.forEach((ws) => {
+      const ext = ws as ExtendedWebSocket;
 
-    wss!.clients.forEach((ws: WSWebSocket) => {
-      const extWs = ws as ExtendedWebSocket;
-
-      if (extWs.isAlive === false) {
-        logger.warn(
-          `Client ${extWs.userId} not responding to ping, terminating...`,
-        );
+      if (ext.isAlive === false) {
         ws.terminate();
         return;
       }
 
-      extWs.isAlive = false;
+      ext.isAlive = false;
       ws.ping();
     });
   }, 30000);
@@ -216,103 +181,45 @@ export function initializeWebSocketServer(config: WebSocketServerConfig) {
   return wss;
 }
 
-/**
- * إرسال إشعار لمستخدم محدد
- */
+/* ================= HELPERS ================= */
+
 export function sendNotificationToUser(
   userId: string,
   notification: RealtimeNotificationPayload,
 ) {
-  const userClients = clients.get(userId);
+  const sockets = clients.get(userId);
 
-  if (!userClients || userClients.size === 0) {
-    logger.debug(`No connected clients for user ${userId}`);
-    return;
-  }
+  if (!sockets) return;
 
-  const message = JSON.stringify({
+  const msg = JSON.stringify({
     type: "notification",
     data: notification,
   });
 
-  userClients.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(message);
+  sockets.forEach((ws) => {
+    if (ws.readyState === WSWebSocket.OPEN) {
+      ws.send(msg);
     }
   });
-
-  logger.debug(
-    `📨 Notification sent to user ${userId} (${userClients.size} client(s))`,
-  );
 }
 
-/**
- * إرسال إشعار لمجموعة من المستخدمين
- */
-export function sendNotificationToUsers(
-  userIds: string[],
-  notification: RealtimeNotificationPayload,
-) {
-  userIds.forEach((userId) => {
-    sendNotificationToUser(userId, notification);
-  });
-}
-
-/**
- * بث إشعار لجميع المستخدمين المتصلين
- */
 export function broadcastNotification(
   notification: RealtimeNotificationPayload,
 ) {
-  if (!wss) {
-    logger.warn("WebSocket server not initialized");
-    return;
-  }
+  if (!wss) return;
 
-  const message = JSON.stringify({
+  const msg = JSON.stringify({
     type: "notification",
     data: notification,
   });
 
   wss.clients.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(message);
+    if (ws.readyState === WSWebSocket.OPEN) {
+      ws.send(msg);
     }
   });
-
-  logger.debug(
-    `📢 Broadcast notification to all users (${wss.clients.size} client(s))`,
-  );
 }
 
-/**
- * الحصول على عدد المستخدمين المتصلين
- */
-export function getConnectedUsersCount(): number {
-  return clients.size;
-}
-
-/**
- * التحقق إن كان لدى المستخدم اتصال WebSocket نشط
- */
 export function isUserConnected(userId: string): boolean {
-  const userClients = clients.get(userId);
-  if (!userClients || userClients.size === 0) {
-    return false;
-  }
-
-  for (const socket of userClients) {
-    if (socket.readyState === WebSocket.OPEN) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * الحصول على WebSocket server
- */
-export function getWebSocketServer() {
-  return wss;
+  return !!clients.get(userId)?.size;
 }
