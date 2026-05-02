@@ -100,6 +100,11 @@ const UserMenu = () => {
     router.push("/profile?tab=requests");
   }, [closeMenu, router]);
 
+  const goToMessages = useCallback(() => {
+    closeMenu();
+    router.push("/messages");
+  }, [closeMenu, router]);
+
   const goToAdmin = useCallback(() => {
     closeMenu();
     router.push("/admin");
@@ -349,11 +354,9 @@ const UserMenu = () => {
         />
       )}
       <UserMenueItem
-        label={
-          isArabic ? "طلبات الشراء والإيجار" : "Purchase & rental requests"
-        }
+        label={isArabic ? "الملف الشخصي" : "My Profile"}
         onClick={goToProfileRequests}
-        iconName="MdOutlineShoppingCart"
+        iconName="MdPerson"
         isArabic={isArabic}
       />
       {user?.isAdmin && (
@@ -369,6 +372,12 @@ const UserMenu = () => {
         onClick={openSupportContact}
         iconName="RiCustomerService2Fill"
         badge={openTicketsCount > 0 ? String(openTicketsCount) : undefined}
+      />
+      <UserMenueItem
+        label={isArabic ? "المحادثات" : "Messages"}
+        onClick={goToMessages}
+        iconName="RiMessage2Line"
+        isArabic={isArabic}
       />
 
       {!isRunningInsideInstalledApp && (

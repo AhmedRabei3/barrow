@@ -2,15 +2,13 @@ import { FaExternalLinkAlt, FaGoogle } from "react-icons/fa";
 import Map from "@/app/components/Map";
 
 interface LocationSectionProps {
-  location:
-    | {
-        latitude?: number;
-        longitude?: number;
-        address?: string;
-        city?: string;
-        country?: string;
-      }
-    | null;
+  location: {
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  } | null;
   subtitle: string | undefined;
   title: string;
   normalizedData: {
@@ -21,7 +19,6 @@ interface LocationSectionProps {
   googleMapsUrl: string;
   isArabic: boolean;
 }
-import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 const LocationSection = ({
   location,

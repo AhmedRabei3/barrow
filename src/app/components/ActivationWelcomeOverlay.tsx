@@ -406,9 +406,11 @@ const ActivationWelcomeOverlay = () => {
           ) : (
             <>
               {/* Benefits Card */}
-              <div className="mb-8 p-6 border border-sky-200
+              <div
+                className="mb-8 p-6 border border-sky-200
                dark:border-sky-900 bg-sky-50
-                dark:bg-sky-950/30 rounded-xl">
+                dark:bg-sky-950/30 rounded-xl"
+              >
                 <h3 className="font-bold text-slate-900 dark:text-white mb-4">
                   {t("لماذا يستحق الاشتراك؟", "Why subscription is worth it")}
                 </h3>
@@ -425,6 +427,13 @@ const ActivationWelcomeOverlay = () => {
                     {t(
                       "دخل شهري من نظام الدعوات يصل لـ60%",
                       "Monthly income from referrals up to 60%",
+                    )}
+                  </li>
+                  <li>
+                    ✓{" "}
+                    {t(
+                      "تواصل مع صاحب العرض عبر دردشة مباشرة من التطبيق",
+                      "Connect with listing owners through in-app direct chat",
                     )}
                   </li>
                   <li>

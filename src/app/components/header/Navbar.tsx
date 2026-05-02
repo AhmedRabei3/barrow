@@ -17,6 +17,7 @@ import useScrollDirection from "@/app/hooks/useScrollDirection";
 import SearchBar from "./search-box/SearchBar";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
+import ChatBadge from "../chat/ChatBadge";
 import { BiSearch } from "react-icons/bi";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useSearchHelper } from "../../hooks/useSearchHelper";
@@ -250,6 +251,7 @@ const Navbar = ({
               >
                 <NotificationBell />
               </Suspense>
+              <ChatBadge />
               <ThemeToggle />
             </div>
             <LanguageToggle />
@@ -272,6 +274,7 @@ const Navbar = ({
             <Suspense fallback={null}>
               <NotificationBell hiddenWhenEmpty />
             </Suspense>
+            <ChatBadge />
             <Suspense fallback={<div className={USER_MENU_SKELETON_CLASS} />}>
               <UserMenu />
             </Suspense>

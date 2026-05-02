@@ -1,9 +1,10 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { RiArrowGoBackFill } from "react-icons/ri";
+import { RiArrowGoBackFill , RiCloseLargeFill} from "react-icons/ri";
 
-const GoBackBtn = () => {
+
+const GoBackBtn = ({ closeBtn = false }: { closeBtn?: boolean }) => {
   const router = useRouter();
   return (
     <button
@@ -26,7 +27,7 @@ const GoBackBtn = () => {
       "
       onClick={router.back}
     >
-      <RiArrowGoBackFill />
+      {closeBtn ? <RiCloseLargeFill /> : <RiArrowGoBackFill />}
     </button>
   );
 };

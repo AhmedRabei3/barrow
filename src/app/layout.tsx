@@ -20,6 +20,7 @@ import {
 } from "@/lib/seo";
 import AppPreferencesProvider from "./components/providers/AppPreferencesProvider";
 import AppToaster from "./components/providers/AppToaster";
+import FCMProvider from "./FCMProvider";
 //import WebVitalsReporter from "./components/analytics/WebVitalsReporter";
 
 const geistSans = Geist({
@@ -181,11 +182,13 @@ export default async function RootLayout({
       >
         <AppPreferencesProvider initialLocale={initialLocale}>
           <SessionProvider refetchOnWindowFocus={false}>
-            <ClientOnly>
-              <GlobalOverlays />
-              {/* <WebVitalsReporter /> */}
-              <AppToaster />
-            </ClientOnly>
+            <FCMProvider>
+              <ClientOnly>
+                <GlobalOverlays />
+                {/* <WebVitalsReporter /> */}
+                <AppToaster />
+              </ClientOnly>
+            </FCMProvider>
             <script
               type="application/ld+json"
               dangerouslySetInnerHTML={{

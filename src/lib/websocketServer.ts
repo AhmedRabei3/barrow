@@ -293,6 +293,24 @@ export function getConnectedUsersCount(): number {
 }
 
 /**
+ * التحقق إن كان لدى المستخدم اتصال WebSocket نشط
+ */
+export function isUserConnected(userId: string): boolean {
+  const userClients = clients.get(userId);
+  if (!userClients || userClients.size === 0) {
+    return false;
+  }
+
+  for (const socket of userClients) {
+    if (socket.readyState === WebSocket.OPEN) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * الحصول على WebSocket server
  */
 export function getWebSocketServer() {

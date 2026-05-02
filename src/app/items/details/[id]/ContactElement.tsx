@@ -7,11 +7,13 @@ import ContactModal from "./ContactModal";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { useSession } from "next-auth/react";
 import { formatNumber } from "@/lib/locale-format";
+import { useRouter } from "next/navigation";
 
 interface ContactOwnerElementProps {
   itemType: ItemType;
   data: {
     id: string;
+    ownerId?: string | null;
     price: number;
     currency?: string;
     status?: Availability;
@@ -23,12 +25,14 @@ interface ContactOwnerElementProps {
 const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
+  const router = useRouter();
   const {
     price,
     currency = "USD",
     status = Availability.AVAILABLE,
     title,
     id,
+    ownerId,
     sellOrRent,
   } = data;
 
@@ -44,6 +48,29 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
     requestKind === "RENT"
       ? t("طلب إيجار", "Rental request")
       : t("طلب شراء", "Purchase request");
+  const canStartChat = Boolean(
+    ownerId && session?.user?.id && ownerId !== session.user.id,
+  );
+
+  const openChat = () => {
+    if (!session?.user?.id) {
+      toast.error(t("يرجى تسجيل الدخول أولاً", "Please sign in first"));
+      return;
+    }
+
+    if (!ownerId || ownerId === session.user.id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      ownerId,
+      listingId: id,
+      title: title ?? "",
+      itemType,
+    });
+
+    router.push(`/messages?${params.toString()}`);
+  };
 
   const submitContact = async () => {
     try {
@@ -177,13 +204,25 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       <button
         disabled={!isAvailable}
         onClick={() => setOpen(true)}
-        className={`w-full mt-2  rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
+        className={`w-full mt-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
           isAvailable
             ? "market-primary-btn bg-blue-600 text-blue-200 ring-1 ring-blue-300 shadow-md  hover:-translate-y-0.5 dark:ring-sky-400 dark:shadow-[0_20px_40px_rgba(14,165,233,0.28)]"
             : "cursor-not-allowed border border-slate-300 bg-blue-400 text-slate-200"
         }`}
       >
         {requestTitle}
+      </button>
+
+      <button
+        onClick={openChat}
+        disabled={!canStartChat}
+        className={`w-full mt-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
+          canStartChat
+            ? "market-secondary-btn border border-slate-300 bg-white text-slate-800 hover:-translate-y-0.5 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+            : "cursor-not-allowed border border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500"
+        }`}
+      >
+        {t("بدء محادثة مباشرة", "Start direct chat")}
       </button>
 
       {/* MODAL */}

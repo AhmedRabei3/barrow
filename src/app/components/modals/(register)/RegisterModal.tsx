@@ -149,7 +149,6 @@ const RegisterModal = () => {
     if (registerModal.isOpen) {
       const storedPendingVerificationEmail = readPendingVerificationEmail();
       setIsPolicyDialogOpen(false);
-      setIsClassicOpen(true);
       setExistingUserEmail(null);
       setPendingVerificationEmail(storedPendingVerificationEmail);
       setResetInfoMessage(null);

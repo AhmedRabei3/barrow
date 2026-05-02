@@ -44,6 +44,14 @@ const localizedSteps = [
       "Real estate, cars, bikes, home appliances, electronics and more, all in one place.",
   },
   {
+    arTitle: "تواصل مباشر",
+    arBody:
+      "تواصل مع صاحب الإعلان مباشرة بدون وسطاء، لتسريع الصفقات وتجنب الرسوم الإضافية.",
+    enTitle: "Direct communication",
+    enBody:
+      "Communicate directly with the listing owner without intermediaries, speeding up transactions and avoiding extra fees.",
+  },
+  {
     arTitle: "وصول أوسع لإعلانك",
     arBody: "خوارزميات ذكية ونظام إحالة يرفع ظهور إعلانك أمام الجمهور المناسب.",
     enTitle: "Greater reach",

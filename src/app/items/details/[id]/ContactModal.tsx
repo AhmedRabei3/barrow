@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useEffect } from "react";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
 interface Props {
@@ -28,74 +28,94 @@ const ContactModal = ({
 }: Props) => {
   const { isArabic } = useAppPreferences();
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="
-      fixed inset-0 z-50 flex items-center 
-      justify-center bg-slate-950/75 px-4 
-      backdrop-blur-md h-100dvh
-      "
+      onClick={() => setOpen(false)}
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 px-4 py-4 backdrop-blur-md sm:px-6 sm:py-8"
     >
-      <div className="market-panel w-full max-w-md rounded-[26px] p-6 space-y-4">
-        <h4 className="text-lg font-semibold text-white">
-          {isArabic ? "التواصل مع المالك" : "Contact owner"}
-        </h4>
+      <div className="flex min-h-full items-end justify-center sm:items-center">
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="market-panel w-full max-w-md space-y-4 rounded-[26px] p-5 sm:p-6 max-h-[90dvh] overflow-y-auto"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-lg font-semibold text-white">
+              {isArabic ? "التواصل مع المالك" : "Contact owner"}
+            </h4>
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-lg border border-slate-600 px-2.5 py-1 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
+              aria-label={isArabic ? "إغلاق" : "Close"}
+            >
+              ✕
+            </button>
+          </div>
 
-        <p className="text-sm leading-6 text-slate-400">
-          {isArabic
-            ? "أدخل اسمك ورقم هاتفك ليتم إرسالهما مباشرة إلى مالك العنصر ليتواصل معك."
-            : "Enter your name and phone number. They will be sent directly to the owner so they can contact you."}
-        </p>
+          <p className="text-sm leading-6 text-slate-400">
+            {isArabic
+              ? "أدخل اسمك ورقم هاتفك ليتم إرسالهما مباشرة إلى مالك العنصر ليتواصل معك."
+              : "Enter your name and phone number. They will be sent directly to the owner so they can contact you."}
+          </p>
 
-        <input
-          type="text"
-          name="contactOwnerFullName"
-          placeholder={isArabic ? "الاسم الكامل" : "Full name"}
-          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
+          <input
+            type="text"
+            name="contactOwnerFullName"
+            placeholder={isArabic ? "الاسم الكامل" : "Full name"}
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
 
-        <input
-          type="tel"
-          name="contactOwnerPhone"
-          placeholder={isArabic ? "رقم الهاتف" : "Phone number"}
-          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-        />
+          <input
+            type="tel"
+            name="contactOwnerPhone"
+            placeholder={isArabic ? "رقم الهاتف" : "Phone number"}
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+          />
 
-        <textarea
-          name="contactOwnerNote"
-          placeholder={isArabic ? "ملاحظة (اختياري)" : "Note (optional)"}
-          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
-          rows={3}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
+          <textarea
+            name="contactOwnerNote"
+            placeholder={isArabic ? "ملاحظة (اختياري)" : "Note (optional)"}
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
 
-        <div className="flex gap-2">
-          <button
-            onClick={submitContact}
-            disabled={loading}
-            className="market-primary-btn flex-1 rounded-2xl py-3 text-sm font-bold disabled:opacity-60"
-          >
-            {loading
-              ? isArabic
-                ? "جاري الإرسال..."
-                : "Sending..."
-              : isArabic
-                ? "إرسال رقم الهاتف"
-                : "Send phone number"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={submitContact}
+              disabled={loading}
+              className="market-primary-btn flex-1 rounded-2xl py-3 text-sm font-bold disabled:opacity-60"
+            >
+              {loading
+                ? isArabic
+                  ? "جاري الإرسال..."
+                  : "Sending..."
+                : isArabic
+                  ? "إرسال رقم الهاتف"
+                  : "Send phone number"}
+            </button>
 
-          <button
-            onClick={() => setOpen(false)}
-            className="market-secondary-btn flex-1 rounded-2xl py-3 text-sm font-bold transition-colors"
-          >
-            {isArabic ? "إلغاء" : "Cancel"}
-          </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="market-secondary-btn flex-1 rounded-2xl py-3 text-sm font-bold transition-colors"
+            >
+              {isArabic ? "إلغاء" : "Cancel"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

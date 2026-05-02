@@ -1,6 +1,5 @@
 "use client";
 
-import Map from "@/app/components/Map";
 import GoBackBtn from "@/app/components/GoBackBtn";
 import DetailImages from "./DetailImages";
 import ElementPropereties from "./ElementPropereties";
@@ -10,7 +9,6 @@ import ContactElement from "./ContactElement";
 import RatingSection from "./RatingSection";
 import OwnerListingStateControl from "@/app/components/card/OwnerListingStateControl";
 import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/ownerListingState";
-import { FaGoogle, FaExternalLinkAlt } from "react-icons/fa";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import type { ListingDetailsDto } from "@/server/services/listing-details.service";
 import LocationSection from "./LocatonSection";
@@ -123,7 +121,7 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
           </div>
 
           <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-            <LocationSection 
+            <LocationSection
               location={location}
               subtitle={subtitle}
               title={title}
@@ -135,6 +133,7 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
               itemType={type}
               data={{
                 id: data.id,
+                ownerId: data.ownerId,
                 price: data.price ?? 0,
                 status: data.status as
                   | import("@prisma/client").Availability
