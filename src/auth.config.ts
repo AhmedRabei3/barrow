@@ -1,4 +1,4 @@
-import { NextAuthConfig } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import { loginUserSchema } from "./app/validations/userValidations";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -18,8 +18,7 @@ const googleClientSecret =
 
 const hasGoogleOAuthConfig = Boolean(googleClientId && googleClientSecret);
 
-export default (<NextAuthConfig>{
-  trustHost: true,
+export default {
   providers: [
     Credentials({
       credentials: {
@@ -70,4 +69,4 @@ export default (<NextAuthConfig>{
         ]
       : []),
   ],
-}) satisfies NextAuthConfig;
+} satisfies NextAuthOptions;

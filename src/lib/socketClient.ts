@@ -1,196 +1,55 @@
-// src/lib/socketClient.ts
 "use client";
+
+import type { ChatClientEvent, ChatServerEvent } from "@/lib/chatRealtimeProtocol";
+import { chatServerEventSchema } from "@/lib/chatRealtimeProtocol";
 
 let ws: WebSocket | null = null;
 let connectedUserId: string | null = null;
 let allowReconnect = true;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-let startupFailureCount = 0;
-const MAX_STARTUP_FAILURES = 2;
-let heartbeatInterval: NodeJS.Timeout | null = null;
-const WS_DEBUG = false;
-const isClientDev = process.env.NODE_ENV !== "production";
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
-const wsLog = (...args: unknown[]) => {
-  if (!WS_DEBUG) return;
-  console.log(...args);
+const listeners = new Set<(event: ChatServerEvent) => void>();
+const connectionListeners = new Set<(connected: boolean) => void>();
+const MAX_RECONNECT_ATTEMPTS = 8;
+const HEARTBEAT_MS = 25_000;
+
+const notifyListeners = (event: ChatServerEvent) => {
+  listeners.forEach((listener) => {
+    try {
+      listener(event);
+    } catch {
+      // noop
+    }
+  });
 };
 
-const wsWarn = (...args: unknown[]) => {
-  if (!isClientDev) return;
-  console.warn(...args);
+const notifyConnectionListeners = (connected: boolean) => {
+  connectionListeners.forEach((listener) => {
+    try {
+      listener(connected);
+    } catch {
+      // noop
+    }
+  });
 };
 
-const wsError = (...args: unknown[]) => {
-  if (!isClientDev) return;
-  console.error(...args);
+const resetHeartbeat = () => {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
 };
 
-export const initializeWebSocket = (userId: string) => {
-  allowReconnect = true;
-
-  // تحقق من الاتصالات القائمة
-  if (ws) {
-    if (
-      ws.readyState === WebSocket.OPEN ||
-      ws.readyState === WebSocket.CONNECTING
-    ) {
-      if (connectedUserId === userId) {
-        wsLog(
-          `✅ WebSocket already connected or connecting (state: ${ws.readyState})`,
-        );
-        return ws;
-      }
-
-      wsLog(
-        `🔁 WebSocket user changed (${connectedUserId} -> ${userId}), reconnecting...`,
-      );
-      allowReconnect = false;
-      ws.close();
-      ws = null;
-      connectedUserId = null;
-
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
-
-      allowReconnect = true;
+const startHeartbeat = () => {
+  resetHeartbeat();
+  heartbeatInterval = setInterval(() => {
+    if (ws?.readyState !== WebSocket.OPEN) {
+      return;
     }
 
-    // إذا كان الاتصال مغلقاً، قم بتنظيفه
-    if (
-      ws &&
-      (ws.readyState === WebSocket.CLOSED ||
-        ws.readyState === WebSocket.CLOSING)
-    ) {
-      wsLog("🧹 Cleaning up old closed WebSocket connection");
-      ws = null;
-      connectedUserId = null;
-    }
-  }
-
-  try {
-    let didOpen = false;
-
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.host;
-    /* الاتصال المباشر بـ WebSocket server مع تمرير userId */
-    const wsUrl = `${protocol}://${host}/ws?userId=${encodeURIComponent(userId)}`;
-
-    wsLog(`🔗 Attempting to connect to: ${wsUrl}`);
-    ws = new WebSocket(wsUrl);
-    connectedUserId = userId;
-
-    ws.onopen = () => {
-      didOpen = true;
-      wsLog("✅ WebSocket connected, readyState:", ws?.readyState);
-      reconnectAttempts = 0;
-      startupFailureCount = 0;
-
-      /* إرسال ping كل 25 ثانية للبقاء متصلاً */
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
-      heartbeatInterval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-          try {
-            ws.send(JSON.stringify({ type: "ping" }));
-          } catch (error) {
-            wsError("Error sending ping:", error);
-          }
-        }
-      }, 25000);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        wsLog("📬 Message received from server:", event.data.substring(0, 100));
-        const data = JSON.parse(event.data);
-
-        /* معالجة أنواع الرسائل */
-        if (data.type === "notification") {
-          wsLog("📨 Notification received:", data.data);
-          window.dispatchEvent(
-            new CustomEvent("notification", { detail: data.data }),
-          );
-        } else if (data.type === "connected") {
-          wsLog("✅ Connected message from server:", data.message);
-        } else if (data.type === "pong") {
-          /* heartbeat response - الاتصال حي */
-          wsLog("💓 Heartbeat pong received");
-        } else {
-          wsLog("📩 Unknown message type:", data.type, data);
-        }
-
-        if (data.type === "chat_message") {
-          window.dispatchEvent(
-            new CustomEvent("chat_message", { detail: data }),
-          );
-        }
-        
-      } catch (e) {
-        wsError("Failed to parse message:", e, "data:", event.data);
-      }
-    };
-
-    ws.onerror = (error) => {
-      // فشل الاتصال الأولي متوقع عندما لا يكون خادم ws شغالاً (مثل npm run dev فقط)
-      if (!didOpen) {
-        if (process.env.NODE_ENV === "development") {
-          wsWarn(
-            "⚠️ WebSocket server unavailable. Start dev with npm run dev:ws to enable realtime notifications.",
-          );
-        }
-        return;
-      }
-
-      wsError("WebSocket error event:", error);
-      if (error instanceof ErrorEvent && error.message) {
-        wsError("Error message:", error.message);
-      }
-    };
-
-    ws.onclose = (event) => {
-      const closeEvent = event as CloseEvent;
-      const closedUserId = connectedUserId ?? userId;
-
-      wsLog(
-        `❌ WebSocket closed for user: ${closedUserId}`,
-        `code: ${closeEvent.code}`,
-        `reason: ${closeEvent.reason || "no reason provided"}`,
-        `wasClean: ${closeEvent.wasClean}`,
-      );
-
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
-
-      ws = null;
-
-      if (!didOpen) {
-        startupFailureCount += 1;
-        if (startupFailureCount >= MAX_STARTUP_FAILURES) {
-          allowReconnect = false;
-          if (process.env.NODE_ENV === "development") {
-            wsWarn(
-              "⚠️ WebSocket retries paused after repeated startup failures.",
-            );
-          }
-          return;
-        }
-      }
-
-      // Retry connection with backoff only when reconnect is allowed
-      if (allowReconnect && connectedUserId === closedUserId) {
-        attemptReconnect(closedUserId);
-      }
-    };
-  } catch (error) {
-    console.error("❌ Failed to initialize WebSocket:", error);
-  }
-
-  return ws;
+    ws.send(JSON.stringify({ type: "ping" }));
+  }, HEARTBEAT_MS);
 };
 
 const attemptReconnect = (userId: string) => {
@@ -198,58 +57,157 @@ const attemptReconnect = (userId: string) => {
     return;
   }
 
-  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-    reconnectAttempts++;
-    // استخدام تأخير أقصر للمحاولات الأولى
-    const delay =
-      reconnectAttempts === 1
-        ? 500
-        : Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
-
-    wsLog(
-      `🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
-    );
-    setTimeout(() => {
-      if (!allowReconnect || connectedUserId !== userId) {
-        return;
-      }
-
-      wsLog(`🔗 Attempting reconnection (attempt ${reconnectAttempts})...`);
-      initializeWebSocket(userId);
-    }, delay);
-  } else {
-    wsError(
-      `❌ Max reconnection attempts reached (${MAX_RECONNECT_ATTEMPTS}), giving up`,
-    );
-    // إعادة تعيين العداد بعد فترة طويلة
-    setTimeout(() => {
-      if (!allowReconnect || connectedUserId !== userId) {
-        return;
-      }
-
-      wsLog("🔄 Resetting reconnection counter, will try again");
-      reconnectAttempts = 0;
-      initializeWebSocket(userId);
-    }, 60000);
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    return;
   }
+
+  reconnectAttempts += 1;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 20_000);
+
+  window.setTimeout(() => {
+    if (!allowReconnect || connectedUserId !== userId) {
+      return;
+    }
+
+    initializeWebSocket(userId);
+  }, delay);
+};
+
+export const initializeWebSocket = (userId: string) => {
+  allowReconnect = true;
+
+  if (
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  ) {
+    if (connectedUserId === userId) {
+      return ws;
+    }
+
+    allowReconnect = false;
+    ws.close();
+    ws = null;
+    connectedUserId = null;
+    resetHeartbeat();
+    allowReconnect = true;
+  }
+
+  if (
+    ws &&
+    (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING)
+  ) {
+    ws = null;
+    connectedUserId = null;
+    resetHeartbeat();
+  }
+
+  try {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    connectedUserId = userId;
+    ws = socket;
+
+    socket.onopen = () => {
+      reconnectAttempts = 0;
+      startHeartbeat();
+      notifyConnectionListeners(true);
+    };
+
+    socket.onmessage = (event) => {
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      const parsedEvent = chatServerEventSchema.safeParse(parsedJson);
+      if (!parsedEvent.success) {
+        return;
+      }
+
+      const message = parsedEvent.data;
+      notifyListeners(message);
+
+      if (message.type === "notification") {
+        window.dispatchEvent(new CustomEvent("notification", { detail: message.data }));
+      }
+
+      if (message.type === "chat_message") {
+        window.dispatchEvent(
+          new CustomEvent("chat_message", {
+            detail: {
+              data: message.data,
+              conversationId: message.conversationId,
+            },
+          }),
+        );
+      }
+    };
+
+    socket.onclose = () => {
+      resetHeartbeat();
+      ws = null;
+      notifyConnectionListeners(false);
+      const currentUserId = connectedUserId;
+      if (!currentUserId) {
+        return;
+      }
+
+      attemptReconnect(currentUserId);
+    };
+  } catch {
+    // noop
+  }
+
+  return ws;
+};
+
+export const sendWebSocketEvent = (payload: ChatClientEvent) => {
+  if (ws?.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+
+  ws.send(JSON.stringify(payload));
+  return true;
+};
+
+export const subscribeWebSocketEvents = (
+  listener: (event: ChatServerEvent) => void,
+) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+export const subscribeWebSocketConnection = (
+  listener: (connected: boolean) => void,
+) => {
+  connectionListeners.add(listener);
+  return () => {
+    connectionListeners.delete(listener);
+  };
 };
 
 export const closeWebSocket = () => {
   allowReconnect = false;
-
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
-  }
+  resetHeartbeat();
 
   if (ws) {
     ws.close();
-    ws = null;
   }
 
+  notifyConnectionListeners(false);
+
+  ws = null;
   connectedUserId = null;
   reconnectAttempts = 0;
-  startupFailureCount = 0;
 };
 
 export const getWebSocket = () => ws;
+
+export const isWebSocketConnected = () =>
+  ws?.readyState === WebSocket.OPEN;

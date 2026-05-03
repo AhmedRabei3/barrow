@@ -5,8 +5,6 @@ import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
 import ClientOnly from "./components/ClientOnly";
 import GlobalOverlays from "./components/GlobalOverlays";
 
-import { SessionProvider } from "next-auth/react";
-
 import {
   SITE_DESCRIPTION,
   SITE_TAGLINE,
@@ -19,6 +17,7 @@ import {
   websiteJsonLd,
 } from "@/lib/seo";
 import AppPreferencesProvider from "./components/providers/AppPreferencesProvider";
+import AuthSessionProvider from "./components/providers/AuthSessionProvider";
 import AppToaster from "./components/providers/AppToaster";
 import FCMProvider from "./FCMProvider";
 //import WebVitalsReporter from "./components/analytics/WebVitalsReporter";
@@ -181,7 +180,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}
       >
         <AppPreferencesProvider initialLocale={initialLocale}>
-          <SessionProvider refetchOnWindowFocus={false}>
+          <AuthSessionProvider>
             <FCMProvider>
               <ClientOnly>
                 <GlobalOverlays />
@@ -196,7 +195,7 @@ export default async function RootLayout({
               }}
             />
             <main id="main-content">{children}</main>
-          </SessionProvider>
+          </AuthSessionProvider>
         </AppPreferencesProvider>
       </body>
     </html>

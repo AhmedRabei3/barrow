@@ -5,16 +5,55 @@ declare module "next-auth" {
     user: {
       id: string;
       balance: number;
+      isActive: boolean;
+      isAdmin: boolean;
+      isOwner: boolean;
+      isIdentityVerified: boolean;
+      activeUntil: Date | null;
+      pendingReferralEarnings: number;
+      preferredInterestOrder: string[];
+      notifications: {
+        id: string;
+        title: string;
+        message: string;
+        createdAt: Date;
+      }[];
     } & DefaultSession["user"];
   }
 
   interface User extends DefaultUser {
     balance: number;
+    isActive: boolean;
+    isAdmin: boolean;
+    isOwner: boolean;
+    isIdentityVerified: boolean;
+    activeUntil: Date | null;
+    pendingReferralEarnings: number;
+    preferredInterestOrder: string[];
+    notifications: {
+      id: string;
+      title: string;
+      message: string;
+      createdAt: Date;
+    }[];
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     balance: number;
+    isActive: boolean;
+    isAdmin: boolean;
+    isOwner: boolean;
+    isIdentityVerified: boolean;
+    activeUntil: Date | null;
+    pendingReferralEarnings: number;
+    preferredInterestOrder: string[];
+    notifications: {
+      id: string;
+      title: string;
+      message: string;
+      createdAt: Date;
+    }[];
   }
 }

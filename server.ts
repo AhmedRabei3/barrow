@@ -12,7 +12,7 @@ const port = parseInt(process.env.PORT || "3000", 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
   const server = createServer(async (req, res) => {
     try {
       // لا تمرر طلبات WebSocket إلى Next.js
@@ -34,7 +34,7 @@ app.prepare().then(() => {
 
   /* تهيئة WebSocket server قبل الاستماع */
   try {
-    initializeWebSocketServer({ server });
+    await initializeWebSocketServer(server);
     logger.info("WebSocket server initialized successfully");
   } catch (err) {
     logger.error("Failed to initialize WebSocket server:", err);

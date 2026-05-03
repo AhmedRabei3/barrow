@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter } from "next-auth/adapters";
 import { prisma } from "@/lib/prisma";
@@ -87,7 +87,7 @@ const writeSessionUserCache = (userId: string, value: SessionUserSnapshot) => {
   });
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
@@ -305,4 +305,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-});
+} satisfies NextAuthOptions;
+
+export const auth = () => getServerSession(authOptions);

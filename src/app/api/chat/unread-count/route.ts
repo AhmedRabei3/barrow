@@ -38,7 +38,7 @@ export async function GET() {
     const data = userDoc.data() as { unreadCount?: number };
 
     return NextResponse.json({
-      unreadCount: Number(data?.unreadCount ?? 0),
+      unreadCount: Math.max(0, Number(data?.unreadCount ?? 0)),
     });
   } catch (error) {
     logger.error("Failed to load unread count", error);

@@ -192,11 +192,21 @@ export const useNotifications = (enabled: boolean) => {
     };
 
     syncUnreadCount();
+    const onFocus = () => {
+      void syncUnreadCount();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncUnreadCount();
+      }
+    };
 
-    const interval = window.setInterval(syncUnreadCount, 30000);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [fetchUnreadCount, isAuthenticated]);
 

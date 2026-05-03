@@ -112,7 +112,8 @@ export default function FCMProvider({
         await setDoc(
           doc(db, "users", userId),
           {
-            tokens: arrayUnion(token),
+            fcmTokens: arrayUnion(token),
+            fcmToken: token,
             lastUpdated: serverTimestamp(),
           },
           { merge: true }

@@ -1,21 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { buildChatConversationId } from "@/lib/chatConversation";
+import {
+  getWebSocket,
+  initializeWebSocket,
+  sendWebSocketEvent,
+  subscribeWebSocketConnection,
+  subscribeWebSocketEvents,
+} from "@/lib/socketClient";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
-import { getWebSocket } from "@/lib/socketClient";
 import GoBackBtn from "@/app/components/GoBackBtn";
+
+type MessageStatus = "sending" | "sent" | "delivered" | "seen";
 
 type ChatMessage = {
   id: string;
+  clientMessageId?: string;
   senderId: string;
   recipientId: string;
   text: string;
   createdAt: string;
   isRead?: boolean;
+  status: MessageStatus;
+  deliveredAt?: string | null;
+  seenAt?: string | null;
 };
 
 type ConversationItem = {
@@ -31,6 +43,11 @@ type ConversationItem = {
   unreadCount: number;
 };
 
+const sortMessages = (messages: ChatMessage[]) =>
+  [...messages].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
 const formatMessageTime = (value: string | null) => {
   if (!value) {
     return "";
@@ -44,30 +61,70 @@ const formatMessageTime = (value: string | null) => {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
+const formatLastSeen = (value: string | null, isArabic: boolean) => {
+  if (!value) {
+    return isArabic ? "غير متصل" : "Offline";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return isArabic ? "غير متصل" : "Offline";
+  }
+
+  return isArabic
+    ? `آخر ظهور ${date.toLocaleString()}`
+    : `Last seen ${date.toLocaleString()}`;
+};
+
+const resolveMessageStatus = (message: Partial<ChatMessage>): MessageStatus => {
+  if (message.status) {
+    return message.status;
+  }
+
+  if (message.seenAt || message.isRead) {
+    return "seen";
+  }
+
+  if (message.deliveredAt) {
+    return "delivered";
+  }
+
+  return "sent";
+};
+
 export default function MessagesPage() {
   const params = useSearchParams();
   const { data: session, status } = useSession();
-  const userId = session?.user?.id;
+  const { isArabic } = useAppPreferences();
+  const userId = session?.user?.id ?? "";
 
   const ownerId = params.get("ownerId") ?? "";
   const listingIdFromQuery = params.get("listingId") ?? "";
   const listingTitleFromQuery = params.get("title") ?? "";
   const directConversationId = params.get("conversationId") ?? "";
   const itemType = params.get("itemType") ?? "";
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
-
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  const [isPeerTyping, setIsPeerTyping] = useState(false);
+  const [peerOnline, setPeerOnline] = useState(false);
+  const [peerLastSeen, setPeerLastSeen] = useState<string | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
-  const WS = getWebSocket();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingSentRef = useRef(false);
+  const activePresenceTargetRef = useRef("");
+  const readingConversationsRef = useRef(new Set<string>());
 
   const preferredConversationId = useMemo(() => {
     if (directConversationId) {
@@ -85,86 +142,272 @@ export default function MessagesPage() {
     });
   }, [directConversationId, listingIdFromQuery, ownerId, userId]);
 
+  const selectedConversation = useMemo(
+    () =>
+      conversations.find(
+        (conversation) => conversation.id === selectedConversationId,
+      ),
+    [conversations, selectedConversationId],
+  );
+
+  const recipientUserId = selectedConversation?.otherParticipantId ?? ownerId;
+  const listingId = selectedConversation?.listingId || listingIdFromQuery;
+  const listingTitle =
+    selectedConversation?.listingTitle || listingTitleFromQuery;
+  const hasOpenChatTarget = Boolean(
+    selectedConversationId || (recipientUserId && listingId),
+  );
+
+  const fetchConversations = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+
+    const response = await fetch("/api/chat/conversations", {
+      cache: "no-store",
+    });
+    const data = (await response.json()) as {
+      conversations?: ConversationItem[];
+      message?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to load conversations");
+    }
+
+    const nextConversations = data.conversations ?? [];
+    setConversations(nextConversations);
+
+    setSelectedConversationId((prev) => {
+      if (preferredConversationId) {
+        return preferredConversationId;
+      }
+
+      if (prev) {
+        const stillExists = nextConversations.some((item) => item.id === prev);
+        if (stillExists) {
+          return prev;
+        }
+      }
+
+      return nextConversations[0]?.id ?? "";
+    });
+  }, [preferredConversationId, userId]);
+
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    const response = await fetch(
+      `/api/chat/messages?conversationId=${encodeURIComponent(conversationId)}&limit=100`,
+      { cache: "no-store" },
+    );
+    const data = (await response.json()) as {
+      messages?: ChatMessage[];
+      message?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to load messages");
+    }
+
+    setMessages(
+      sortMessages(
+        (data.messages ?? []).map((message) => ({
+          ...message,
+          status: resolveMessageStatus(message),
+        })),
+      ),
+    );
+  }, []);
+
+  const mergeIncomingMessage = useCallback((incoming: ChatMessage) => {
+    setMessages((prev) => {
+      const existingIndex = prev.findIndex(
+        (message) =>
+          message.id === incoming.id ||
+          (incoming.clientMessageId &&
+            message.clientMessageId === incoming.clientMessageId),
+      );
+
+      if (existingIndex === -1) {
+        return sortMessages([...prev, incoming]);
+      }
+
+      const next = [...prev];
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...incoming,
+        status: resolveMessageStatus(incoming),
+      };
+      return sortMessages(next);
+    });
+  }, []);
+
+  const markConversationAsRead = useCallback(
+    async (conversationId: string) => {
+      if (!conversationId || readingConversationsRef.current.has(conversationId)) {
+        return;
+      }
+
+      readingConversationsRef.current.add(conversationId);
+
+      try {
+        const response = await fetch("/api/chat/messages/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId }),
+        });
+
+        if (response.ok) {
+          window.dispatchEvent(new Event("chat_unread_refresh"));
+        }
+      } finally {
+        readingConversationsRef.current.delete(conversationId);
+      }
+    },
+    [],
+  );
+
+  const sendTypingStart = useCallback(() => {
+    if (!selectedConversationId || !recipientUserId || typingSentRef.current) {
+      return;
+    }
+
+    const sent = sendWebSocketEvent({
+      type: "typing_start",
+      conversationId: selectedConversationId,
+      recipientId: recipientUserId,
+    });
+
+    if (sent) {
+      typingSentRef.current = true;
+    }
+  }, [recipientUserId, selectedConversationId]);
+
+  const sendTypingStop = useCallback(() => {
+    if (!selectedConversationId || !recipientUserId || !typingSentRef.current) {
+      return;
+    }
+
+    sendWebSocketEvent({
+      type: "typing_stop",
+      conversationId: selectedConversationId,
+      recipientId: recipientUserId,
+    });
+    typingSentRef.current = false;
+  }, [recipientUserId, selectedConversationId]);
+
+  const handleIncomingChatMessage = useCallback(
+    async (event: {
+      conversationId: string;
+      data: ChatMessage;
+    }) => {
+      const incoming = {
+        ...event.data,
+        status: resolveMessageStatus(event.data),
+      };
+
+      setConversations((prev) => {
+        const current = prev.find((conversation) => conversation.id === event.conversationId);
+        if (!current) {
+          return prev;
+        }
+
+        const nextUnread =
+          incoming.recipientId === userId && selectedConversationId !== event.conversationId
+            ? current.unreadCount + 1
+            : selectedConversationId === event.conversationId
+              ? 0
+              : current.unreadCount;
+
+        const updated = {
+          ...current,
+          lastMessage: incoming.text,
+          lastMessageAt: incoming.createdAt,
+          lastMessageSenderId: incoming.senderId,
+          unreadCount: nextUnread,
+        };
+
+        return [updated, ...prev.filter((item) => item.id !== current.id)];
+      });
+
+      if (selectedConversationId === event.conversationId) {
+        mergeIncomingMessage(incoming);
+
+        if (incoming.recipientId === userId) {
+          sendWebSocketEvent({
+            type: "message_delivered",
+            conversationId: event.conversationId,
+            senderId: incoming.senderId,
+            messageIds: [incoming.id],
+          });
+          await markConversationAsRead(event.conversationId);
+        }
+      } else if (incoming.senderId !== userId) {
+        void fetchConversations();
+      }
+    },
+    [
+      fetchConversations,
+      markConversationAsRead,
+      mergeIncomingMessage,
+      selectedConversationId,
+      userId,
+    ],
+  );
+
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const handleScroll = () => {
       const threshold = 60;
-
       const distanceFromBottom =
         container.scrollHeight - container.scrollTop - container.clientHeight;
 
       const atBottom = distanceFromBottom < threshold;
-
       setIsAtBottom(atBottom);
       isUserScrollingUpRef.current = !atBottom;
     };
 
     container.addEventListener("scroll", handleScroll);
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-    };
+    return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
     const newMessagesCount = messages.length;
-    const prevMessagesCount = lastMessageCountRef.current;
+    const previousCount = lastMessageCountRef.current;
+    const hasNewMessage = newMessagesCount > previousCount;
 
-    const hasNewMessage = newMessagesCount > prevMessagesCount;
-
-    // لا تعمل scroll إلا إذا:
-    // 1. في رسالة جديدة
-    // 2. المستخدم أصلاً في الأسفل
     if (hasNewMessage && isAtBottom && !isUserScrollingUpRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
 
     lastMessageCountRef.current = newMessagesCount;
-  }, [messages, isAtBottom]);
+  }, [isAtBottom, messages]);
+
   useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
     let mounted = true;
 
-    const fetchConversations = async () => {
-      if (!userId) {
-        return;
-      }
-
+    const load = async () => {
       try {
         setLoadingConversations(true);
-        const response = await fetch("/api/chat/conversations", {
-          cache: "no-store",
-        });
-        const data = (await response.json()) as {
-          conversations?: ConversationItem[];
-          message?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load conversations");
-        }
-
+        await fetchConversations();
+      } catch (error) {
         if (!mounted) {
           return;
         }
 
-        const nextConversations = data.conversations ?? [];
-        setConversations(nextConversations);
-
-        if (preferredConversationId) {
-          setSelectedConversationId(preferredConversationId);
-        } else if (nextConversations.length > 0) {
-          setSelectedConversationId((prev) => prev || nextConversations[0]!.id);
-        }
-      } catch (error) {
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to load conversations",
+            : isArabic
+              ? "تعذر تحميل المحادثات"
+              : "Failed to load conversations",
         );
       } finally {
         if (mounted) {
@@ -173,12 +416,12 @@ export default function MessagesPage() {
       }
     };
 
-    void fetchConversations();
+    void load();
 
     return () => {
       mounted = false;
     };
-  }, [preferredConversationId, userId]);
+  }, [fetchConversations, isArabic, userId]);
 
   useEffect(() => {
     if (!selectedConversationId || !userId) {
@@ -188,116 +431,204 @@ export default function MessagesPage() {
 
     let cancelled = false;
 
-    const loadMessages = async () => {
+    const load = async () => {
       try {
-        const response = await fetch(
-          `/api/chat/messages?conversationId=${encodeURIComponent(selectedConversationId)}`,
-          { cache: "no-store" },
-        );
-
-        if (!response.ok) {
-          return;
-        }
-
-        const data = (await response.json()) as { messages?: ChatMessage[] };
+        await fetchMessages(selectedConversationId);
+      } catch (error) {
         if (!cancelled) {
-          setMessages(data.messages ?? []);
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : isArabic
+                ? "تعذر تحميل الرسائل"
+                : "Failed to load messages",
+          );
         }
-      } catch {
-        // Silent polling fallback.
       }
     };
 
-    void loadMessages();
+    void load();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedConversationId, userId]);
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const custom = event as CustomEvent;
-
-      const { data, conversationId } = custom.detail;
-
-      if (conversationId !== selectedConversationId) return;
-
-      setMessages((prev) => {
-        // منع التكرار (حتى لو ID مختلف قليلاً)
-        if (
-          prev.some(
-            (m) =>
-              m.id === data.id ||
-              (m.text === data.text &&
-                m.senderId === data.senderId &&
-                Math.abs(
-                  new Date(m.createdAt).getTime() -
-                    new Date(data.createdAt).getTime(),
-                ) < 2000),
-          )
-        ) {
-          return prev;
-        }
-
-        return [...prev, data];
-      });
-    };
-
-    window.addEventListener("chat_message", handler);
-
-    return () => {
-      window.removeEventListener("chat_message", handler);
-    };
-  }, [selectedConversationId]);
+  }, [fetchMessages, isArabic, selectedConversationId, userId]);
 
   useEffect(() => {
     if (!userId) {
       return;
     }
 
-    let cancelled = false;
+    initializeWebSocket(userId);
+    setWsConnected(getWebSocket()?.readyState === WebSocket.OPEN);
 
-    const refreshConversations = async () => {
-      try {
-        const response = await fetch("/api/chat/conversations", {
-          cache: "no-store",
-        });
-        if (!response.ok || cancelled) {
-          return;
+    const unsubscribeConnection = subscribeWebSocketConnection((connected) => {
+      setWsConnected(connected);
+      if (connected) {
+        void fetchConversations();
+        if (selectedConversationId) {
+          void fetchMessages(selectedConversationId);
         }
-
-        const data = (await response.json()) as {
-          conversations?: ConversationItem[];
-        };
-
-        if (!cancelled && data.conversations) {
-          setConversations(data.conversations);
-        }
-      } catch {
-        // Silent polling fallback.
       }
-    };
+    });
 
-    const interval = window.setInterval(() => {
-      void refreshConversations();
-    }, 4000);
+    const unsubscribe = subscribeWebSocketEvents((event) => {
+      if (event.type === "chat_message") {
+        void handleIncomingChatMessage({
+          conversationId: event.conversationId,
+          data: event.data as ChatMessage,
+        });
+        return;
+      }
+
+      if (event.type === "message_delivered") {
+        setMessages((prev) =>
+          prev.map((message) => {
+            if (!event.messageIds.includes(message.id) || message.senderId !== userId) {
+              return message;
+            }
+
+            if (message.status === "seen") {
+              return message;
+            }
+
+            return {
+              ...message,
+              status: "delivered",
+              deliveredAt: event.deliveredAt,
+            };
+          }),
+        );
+        return;
+      }
+
+      if (event.type === "message_seen") {
+        setMessages((prev) =>
+          prev.map((message) => {
+            if (!event.messageIds.includes(message.id) || message.senderId !== userId) {
+              return message;
+            }
+
+            return {
+              ...message,
+              status: "seen",
+              seenAt: event.seenAt,
+              isRead: true,
+            };
+          }),
+        );
+        return;
+      }
+
+      if (
+        (event.type === "typing_start" || event.type === "typing_stop") &&
+        event.conversationId === selectedConversationId &&
+        event.userId === recipientUserId
+      ) {
+        const typingNow = event.type === "typing_start";
+        setIsPeerTyping(typingNow);
+
+        if (peerTypingTimeoutRef.current) {
+          clearTimeout(peerTypingTimeoutRef.current);
+          peerTypingTimeoutRef.current = null;
+        }
+
+        if (typingNow) {
+          peerTypingTimeoutRef.current = setTimeout(() => {
+            setIsPeerTyping(false);
+          }, 3500);
+        }
+
+        return;
+      }
+
+      if (event.type === "user_online" && event.userId === recipientUserId) {
+        setPeerOnline(true);
+        setPeerLastSeen(null);
+        return;
+      }
+
+      if (event.type === "user_offline" && event.userId === recipientUserId) {
+        setPeerOnline(false);
+        setPeerLastSeen(event.lastSeen ?? null);
+      }
+    });
 
     return () => {
-      cancelled = true;
-      window.clearInterval(interval);
+      if (peerTypingTimeoutRef.current) {
+        clearTimeout(peerTypingTimeoutRef.current);
+        peerTypingTimeoutRef.current = null;
+      }
+      unsubscribeConnection();
+      unsubscribe();
     };
-  }, [userId]);
+  }, [
+    fetchConversations,
+    fetchMessages,
+    handleIncomingChatMessage,
+    recipientUserId,
+    selectedConversationId,
+    userId,
+  ]);
 
   useEffect(() => {
-    if (!selectedConversationId || !userId) {
+    if (!userId) {
       return;
     }
 
-    const activeConversation = conversations.find(
-      (conversation) => conversation.id === selectedConversationId,
-    );
+    const intervalId = window.setInterval(() => {
+      if (wsConnected) {
+        return;
+      }
 
-    if (!activeConversation || activeConversation.unreadCount === 0) {
+      void fetchConversations();
+      if (selectedConversationId) {
+        void fetchMessages(selectedConversationId);
+      }
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    fetchConversations,
+    fetchMessages,
+    selectedConversationId,
+    userId,
+    wsConnected,
+  ]);
+
+  useEffect(() => {
+    if (!recipientUserId) {
+      return;
+    }
+
+    if (activePresenceTargetRef.current && activePresenceTargetRef.current !== recipientUserId) {
+      sendWebSocketEvent({
+        type: "presence_unsubscribe",
+        userIds: [activePresenceTargetRef.current],
+      });
+    }
+
+    activePresenceTargetRef.current = recipientUserId;
+    sendWebSocketEvent({
+      type: "presence_subscribe",
+      userIds: [recipientUserId],
+    });
+
+    return () => {
+      sendWebSocketEvent({
+        type: "presence_unsubscribe",
+        userIds: [recipientUserId],
+      });
+      if (activePresenceTargetRef.current === recipientUserId) {
+        activePresenceTargetRef.current = "";
+      }
+    };
+  }, [recipientUserId]);
+
+  useEffect(() => {
+    if (!selectedConversationId || !userId) {
       return;
     }
 
@@ -309,51 +640,96 @@ export default function MessagesPage() {
       ),
     );
 
-    void fetch("/api/chat/messages/read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: selectedConversationId }),
-    });
-  }, [conversations, selectedConversationId, userId]);
+    const unreadIncomingIds = messages
+      .filter(
+        (message) =>
+          message.recipientId === userId &&
+          message.senderId !== userId &&
+          message.status !== "seen",
+      )
+      .map((message) => message.id);
 
-  const selectedConversation = useMemo(() => {
-    return conversations.find(
+    const activeConversation = conversations.find(
       (conversation) => conversation.id === selectedConversationId,
     );
-  }, [conversations, selectedConversationId]);
+    const shouldMarkRead =
+      unreadIncomingIds.length > 0 || Boolean(activeConversation?.unreadCount);
 
-  const recipientUserId = selectedConversation?.otherParticipantId ?? ownerId;
-  const listingId = selectedConversation?.listingId || listingIdFromQuery;
-  const listingTitle =
-    selectedConversation?.listingTitle || listingTitleFromQuery;
-  const hasOpenChatTarget = Boolean(
-    selectedConversationId || (recipientUserId && listingId),
+    if (unreadIncomingIds.length > 0) {
+      setMessages((prev) =>
+        prev.map((message) =>
+          unreadIncomingIds.includes(message.id)
+            ? {
+                ...message,
+                status: "seen",
+                isRead: true,
+                seenAt: new Date().toISOString(),
+              }
+            : message,
+        ),
+      );
+    }
+
+    if (shouldMarkRead) {
+      void markConversationAsRead(selectedConversationId);
+    }
+  }, [
+    conversations,
+    markConversationAsRead,
+    messages,
+    selectedConversationId,
+    userId,
+  ]);
+
+  const renderStatus = useCallback(
+    (message: ChatMessage) => {
+      if (message.senderId !== userId) {
+        return null;
+      }
+
+      if (message.status === "sending") {
+        return <span className="text-[11px] opacity-80">...</span>;
+      }
+
+      if (message.status === "seen") {
+        return <span className="text-[11px] text-sky-200">✓✓</span>;
+      }
+
+      if (message.status === "delivered") {
+        return <span className="text-[11px] text-sky-100">✓✓</span>;
+      }
+
+      return <span className="text-[11px] text-sky-100">✓</span>;
+    },
+    [userId],
   );
 
-  const { isArabic } = useAppPreferences();
-  const sendMessage = async () => {
-    if (!input.trim() || !recipientUserId || !listingId) {
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || !recipientUserId || !listingId || !userId) {
       return;
     }
 
-    // ⚠️ حل مشكلة conversationId
-    const effectiveConversationId =
-      selectedConversationId || preferredConversationId;
-
+    const clientMessageId = crypto.randomUUID();
+    const nowIso = new Date().toISOString();
     const tempMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      senderId: userId!,
+      id: `temp:${clientMessageId}`,
+      clientMessageId,
+      senderId: userId,
       recipientId: recipientUserId,
       text: input.trim(),
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
+      status: "sending",
+      isRead: false,
+      deliveredAt: null,
+      seenAt: null,
     };
 
-    // ✅ Optimistic UI
-    setMessages((prev) => [...prev, tempMessage]);
+    mergeIncomingMessage(tempMessage);
+    setInput("");
+    setSending(true);
+    sendTypingStop();
 
     try {
-      setSending(true);
-
       const response = await fetch("/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -362,57 +738,138 @@ export default function MessagesPage() {
           listingId,
           listingTitle,
           itemType: selectedConversation?.itemType || itemType,
-          text: input.trim(),
+          text: tempMessage.text,
+          clientMessageId,
         }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        conversationId?: string;
+        message?: ChatMessage | string;
+        success?: boolean;
+      };
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send message");
-      }
-
-      const nextConversationId = String(data.conversationId || "");
-
-      // ✅ تحديث conversationId فوراً
-      if (nextConversationId && !selectedConversationId) {
-        setSelectedConversationId(nextConversationId);
-      }
-
-      // ✅ WebSocket بعد معرفة conversationId الصحيح
-      if (WS && WS.readyState === WebSocket.OPEN) {
-        WS.send(
-          JSON.stringify({
-            type: "chat_message",
-            payload: {
-              conversationId: nextConversationId || effectiveConversationId,
-              message: tempMessage,
-            },
-          }),
+      if (!response.ok || !data.message || typeof data.message === "string") {
+        throw new Error(
+          (typeof data.message === "string" ? data.message : undefined) ||
+            (isArabic ? "تعذر إرسال الرسالة" : "Failed to send message"),
         );
       }
 
-      setInput("");
+      const serverMessage = {
+        ...data.message,
+        status: resolveMessageStatus(data.message),
+      };
+
+      mergeIncomingMessage(serverMessage);
+
+      if (data.conversationId && !selectedConversationId) {
+        setSelectedConversationId(data.conversationId);
+      }
+
+      setConversations((prev) => {
+        const targetId = data.conversationId || selectedConversationId;
+        const existing = prev.find((conversation) => conversation.id === targetId);
+
+        if (existing) {
+          const updated = {
+            ...existing,
+            lastMessage: serverMessage.text,
+            lastMessageAt: serverMessage.createdAt,
+            lastMessageSenderId: serverMessage.senderId,
+          };
+          return [updated, ...prev.filter((item) => item.id !== existing.id)];
+        }
+
+        if (!targetId) {
+          return prev;
+        }
+
+        const fallbackConversation: ConversationItem = {
+          id: targetId,
+          listingId,
+          listingTitle: listingTitle || (isArabic ? "إعلان" : "Listing"),
+          itemType,
+          lastMessage: serverMessage.text,
+          lastMessageAt: serverMessage.createdAt,
+          lastMessageSenderId: userId,
+          otherParticipantId: recipientUserId,
+          otherParticipantName: selectedConversation?.otherParticipantName || "User",
+          unreadCount: 0,
+        };
+
+        return [fallbackConversation, ...prev];
+      });
+
       setIsAtBottom(true);
       isUserScrollingUpRef.current = false;
     } catch (error) {
+      setMessages((prev) => prev.filter((message) => message.id !== tempMessage.id));
       toast.error(
-        error instanceof Error ? error.message : "Failed to send message",
+        error instanceof Error
+          ? error.message
+          : isArabic
+            ? "تعذر إرسال الرسالة"
+            : "Failed to send message",
       );
-
-      // rollback
-      setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
     } finally {
       setSending(false);
     }
-  };
+  }, [
+    input,
+    isArabic,
+    itemType,
+    listingId,
+    listingTitle,
+    mergeIncomingMessage,
+    recipientUserId,
+    selectedConversation,
+    selectedConversationId,
+    sendTypingStop,
+    userId,
+  ]);
+
+  useEffect(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+
+    if (!input.trim()) {
+      sendTypingStop();
+      return;
+    }
+
+    sendTypingStart();
+
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingStop();
+    }, 1500);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [input, sendTypingStart, sendTypingStop]);
 
   if (status === "loading") {
-    return <div className="p-6 text-sm">Loading chat...</div>;
+    return (
+      <div className="p-6 text-sm">
+        {isArabic ? "جارٍ تحميل الدردشة..." : "Loading chat..."}
+      </div>
+    );
   }
 
   if (!userId) {
-    return <div className="p-6 text-sm">Please sign in to use chat.</div>;
+    return (
+      <div className="p-6 text-sm">
+        {isArabic
+          ? "يرجى تسجيل الدخول لاستخدام الدردشة."
+          : "Please sign in to use chat."}
+      </div>
+    );
   }
 
   return (
@@ -430,7 +887,6 @@ export default function MessagesPage() {
             <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
               {isArabic ? "الرسائل" : "Messages"}
             </h1>
-
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {isArabic ? "الدردشات" : "Conversations"}
             </p>
@@ -439,13 +895,11 @@ export default function MessagesPage() {
           <div className="space-y-2 overflow-y-auto pr-1 lg:h-[calc(78vh-90px)]">
             {loadingConversations ? (
               <p className="px-2 py-4 text-sm text-slate-500">
-                {isArabic
-                  ? "جارٍ تحميل المحادثات..."
-                  : "Loading conversations..."}
+                {isArabic ? "جارٍ تحميل المحادثات..." : "Loading conversations..."}
               </p>
             ) : conversations.length === 0 ? (
               <p className="px-2 py-4 text-sm text-slate-500">
-                No conversations yet.
+                {isArabic ? "لا توجد محادثات بعد." : "No conversations yet."}
               </p>
             ) : (
               conversations.map((conversation) => {
@@ -463,19 +917,25 @@ export default function MessagesPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p
-                          className={`truncate text-sm font-bold ${selected ? "text-white" : "text-slate-900 dark:text-slate-100"}`}
+                          className={`truncate text-sm font-bold ${
+                            selected ? "text-white" : "text-slate-900 dark:text-slate-100"
+                          }`}
                         >
                           {conversation.otherParticipantName}
                         </p>
                         <p
-                          className={`truncate text-xs ${selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"}`}
+                          className={`truncate text-xs ${
+                            selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"
+                          }`}
                         >
                           {conversation.listingTitle || "Listing"}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <span
-                          className={`text-[11px] ${selected ? "text-sky-100" : "text-slate-400"}`}
+                          className={`text-[11px] ${
+                            selected ? "text-sky-100" : "text-slate-400"
+                          }`}
                         >
                           {formatMessageTime(conversation.lastMessageAt)}
                         </span>
@@ -487,7 +947,9 @@ export default function MessagesPage() {
                       </div>
                     </div>
                     <p
-                      className={`mt-2 truncate text-xs ${selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"}`}
+                      className={`mt-2 truncate text-xs ${
+                        selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"
+                      }`}
                     >
                       {conversation.lastMessage || "No messages yet"}
                     </p>
@@ -508,27 +970,33 @@ export default function MessagesPage() {
               <div className="min-w-0">
                 <h2 className="truncate text-base font-bold text-slate-900 dark:text-slate-100">
                   {selectedConversation?.otherParticipantName ||
-                    "Start a conversation"}
+                    (isArabic ? "ابدأ محادثة" : "Start a conversation")}
                 </h2>
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                   {selectedConversation?.listingTitle ||
                     listingTitle ||
-                    "Pick a chat from the list"}
+                    (isArabic ? "اختر محادثة" : "Pick a chat from the list")}
                 </p>
+                {selectedConversationId && recipientUserId ? (
+                  <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-slate-400">
+                    {peerOnline
+                      ? isArabic
+                        ? "متصل الآن"
+                        : "Online now"
+                      : formatLastSeen(peerLastSeen, isArabic)}
+                  </p>
+                ) : null}
               </div>
               <GoBackBtn closeBtn={true} />
             </div>
           </header>
 
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 py-5 sm:px-6"
-          >
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
             {!selectedConversationId ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
                 {isArabic
-                  ? "افتح عنصرًا وانقر على بدء الدردشة المباشرة، أو اختر محادثة."
-                  : "Open an item and click Start direct chat, or pick a conversation."}
+                  ? "افتح عنصرًا وابدأ الدردشة المباشرة، أو اختر محادثة من القائمة."
+                  : "Open an item and start direct chat, or pick a conversation."}
               </div>
             ) : messages.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
@@ -551,7 +1019,9 @@ export default function MessagesPage() {
                         }`}
                       >
                         <p
-                          className={`text-[11px] font-semibold ${mine ? "text-sky-100" : "text-slate-500 dark:text-slate-300"}`}
+                          className={`text-[11px] font-semibold ${
+                            mine ? "text-sky-100" : "text-slate-500 dark:text-slate-300"
+                          }`}
                         >
                           {mine
                             ? isArabic
@@ -560,29 +1030,40 @@ export default function MessagesPage() {
                             : selectedConversation?.otherParticipantName ||
                               (isArabic ? "مستخدم" : "User")}
                         </p>
-                        <p className="leading-6">{message.text}</p>
-                        <p
-                          className={`mt-1 text-[11px] ${mine ? "text-sky-100" : "text-slate-400"}`}
+                        <p className="leading-6 whitespace-pre-wrap break-words">{message.text}</p>
+                        <div
+                          className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${
+                            mine ? "text-sky-100" : "text-slate-400"
+                          }`}
                         >
-                          {formatMessageTime(message.createdAt)}
-                        </p>
+                          <span>{formatMessageTime(message.createdAt)}</span>
+                          {renderStatus(message)}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
+                {isPeerTyping ? (
+                  <div className="flex justify-start">
+                    <div className="rounded-2xl bg-white px-3 py-2 text-xs text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-300">
+                      {isArabic ? "يكتب الآن..." : "Typing..."}
+                    </div>
+                  </div>
+                ) : null}
                 <div ref={messagesEndRef} />
               </div>
             )}
-            {!isAtBottom && (
+
+            {!isAtBottom ? (
               <button
                 onClick={() =>
                   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="fixed bottom-24 right-6 rounded-full bg-sky-600 text-white px-4 py-2 shadow-lg"
+                className="fixed bottom-24 right-6 rounded-full bg-sky-600 px-4 py-2 text-white shadow-lg"
               >
-                ↓ {isArabic ? "الرسائل الجديدة" : "New messages"}
+                ↓ {isArabic ? "رسائل جديدة" : "New messages"}
               </button>
-            )}
+            ) : null}
           </div>
 
           <footer className="border-t border-slate-200/70 p-3 dark:border-slate-700/80">
@@ -590,6 +1071,7 @@ export default function MessagesPage() {
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
+                onBlur={() => sendTypingStop()}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
@@ -597,14 +1079,12 @@ export default function MessagesPage() {
                   }
                 }}
                 rows={1}
-                placeholder="Write a message"
+                placeholder={isArabic ? "اكتب رسالة" : "Write a message"}
                 className="max-h-36 min-h-11 flex-1 resize-none rounded-2xl border-none bg-transparent px-3 py-2 text-sm text-slate-900 outline-none dark:text-slate-100"
               />
               <button
                 onClick={() => void sendMessage()}
-                disabled={
-                  sending || !input.trim() || !recipientUserId || !listingId
-                }
+                disabled={sending || !input.trim() || !recipientUserId || !listingId}
                 className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {sending
