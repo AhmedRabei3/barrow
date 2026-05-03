@@ -40,8 +40,12 @@ type ConversationItem = {
   lastMessageSenderId: string | null;
   otherParticipantId: string;
   otherParticipantName: string;
+  otherParticipantIsOnline?: boolean;
+  otherParticipantLastSeenAt?: string | null;
   unreadCount: number;
 };
+
+type MobileChatPanel = "list" | "chat";
 
 const sortMessages = (messages: ChatMessage[]) =>
   [...messages].sort(
@@ -63,12 +67,12 @@ const formatMessageTime = (value: string | null) => {
 
 const formatLastSeen = (value: string | null, isArabic: boolean) => {
   if (!value) {
-    return isArabic ? "غير متصل" : "Offline";
+    return isArabic ? "آخر ظهور غير معروف" : "Last seen unavailable";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return isArabic ? "غير متصل" : "Offline";
+    return isArabic ? "آخر ظهور غير معروف" : "Last seen unavailable";
   }
 
   return isArabic
@@ -103,6 +107,9 @@ export default function MessagesPage() {
   const listingTitleFromQuery = params.get("title") ?? "";
   const directConversationId = params.get("conversationId") ?? "";
   const itemType = params.get("itemType") ?? "";
+  const hasQueryChatTarget = Boolean(
+    directConversationId || (ownerId && listingIdFromQuery),
+  );
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,14 +123,21 @@ export default function MessagesPage() {
   const [isPeerTyping, setIsPeerTyping] = useState(false);
   const [peerOnline, setPeerOnline] = useState(false);
   const [peerLastSeen, setPeerLastSeen] = useState<string | null>(null);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [wsConnected, setWsConnected] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<MobileChatPanel>(
+    hasQueryChatTarget ? "chat" : "list",
+  );
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingSentRef = useRef(false);
-  const activePresenceTargetRef = useRef("");
+  const subscribedPresenceUserIdsRef = useRef(new Set<string>());
   const readingConversationsRef = useRef(new Set<string>());
 
   const preferredConversationId = useMemo(() => {
@@ -157,6 +171,30 @@ export default function MessagesPage() {
   const hasOpenChatTarget = Boolean(
     selectedConversationId || (recipientUserId && listingId),
   );
+  const showConversationListOnMobile = mobilePanel === "list";
+  const showChatOnMobile = mobilePanel === "chat" && hasOpenChatTarget;
+  const selectedConversationIsVisible = Boolean(
+    selectedConversationId && (isDesktopViewport || mobilePanel === "chat"),
+  );
+  const presenceUserIds = useMemo(() => {
+    return Array.from(
+      new Set(
+        [
+          ...conversations.map(
+            (conversation) => conversation.otherParticipantId,
+          ),
+          recipientUserId,
+        ].filter(Boolean),
+      ),
+    );
+  }, [conversations, recipientUserId]);
+
+  const openConversation = useCallback((conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setMobilePanel("chat");
+    setIsAtBottom(true);
+    isUserScrollingUpRef.current = false;
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     if (!userId) {
@@ -177,6 +215,13 @@ export default function MessagesPage() {
 
     const nextConversations = data.conversations ?? [];
     setConversations(nextConversations);
+    setOnlineUserIds(
+      new Set(
+        nextConversations
+          .filter((conversation) => conversation.otherParticipantIsOnline)
+          .map((conversation) => conversation.otherParticipantId),
+      ),
+    );
 
     setSelectedConversationId((prev) => {
       if (preferredConversationId) {
@@ -192,7 +237,37 @@ export default function MessagesPage() {
 
       return nextConversations[0]?.id ?? "";
     });
+
+    if (preferredConversationId) {
+      setMobilePanel("chat");
+      return;
+    }
+
+    setMobilePanel((currentPanel) => {
+      if (currentPanel === "chat") {
+        return currentPanel;
+      }
+
+      const unreadConversations = nextConversations.filter(
+        (conversation) => conversation.unreadCount > 0,
+      );
+
+      if (unreadConversations.length === 1 && nextConversations.length === 1) {
+        return "chat";
+      }
+
+      return "list";
+    });
   }, [preferredConversationId, userId]);
+
+  useEffect(() => {
+    if (!selectedConversation) {
+      return;
+    }
+
+    setPeerOnline(Boolean(selectedConversation.otherParticipantIsOnline));
+    setPeerLastSeen(selectedConversation.otherParticipantLastSeenAt ?? null);
+  }, [selectedConversation]);
 
   const fetchMessages = useCallback(async (conversationId: string) => {
     const response = await fetch(
@@ -305,16 +380,33 @@ export default function MessagesPage() {
         status: resolveMessageStatus(event.data),
       };
 
+      if (incoming.senderId !== userId) {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.add(incoming.senderId);
+          return next;
+        });
+
+        if (incoming.senderId === recipientUserId) {
+          setPeerOnline(true);
+          setPeerLastSeen(null);
+        }
+      }
+
       setConversations((prev) => {
         const current = prev.find((conversation) => conversation.id === event.conversationId);
         if (!current) {
           return prev;
         }
 
+        const conversationIsVisible =
+          selectedConversationId === event.conversationId &&
+          (isDesktopViewport || mobilePanel === "chat");
+
         const nextUnread =
-          incoming.recipientId === userId && selectedConversationId !== event.conversationId
+          incoming.recipientId === userId && !conversationIsVisible
             ? current.unreadCount + 1
-            : selectedConversationId === event.conversationId
+            : conversationIsVisible
               ? 0
               : current.unreadCount;
 
@@ -329,7 +421,10 @@ export default function MessagesPage() {
         return [updated, ...prev.filter((item) => item.id !== current.id)];
       });
 
-      if (selectedConversationId === event.conversationId) {
+      if (
+        selectedConversationId === event.conversationId &&
+        (isDesktopViewport || mobilePanel === "chat")
+      ) {
         mergeIncomingMessage(incoming);
 
         if (incoming.recipientId === userId) {
@@ -347,12 +442,33 @@ export default function MessagesPage() {
     },
     [
       fetchConversations,
+      isDesktopViewport,
       markConversationAsRead,
       mergeIncomingMessage,
+      mobilePanel,
+      recipientUserId,
       selectedConversationId,
       userId,
     ],
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncViewport = () => {
+      setIsDesktopViewport(mediaQuery.matches);
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -429,6 +545,10 @@ export default function MessagesPage() {
       return;
     }
 
+    if (!selectedConversationIsVisible) {
+      return;
+    }
+
     let cancelled = false;
 
     const load = async () => {
@@ -452,7 +572,13 @@ export default function MessagesPage() {
     return () => {
       cancelled = true;
     };
-  }, [fetchMessages, isArabic, selectedConversationId, userId]);
+  }, [
+    fetchMessages,
+    isArabic,
+    selectedConversationId,
+    selectedConversationIsVisible,
+    userId,
+  ]);
 
   useEffect(() => {
     if (!userId) {
@@ -543,14 +669,42 @@ export default function MessagesPage() {
       }
 
       if (event.type === "user_online" && event.userId === recipientUserId) {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.add(event.userId);
+          return next;
+        });
         setPeerOnline(true);
         setPeerLastSeen(null);
         return;
       }
 
       if (event.type === "user_offline" && event.userId === recipientUserId) {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(event.userId);
+          return next;
+        });
         setPeerOnline(false);
         setPeerLastSeen(event.lastSeen ?? null);
+        return;
+      }
+
+      if (event.type === "user_online") {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.add(event.userId);
+          return next;
+        });
+        return;
+      }
+
+      if (event.type === "user_offline") {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(event.userId);
+          return next;
+        });
       }
     });
 
@@ -599,36 +753,49 @@ export default function MessagesPage() {
   ]);
 
   useEffect(() => {
-    if (!recipientUserId) {
+    if (!wsConnected || presenceUserIds.length === 0) {
       return;
     }
 
-    if (activePresenceTargetRef.current && activePresenceTargetRef.current !== recipientUserId) {
+    const currentIds = subscribedPresenceUserIdsRef.current;
+    const nextIds = new Set(presenceUserIds);
+    const idsToSubscribe = presenceUserIds.filter((id) => !currentIds.has(id));
+    const idsToUnsubscribe = Array.from(currentIds).filter(
+      (id) => !nextIds.has(id),
+    );
+
+    if (idsToUnsubscribe.length > 0) {
       sendWebSocketEvent({
         type: "presence_unsubscribe",
-        userIds: [activePresenceTargetRef.current],
+        userIds: idsToUnsubscribe,
       });
     }
 
-    activePresenceTargetRef.current = recipientUserId;
-    sendWebSocketEvent({
-      type: "presence_subscribe",
-      userIds: [recipientUserId],
-    });
+    if (idsToSubscribe.length > 0) {
+      sendWebSocketEvent({
+        type: "presence_subscribe",
+        userIds: idsToSubscribe,
+      });
+    }
+
+    subscribedPresenceUserIdsRef.current = nextIds;
 
     return () => {
+      const subscribedIds = Array.from(subscribedPresenceUserIdsRef.current);
+      if (subscribedIds.length === 0) {
+        return;
+      }
+
       sendWebSocketEvent({
         type: "presence_unsubscribe",
-        userIds: [recipientUserId],
+        userIds: subscribedIds,
       });
-      if (activePresenceTargetRef.current === recipientUserId) {
-        activePresenceTargetRef.current = "";
-      }
+      subscribedPresenceUserIdsRef.current = new Set();
     };
-  }, [recipientUserId]);
+  }, [presenceUserIds, wsConnected]);
 
   useEffect(() => {
-    if (!selectedConversationId || !userId) {
+    if (!selectedConversationId || !userId || !selectedConversationIsVisible) {
       return;
     }
 
@@ -678,6 +845,7 @@ export default function MessagesPage() {
     markConversationAsRead,
     messages,
     selectedConversationId,
+    selectedConversationIsVisible,
     userId,
   ]);
 
@@ -795,6 +963,8 @@ export default function MessagesPage() {
           lastMessageSenderId: userId,
           otherParticipantId: recipientUserId,
           otherParticipantName: selectedConversation?.otherParticipantName || "User",
+          otherParticipantIsOnline: onlineUserIds.has(recipientUserId),
+          otherParticipantLastSeenAt: peerLastSeen,
           unreadCount: 0,
         };
 
@@ -822,6 +992,8 @@ export default function MessagesPage() {
     listingId,
     listingTitle,
     mergeIncomingMessage,
+    onlineUserIds,
+    peerLastSeen,
     recipientUserId,
     selectedConversation,
     selectedConversationId,
@@ -880,7 +1052,7 @@ export default function MessagesPage() {
       <div className="flex h-[calc(100dvh-110px)] min-h-130 overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-950 lg:grid lg:min-h-155 lg:grid-cols-[360px_1fr]">
         <aside
           className={`border-slate-200 bg-linear-to-b from-sky-50 to-white p-3 dark:border-slate-700 dark:from-slate-900 dark:to-slate-950 lg:border-b-0 lg:border-r ${
-            hasOpenChatTarget ? "hidden lg:block" : "block w-full"
+            showConversationListOnMobile ? "block w-full lg:block" : "hidden lg:block"
           }`}
         >
           <div className="mb-3 px-2">
@@ -904,10 +1076,14 @@ export default function MessagesPage() {
             ) : (
               conversations.map((conversation) => {
                 const selected = conversation.id === selectedConversationId;
+                const participantOnline = onlineUserIds.has(
+                  conversation.otherParticipantId,
+                );
+
                 return (
                   <button
                     key={conversation.id}
-                    onClick={() => setSelectedConversationId(conversation.id)}
+                    onClick={() => openConversation(conversation.id)}
                     className={`w-full rounded-2xl px-3 py-3 text-left transition ${
                       selected
                         ? "bg-sky-600 text-white shadow-lg"
@@ -916,13 +1092,21 @@ export default function MessagesPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p
-                          className={`truncate text-sm font-bold ${
+                        <div className="flex min-w-0 items-center gap-2">
+                          {participantOnline ? (
+                            <span
+                              aria-label={isArabic ? "متصل" : "Online"}
+                              className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]"
+                            />
+                          ) : null}
+                          <p
+                            className={`truncate text-sm font-bold ${
                             selected ? "text-white" : "text-slate-900 dark:text-slate-100"
                           }`}
-                        >
-                          {conversation.otherParticipantName}
-                        </p>
+                          >
+                            {conversation.otherParticipantName}
+                          </p>
+                        </div>
                         <p
                           className={`truncate text-xs ${
                             selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"
@@ -962,12 +1146,25 @@ export default function MessagesPage() {
 
         <section
           className={`min-h-0 flex-col bg-[radial-gradient(circle_at_top,rgba(186,230,253,0.28),transparent_45%),radial-gradient(circle_at_bottom,rgba(147,197,253,0.18),transparent_42%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.25),transparent_42%),radial-gradient(circle_at_bottom,rgba(2,6,23,0.65),transparent_42%)] ${
-            hasOpenChatTarget ? "flex w-full" : "hidden lg:flex"
+            showChatOnMobile ? "flex w-full" : "hidden lg:flex"
           }`}
         >
           <header className="border-b border-slate-200/70 px-5 py-4 backdrop-blur-sm dark:border-slate-700/80">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setMobilePanel("list")}
+                  aria-label={
+                    isArabic ? "العودة لقائمة الدردشات" : "Back to chat list"
+                  }
+                  className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden"
+                >
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-200">
+                    {isArabic ? ">" : "<"}
+                  </span>
+                  {isArabic ? "العودة للمحادثات" : "Back to chats"}
+                </button>
                 <h2 className="truncate text-base font-bold text-slate-900 dark:text-slate-100">
                   {selectedConversation?.otherParticipantName ||
                     (isArabic ? "ابدأ محادثة" : "Start a conversation")}

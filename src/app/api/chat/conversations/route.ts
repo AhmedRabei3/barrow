@@ -8,8 +8,10 @@ import {
 } from "@/server/firebase/admin";
 import { logger } from "@/lib/logger";
 import type { Timestamp } from "firebase-admin/firestore";
+import { getUserLastSeen, isUserConnected } from "@/lib/websocketServer";
 
 const PAGE_SIZE = 20;
+const RECENT_ACTIVITY_ONLINE_WINDOW_MS = 60_000;
 
 const isFirestoreNotFoundError = (error: unknown) => {
   if (!error || typeof error !== "object") return false;
@@ -39,6 +41,11 @@ type ConversationDoc = {
   lastMessage?: string;
   lastMessageAt?: Timestamp | string; // ✅ دعم النوعين
   lastMessageSenderId?: string;
+};
+
+type UserPresenceDoc = {
+  lastSeenAt?: Timestamp | string | null;
+  lastActiveAt?: Timestamp | string | null;
 };
 
 // ✅ helper موحد لتحويل التاريخ
@@ -95,7 +102,7 @@ export async function GET(req: NextRequest) {
 
     const snapshot = await query.get();
 
-    const conversations = snapshot.docs.map((docSnap) => {
+    const baseConversations = snapshot.docs.map((docSnap) => {
       const data = docSnap.data() as ConversationDoc;
 
       const participants = data.participants ?? [];
@@ -120,6 +127,76 @@ export async function GET(req: NextRequest) {
         otherParticipantId,
         otherParticipantName,
         unreadCount: Number(data.unreadBy?.[userId] ?? 0),
+      };
+    });
+
+    const uniqueOtherParticipantIds = Array.from(
+      new Set(
+        baseConversations
+          .map((conversation) => conversation.otherParticipantId)
+          .filter(Boolean),
+      ),
+    );
+
+    const userPresenceDocs =
+      uniqueOtherParticipantIds.length > 0
+        ? await adminFirestore.getAll(
+            ...uniqueOtherParticipantIds.map((participantId) =>
+              adminFirestore.collection("users").doc(participantId),
+            ),
+          )
+        : [];
+
+    const lastSeenByUserId = new Map<string, string | null>();
+    const lastActiveByUserId = new Map<string, string | null>();
+    userPresenceDocs.forEach((userSnap) => {
+      const data = userSnap.data() as UserPresenceDoc | undefined;
+      const lastActiveDate = normalizeDate(data?.lastActiveAt);
+      const lastSeenDate =
+        normalizeDate(data?.lastSeenAt) ?? lastActiveDate;
+
+      lastSeenByUserId.set(
+        userSnap.id,
+        lastSeenDate ? lastSeenDate.toISOString() : null,
+      );
+      lastActiveByUserId.set(
+        userSnap.id,
+        lastActiveDate ? lastActiveDate.toISOString() : null,
+      );
+    });
+
+    const onlineEntries = await Promise.all(
+      uniqueOtherParticipantIds.map(async (participantId) => {
+        return [participantId, await isUserConnected(participantId)] as const;
+      }),
+    );
+    const onlineByUserId = new Map(onlineEntries);
+
+    const redisLastSeenEntries = await Promise.all(
+      uniqueOtherParticipantIds.map(async (participantId) => {
+        return [participantId, await getUserLastSeen(participantId)] as const;
+      }),
+    );
+    const redisLastSeenByUserId = new Map(redisLastSeenEntries);
+
+    const conversations = baseConversations.map((conversation) => {
+      const lastActiveAt = lastActiveByUserId.get(
+        conversation.otherParticipantId,
+      );
+      const lastActiveTime = lastActiveAt ? new Date(lastActiveAt).getTime() : 0;
+      const recentlyActive =
+        Number.isFinite(lastActiveTime) &&
+        Date.now() - lastActiveTime <= RECENT_ACTIVITY_ONLINE_WINDOW_MS;
+
+      return {
+        ...conversation,
+        otherParticipantIsOnline:
+          Boolean(onlineByUserId.get(conversation.otherParticipantId)) ||
+          recentlyActive,
+        otherParticipantLastSeenAt:
+          redisLastSeenByUserId.get(conversation.otherParticipantId) ??
+          lastSeenByUserId.get(conversation.otherParticipantId) ??
+          null,
       };
     });
 

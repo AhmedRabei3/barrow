@@ -15,6 +15,10 @@ import {
 import { duplicateRedisClient, getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import {
+  adminFirestore,
+  isFirebaseAdminConfigured,
+} from "@/server/firebase/admin";
+import {
   markConversationMessagesSeen,
   markMessagesDelivered,
 } from "@/server/chat/messageStatus";
@@ -290,9 +294,24 @@ const unsubscribePresence = (ws: ExtendedWebSocket, userIds: string[]) => {
 };
 
 const setUserOnlineState = async (userId: string) => {
+  const nowIso = new Date().toISOString();
   const redis = await getRedisClient();
   if (redis?.isOpen) {
     await redis.sAdd("online_users", userId);
+  }
+
+  if (isFirebaseAdminConfigured) {
+    try {
+      await adminFirestore.collection("users").doc(userId).set(
+        {
+          isOnline: true,
+          lastActiveAt: nowIso,
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      logger.warn("Failed to persist online presence snapshot.", error);
+    }
   }
 
   await publishPresenceEvent({
@@ -309,6 +328,21 @@ const setUserOfflineState = async (userId: string) => {
   if (redis?.isOpen) {
     await redis.sRem("online_users", userId);
     await redis.set(`last_seen:${userId}`, nowIso);
+  }
+
+  if (isFirebaseAdminConfigured) {
+    try {
+      await adminFirestore.collection("users").doc(userId).set(
+        {
+          isOnline: false,
+          lastSeenAt: nowIso,
+          lastActiveAt: nowIso,
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      logger.warn("Failed to persist offline presence snapshot.", error);
+    }
   }
 
   await publishPresenceEvent({
@@ -722,11 +756,26 @@ export async function isUserConnected(userId: string): Promise<boolean> {
 export async function getUserLastSeen(userId: string): Promise<string | null> {
   try {
     const redis = await getRedisClient();
-    if (!redis?.isOpen) {
+    if (redis?.isOpen) {
+      const redisLastSeen = await redis.get(`last_seen:${userId}`);
+      if (redisLastSeen) {
+        return redisLastSeen;
+      }
+    }
+
+    if (!isFirebaseAdminConfigured) {
       return null;
     }
 
-    return await redis.get(`last_seen:${userId}`);
+    const userSnap = await adminFirestore.collection("users").doc(userId).get();
+    const data = userSnap.data() as
+      | {
+          lastSeenAt?: string;
+          lastActiveAt?: string;
+        }
+      | undefined;
+
+    return data?.lastSeenAt ?? data?.lastActiveAt ?? null;
   } catch {
     return null;
   }

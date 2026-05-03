@@ -347,6 +347,15 @@ export async function POST(req: NextRequest) {
           { merge: true },
         );
 
+        transaction.set(
+          adminFirestore.collection("users").doc(senderUserId),
+          {
+            lastActiveAt: nowIso,
+            lastSeenAt: nowIso,
+          },
+          { merge: true },
+        );
+
         return {
           created: true,
           unreadCountForRecipient,
