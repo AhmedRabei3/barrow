@@ -67,7 +67,7 @@ const BoolBadge = ({
   label: string;
 }) => (
   <li
-    className={`market-panel-soft rounded-2xl px-4 py-3 ${!value ? "opacity-50" : ""}`}
+    className={`market-panel-soft shadow-md rounded-2xl px-4 py-3 ${!value ? "opacity-50" : ""}`}
   >
     <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
       {label}
@@ -90,7 +90,7 @@ const SpecItem = ({
   value: string;
   colorPreview?: string;
 }) => (
-  <li className="market-panel-soft rounded-2xl px-4 py-3">
+  <li className="market-panel-soft shadow-md rounded-2xl px-4 py-3">
     <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
       {label}
     </p>
@@ -346,11 +346,8 @@ const ElementPropereties = ({
     <div className="market-panel rounded-3xl p-5 sm:p-6">
       <div className="flex flex-col gap-5">
         <div>
-          <p className="market-kicker">
-            {isArabic ? "المواصفات" : "Specifications"}
-          </p>
           <h2 className="mt-2 text-xl font-bold text-slate-950 dark:text-slate-50 sm:text-2xl">
-            {isArabic ? "تفاصيل العنصر" : "Listing details"}
+            {isArabic ? "المواصفات" : "Details"}
           </h2>
         </div>
 

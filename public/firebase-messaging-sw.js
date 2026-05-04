@@ -20,12 +20,24 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
   const conversationId = payload?.data?.conversationId || "";
+  const unreadCount = Number(payload?.data?.unreadCount ?? 1);
+
+  // Update the app icon badge (supported on Android Chrome / Samsung Internet).
+  if ("setAppBadge" in self.navigator) {
+    self.navigator.setAppBadge(unreadCount).catch(function () {
+      /* badge API not available */
+    });
+  }
 
   self.registration.showNotification(payload.notification.title, {
     body: payload.notification.body,
     icon: "/icon-192x192.png",
+    badge: "/icon-badge-mono.png",
+    tag: conversationId || "chat", // collapse duplicate notifications
+    renotify: true,
     data: {
       conversationId,
+      unreadCount,
       markReadUrl: payload?.data?.markReadUrl || "/api/chat/messages/read",
     },
   });
@@ -50,6 +62,11 @@ self.addEventListener("notificationclick", function (event) {
         } catch (error) {
           // noop: opening the chat still gives the user access to mark read in-app.
         }
+      }
+
+      // Clear badge when user opens the app.
+      if ("clearAppBadge" in self.navigator) {
+        self.navigator.clearAppBadge().catch(function () {});
       }
 
       const targetUrl = conversationId

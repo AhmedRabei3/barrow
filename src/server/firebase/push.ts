@@ -1,4 +1,5 @@
-import { adminFirestore, adminMessaging } from "@/server/firebase/admin";
+import { adminMessaging } from "@/server/firebase/admin";
+import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
 type ChatPushInput = {
@@ -11,28 +12,11 @@ type ChatPushInput = {
 };
 
 const getUserFcmTokens = async (userId: string): Promise<string[]> => {
-  const userDoc = await adminFirestore.collection("users").doc(userId).get();
-  if (!userDoc.exists) {
-    return [];
-  }
-
-  const data = userDoc.data() as
-    | { fcmToken?: unknown; fcmTokens?: unknown }
-    | undefined;
-
-  const singleToken =
-    typeof data?.fcmToken === "string" && data.fcmToken.trim().length > 0
-      ? [data.fcmToken.trim()]
-      : [];
-
-  const multiTokens = Array.isArray(data?.fcmTokens)
-    ? data!.fcmTokens
-        .filter((token): token is string => typeof token === "string")
-        .map((token) => token.trim())
-        .filter(Boolean)
-    : [];
-
-  return Array.from(new Set([...singleToken, ...multiTokens]));
+  const rows = await prisma.userFcmToken.findMany({
+    where: { userId },
+    select: { token: true },
+  });
+  return rows.map((r) => r.token);
 };
 
 export const sendChatPushNotification = async ({
@@ -48,24 +32,48 @@ export const sendChatPushNotification = async ({
     return { sent: false, reason: "no_tokens" as const };
   }
 
+  const badgeCount = Math.max(1, unreadCount ?? 1);
+
+  const notificationBody =
+    unreadCount && unreadCount > 1
+      ? `You have ${unreadCount} unread messages`
+      : listingTitle
+        ? `${listingTitle}: ${previewText}`
+        : previewText;
+
   const response = await adminMessaging.sendEachForMulticast({
     tokens,
     notification: {
       title: `New message from ${senderName}`,
-      body:
-        unreadCount && unreadCount > 1
-          ? `You have ${unreadCount} unread messages`
-          : listingTitle
-            ? `${listingTitle}: ${previewText}`
-            : previewText,
+      body: notificationBody,
     },
     data: {
       type: "chat_message",
       conversationId,
-      unreadCount: String(unreadCount ?? 1),
+      unreadCount: String(badgeCount),
       markReadUrl: `/api/chat/messages/read`,
     },
+    // ── Android badge + notification ──
+    android: {
+      notification: {
+        notificationCount: badgeCount,
+        sound: "default",
+        channelId: "chat_messages",
+        priority: "high",
+      },
+    },
+    // ── iOS (APNs) badge ──
+    apns: {
+      payload: {
+        aps: {
+          badge: badgeCount,
+          sound: "default",
+        },
+      },
+    },
+    // ── Web push ──
     webpush: {
+      headers: { Urgency: "high" },
       fcmOptions: {
         link: `/messages?conversationId=${encodeURIComponent(conversationId)}`,
       },
@@ -76,6 +84,7 @@ export const sendChatPushNotification = async ({
     },
   });
 
+  // Remove invalid tokens from the database.
   const invalidTokens: string[] = [];
   response.responses.forEach((result, index) => {
     if (
@@ -89,28 +98,9 @@ export const sendChatPushNotification = async ({
 
   if (invalidTokens.length > 0) {
     try {
-      const userRef = adminFirestore.collection("users").doc(recipientUserId);
-      const docSnap = await userRef.get();
-      const data = docSnap.data() as
-        | { fcmToken?: unknown; fcmTokens?: unknown }
-        | undefined;
-
-      const nextTokens = Array.isArray(data?.fcmTokens)
-        ? data!.fcmTokens
-            .filter((token): token is string => typeof token === "string")
-            .filter((token) => !invalidTokens.includes(token))
-        : [];
-
-      const updatePayload: Record<string, unknown> = { fcmTokens: nextTokens };
-
-      if (
-        typeof data?.fcmToken === "string" &&
-        invalidTokens.includes(data.fcmToken)
-      ) {
-        updatePayload.fcmToken = null;
-      }
-
-      await userRef.set(updatePayload, { merge: true });
+      await prisma.userFcmToken.deleteMany({
+        where: { userId: recipientUserId, token: { in: invalidTokens } },
+      });
     } catch (cleanupError) {
       logger.warn("Failed to cleanup invalid FCM tokens", cleanupError);
     }

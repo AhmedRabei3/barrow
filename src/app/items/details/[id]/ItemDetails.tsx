@@ -56,7 +56,6 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
       <GoBackBtn />
       <div className="relative z-10 flex flex-col gap-6">
         <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-blue-600/95 via-sky-900/90 to-indigo-600 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
-          <p className="market-kicker text-sky-200">Listing overview</p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-black tracking-tight text-sky-50 sm:text-3xl lg:text-[2.15rem]">

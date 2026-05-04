@@ -1,22 +1,12 @@
 // src/app/api/chat/unread-count/route.ts
-
+// Returns total unread chat message count for the authenticated user.
+// Backed by PostgreSQL (ChatUnread table) — no Firestore.
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import {
-  adminFirestore,
-  firebaseAdminSetupHint,
-  isFirebaseAdminConfigured,
-} from "@/server/firebase/admin";
+import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
 export async function GET() {
-  if (!isFirebaseAdminConfigured) {
-    return NextResponse.json(
-      { message: firebaseAdminSetupHint },
-      { status: 503 }
-    );
-  }
-
   try {
     const session = await auth();
 
@@ -26,26 +16,19 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    const userDoc = await adminFirestore
-      .collection("users")
-      .doc(userId)
-      .get();
-
-    if (!userDoc.exists) {
-      return NextResponse.json({ unreadCount: 0 });
-    }
-
-    const data = userDoc.data() as { unreadCount?: number };
-
-    return NextResponse.json({
-      unreadCount: Math.max(0, Number(data?.unreadCount ?? 0)),
+    const result = await prisma.chatUnread.aggregate({
+      where: { userId },
+      _sum: { count: true },
     });
+
+    const unreadCount = Math.max(0, Number(result._sum.count ?? 0));
+
+    return NextResponse.json({ unreadCount });
   } catch (error) {
     logger.error("Failed to load unread count", error);
-
     return NextResponse.json(
       { message: "Failed to load unread count" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

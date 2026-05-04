@@ -1,20 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  messaging,
-  getToken,
-  onMessage,
-  db,
-  firebaseAuth,
-} from "../lib/firebase";
-import { signInWithCustomToken } from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  arrayUnion,
-} from "firebase/firestore";
+import { messaging, getToken, onMessage } from "../lib/firebase";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
@@ -71,59 +58,24 @@ export default function FCMProvider({
 
     let unsubscribe: (() => void) | null = null;
 
-    const signInFirebaseClient = async () => {
-      try {
-        if (firebaseAuth.currentUser?.uid === userId) return true;
-
-        const response = await fetch("/api/chat/firebase-token", {
-          cache: "no-store",
-        });
-
-        if (!response.ok) return false;
-
-        const data = (await response.json()) as { token?: string };
-        if (!data.token) return false;
-
-        await signInWithCustomToken(firebaseAuth, data.token);
-        return true;
-      } catch (err) {
-        console.error("Firebase auth error:", err);
-        return false;
-      }
-    };
-
     const setupFCM = async () => {
       try {
-        // ⚠️ يفضل ربط هذا بزر، لكن نتركه هنا مؤقتاً
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
-        const signedIn = await signInFirebaseClient();
-        if (!signedIn) return;
-
         if (!messaging) return;
-        const token = await getToken(messaging, {
-          vapidKey: VAPID_KEY,
-        });
-
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
         if (!token) return;
 
-        // ✅ دعم multi-device
-        await setDoc(
-          doc(db, "users", userId),
-          {
-            fcmTokens: arrayUnion(token),
-            fcmToken: token,
-            lastUpdated: serverTimestamp(),
-          },
-          { merge: true }
-        );
-
-        console.log("FCM Token saved:", token);
+        // Save token to PostgreSQL via API — no Firestore writes.
+        await fetch("/api/chat/register-fcm-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
 
         await refreshUnreadBadge();
 
-        // ✅ listener مع cleanup
         unsubscribe = onMessage(messaging, (payload) => {
           const title =
             payload?.notification?.title ??
@@ -142,7 +94,7 @@ export default function FCMProvider({
               typeof window !== "undefined" &&
               window.location.pathname === "/messages" &&
               window.location.search.includes(
-                `conversationId=${encodeURIComponent(conversationId)}`
+                `conversationId=${encodeURIComponent(conversationId)}`,
               );
 
             if (isOnConversation) {
@@ -153,7 +105,6 @@ export default function FCMProvider({
               }).finally(() => {
                 void refreshUnreadBadge();
               });
-
               return;
             }
           }

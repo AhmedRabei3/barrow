@@ -8,6 +8,7 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 import { useSession } from "next-auth/react";
 import { formatNumber } from "@/lib/locale-format";
 import { useRouter } from "next/navigation";
+import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 
 interface ContactOwnerElementProps {
   itemType: ItemType;
@@ -216,13 +217,16 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       <button
         onClick={openChat}
         disabled={!canStartChat}
-        className={`w-full mt-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition ${
-          canStartChat
-            ? "market-secondary-btn border border-slate-300 bg-white text-slate-800 hover:-translate-y-0.5 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-            : "cursor-not-allowed border border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500"
-        }`}
+        dir={isArabic ? "rtl" : "ltr"}
+        className={`w-full mt-2 rounded-2xl
+           px-4 py-3.5 flex items-center justify-center gap-2 text-sm font-bold transition ${
+             canStartChat
+               ? "market-secondary-btn border  border-emerald-600 bg-emerald-500 hover:bg-emerald-600 hover:-translate-y-0.5  text-slate-200"
+               : "cursor-not-allowed border border-slate-300  text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500"
+           }`}
       >
-        {t("بدء محادثة مباشرة", "Start direct chat")}
+        {t("مراسلة المالك الآن", "Message the owner now")}{" "}
+        {<DynamicIcon iconName="IoIosChatbubbles" />}
       </button>
 
       {/* MODAL */}

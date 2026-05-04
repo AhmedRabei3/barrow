@@ -14,6 +14,22 @@ import {
 } from "@/lib/socketClient";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import GoBackBtn from "@/app/components/GoBackBtn";
+import {
+  MdSearch,
+  MdSend,
+  MdDoneAll,
+  MdDone,
+  MdSchedule,
+  MdArrowForward,
+  MdArrowDownward,
+  MdChatBubbleOutline,
+  MdChat,
+  MdSettings,
+  MdAdd,
+  MdEdit,
+  MdMoreVert,
+  MdClose,
+} from "react-icons/md";
 
 type MessageStatus = "sending" | "sent" | "delivered" | "seen";
 
@@ -46,6 +62,33 @@ type ConversationItem = {
 };
 
 type MobileChatPanel = "list" | "chat";
+
+// ── avatar helpers ────────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  "bg-sky-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+];
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[1][0]).toUpperCase()
+    : (name[0] ?? "?").toUpperCase();
+};
+
+const getAvatarColor = (id: string) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) & 0xffffff;
+  }
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+};
 
 const sortMessages = (messages: ChatMessage[]) =>
   [...messages].sort(
@@ -131,11 +174,16 @@ export default function MessagesPage() {
     hasQueryChatTarget ? "chat" : "list",
   );
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [convSearch, setConvSearch] = useState("");
+  const [msgSearch, setMsgSearch] = useState("");
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const typingSentRef = useRef(false);
   const subscribedPresenceUserIdsRef = useRef(new Set<string>());
   const readingConversationsRef = useRef(new Set<string>());
@@ -207,7 +255,13 @@ export default function MessagesPage() {
     const data = (await response.json()) as {
       conversations?: ConversationItem[];
       message?: string;
+      quotaExceeded?: boolean;
     };
+
+    // 429 = Firestore quota exceeded — silently keep existing state
+    if (response.status === 429) {
+      return;
+    }
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to load conversations");
@@ -316,30 +370,30 @@ export default function MessagesPage() {
     });
   }, []);
 
-  const markConversationAsRead = useCallback(
-    async (conversationId: string) => {
-      if (!conversationId || readingConversationsRef.current.has(conversationId)) {
-        return;
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    if (
+      !conversationId ||
+      readingConversationsRef.current.has(conversationId)
+    ) {
+      return;
+    }
+
+    readingConversationsRef.current.add(conversationId);
+
+    try {
+      const response = await fetch("/api/chat/messages/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+
+      if (response.ok) {
+        window.dispatchEvent(new Event("chat_unread_refresh"));
       }
-
-      readingConversationsRef.current.add(conversationId);
-
-      try {
-        const response = await fetch("/api/chat/messages/read", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId }),
-        });
-
-        if (response.ok) {
-          window.dispatchEvent(new Event("chat_unread_refresh"));
-        }
-      } finally {
-        readingConversationsRef.current.delete(conversationId);
-      }
-    },
-    [],
-  );
+    } finally {
+      readingConversationsRef.current.delete(conversationId);
+    }
+  }, []);
 
   const sendTypingStart = useCallback(() => {
     if (!selectedConversationId || !recipientUserId || typingSentRef.current) {
@@ -371,10 +425,7 @@ export default function MessagesPage() {
   }, [recipientUserId, selectedConversationId]);
 
   const handleIncomingChatMessage = useCallback(
-    async (event: {
-      conversationId: string;
-      data: ChatMessage;
-    }) => {
+    async (event: { conversationId: string; data: ChatMessage }) => {
       const incoming = {
         ...event.data,
         status: resolveMessageStatus(event.data),
@@ -394,7 +445,9 @@ export default function MessagesPage() {
       }
 
       setConversations((prev) => {
-        const current = prev.find((conversation) => conversation.id === event.conversationId);
+        const current = prev.find(
+          (conversation) => conversation.id === event.conversationId,
+        );
         if (!current) {
           return prev;
         }
@@ -437,11 +490,11 @@ export default function MessagesPage() {
           await markConversationAsRead(event.conversationId);
         }
       } else if (incoming.senderId !== userId) {
-        void fetchConversations();
+        // Conversation list already updated inline above via setConversations.
+        // No Firestore fetch needed here.
       }
     },
     [
-      fetchConversations,
       isDesktopViewport,
       markConversationAsRead,
       mergeIncomingMessage,
@@ -610,7 +663,10 @@ export default function MessagesPage() {
       if (event.type === "message_delivered") {
         setMessages((prev) =>
           prev.map((message) => {
-            if (!event.messageIds.includes(message.id) || message.senderId !== userId) {
+            if (
+              !event.messageIds.includes(message.id) ||
+              message.senderId !== userId
+            ) {
               return message;
             }
 
@@ -631,7 +687,10 @@ export default function MessagesPage() {
       if (event.type === "message_seen") {
         setMessages((prev) =>
           prev.map((message) => {
-            if (!event.messageIds.includes(message.id) || message.senderId !== userId) {
+            if (
+              !event.messageIds.includes(message.id) ||
+              message.senderId !== userId
+            ) {
               return message;
             }
 
@@ -730,6 +789,7 @@ export default function MessagesPage() {
       return;
     }
 
+    // Poll every 30 s when WebSocket is disconnected (not every 2 s to avoid quota exhaustion)
     const intervalId = window.setInterval(() => {
       if (wsConnected) {
         return;
@@ -739,7 +799,7 @@ export default function MessagesPage() {
       if (selectedConversationId) {
         void fetchMessages(selectedConversationId);
       }
-    }, 2000);
+    }, 30_000);
 
     return () => {
       window.clearInterval(intervalId);
@@ -856,20 +916,55 @@ export default function MessagesPage() {
       }
 
       if (message.status === "sending") {
-        return <span className="text-[11px] opacity-80">...</span>;
+        return <MdSchedule size={13} className="shrink-0 opacity-60" />;
       }
 
       if (message.status === "seen") {
-        return <span className="text-[11px] text-sky-200">✓✓</span>;
+        return <MdDoneAll size={13} className="shrink-0 text-sky-200" />;
       }
 
       if (message.status === "delivered") {
-        return <span className="text-[11px] text-sky-100">✓✓</span>;
+        return <MdDoneAll size={13} className="shrink-0 text-white/70" />;
       }
 
-      return <span className="text-[11px] text-sky-100">✓</span>;
+      return <MdDone size={13} className="shrink-0 text-white/70" />;
     },
     [userId],
+  );
+
+  const filteredConversations = useMemo(
+    () =>
+      convSearch.trim()
+        ? conversations.filter(
+            (c) =>
+              c.otherParticipantName
+                .toLowerCase()
+                .includes(convSearch.toLowerCase()) ||
+              c.lastMessage.toLowerCase().includes(convSearch.toLowerCase()),
+          )
+        : conversations,
+    [conversations, convSearch],
+  );
+
+  const displayedMessages = useMemo(
+    () =>
+      showMsgSearch && msgSearch.trim()
+        ? messages.filter((m) =>
+            m.text.toLowerCase().includes(msgSearch.toLowerCase()),
+          )
+        : messages,
+    [messages, msgSearch, showMsgSearch],
+  );
+
+  const activeUsers = useMemo(
+    () =>
+      conversations
+        .filter((c) => onlineUserIds.has(c.otherParticipantId))
+        .map((c) => ({
+          id: c.otherParticipantId,
+          name: c.otherParticipantName,
+        })),
+    [conversations, onlineUserIds],
   );
 
   const sendMessage = useCallback(async () => {
@@ -937,7 +1032,9 @@ export default function MessagesPage() {
 
       setConversations((prev) => {
         const targetId = data.conversationId || selectedConversationId;
-        const existing = prev.find((conversation) => conversation.id === targetId);
+        const existing = prev.find(
+          (conversation) => conversation.id === targetId,
+        );
 
         if (existing) {
           const updated = {
@@ -962,7 +1059,8 @@ export default function MessagesPage() {
           lastMessageAt: serverMessage.createdAt,
           lastMessageSenderId: userId,
           otherParticipantId: recipientUserId,
-          otherParticipantName: selectedConversation?.otherParticipantName || "User",
+          otherParticipantName:
+            selectedConversation?.otherParticipantName || "User",
           otherParticipantIsOnline: onlineUserIds.has(recipientUserId),
           otherParticipantLastSeenAt: peerLastSeen,
           unreadCount: 0,
@@ -974,7 +1072,9 @@ export default function MessagesPage() {
       setIsAtBottom(true);
       isUserScrollingUpRef.current = false;
     } catch (error) {
-      setMessages((prev) => prev.filter((message) => message.id !== tempMessage.id));
+      setMessages((prev) =>
+        prev.filter((message) => message.id !== tempMessage.id),
+      );
       toast.error(
         error instanceof Error
           ? error.message
@@ -1028,7 +1128,7 @@ export default function MessagesPage() {
 
   if (status === "loading") {
     return (
-      <div className="p-6 text-sm">
+      <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-sm text-slate-500 dark:text-slate-400 bg-[#f6faff] dark:bg-[#051424]">
         {isArabic ? "جارٍ تحميل الدردشة..." : "Loading chat..."}
       </div>
     );
@@ -1036,7 +1136,7 @@ export default function MessagesPage() {
 
   if (!userId) {
     return (
-      <div className="p-6 text-sm">
+      <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-sm text-slate-500 dark:text-slate-400 bg-[#f6faff] dark:bg-[#051424]">
         {isArabic
           ? "يرجى تسجيل الدخول لاستخدام الدردشة."
           : "Please sign in to use chat."}
@@ -1044,258 +1144,545 @@ export default function MessagesPage() {
     );
   }
 
+  /* ───────────────────── RENDER ───────────────────── */
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="mx-auto w-full max-w-7xl p-3 sm:p-5 lg:p-8"
+      className="flex h-[calc(100dvh-64px)] overflow-hidden bg-[#f6faff] dark:bg-[#051424]"
     >
-      <div className="flex h-[calc(100dvh-110px)] min-h-130 overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-950 lg:grid lg:min-h-155 lg:grid-cols-[360px_1fr]">
-        <aside
-          className={`border-slate-200 bg-linear-to-b from-sky-50 to-white p-3 dark:border-slate-700 dark:from-slate-900 dark:to-slate-950 lg:border-b-0 lg:border-r ${
-            showConversationListOnMobile ? "block w-full lg:block" : "hidden lg:block"
-          }`}
-        >
-          <div className="mb-3 px-2">
-            <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
-              {isArabic ? "الرسائل" : "Messages"}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isArabic ? "الدردشات" : "Conversations"}
+      {/* ══ DESKTOP NAV SIDEBAR ══ */}
+      <nav className="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 bg-white/80 dark:bg-[#0d1c2d]/80 backdrop-blur-md border-e border-slate-200/60 dark:border-slate-700/30 shadow-lg z-10">
+        {/* User profile */}
+        <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700/30">
+          <div
+            className={`relative w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm ${userId ? getAvatarColor(userId) : "bg-slate-400"}`}
+          >
+            {session?.user?.name ? getInitials(session.user.name) : "?"}
+            <span className="absolute bottom-0 inset-e-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0d1c2d]" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate">
+              {session?.user?.name || (isArabic ? "أنت" : "You")}
+            </h3>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              {isArabic ? "متصل" : "Online"}
             </p>
           </div>
+        </div>
 
-          <div className="space-y-2 overflow-y-auto pr-1 lg:h-[calc(78vh-90px)]">
-            {loadingConversations ? (
-              <p className="px-2 py-4 text-sm text-slate-500">
-                {isArabic ? "جارٍ تحميل المحادثات..." : "Loading conversations..."}
-              </p>
-            ) : conversations.length === 0 ? (
-              <p className="px-2 py-4 text-sm text-slate-500">
-                {isArabic ? "لا توجد محادثات بعد." : "No conversations yet."}
-              </p>
-            ) : (
-              conversations.map((conversation) => {
-                const selected = conversation.id === selectedConversationId;
-                const participantOnline = onlineUserIds.has(
-                  conversation.otherParticipantId,
-                );
-
-                return (
-                  <button
-                    key={conversation.id}
-                    onClick={() => openConversation(conversation.id)}
-                    className={`w-full rounded-2xl px-3 py-3 text-left transition ${
-                      selected
-                        ? "bg-sky-600 text-white shadow-lg"
-                        : "bg-white/90 hover:bg-sky-50 dark:bg-slate-900 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {participantOnline ? (
-                            <span
-                              aria-label={isArabic ? "متصل" : "Online"}
-                              className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]"
-                            />
-                          ) : null}
-                          <p
-                            className={`truncate text-sm font-bold ${
-                            selected ? "text-white" : "text-slate-900 dark:text-slate-100"
-                          }`}
-                          >
-                            {conversation.otherParticipantName}
-                          </p>
-                        </div>
-                        <p
-                          className={`truncate text-xs ${
-                            selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"
-                          }`}
-                        >
-                          {conversation.listingTitle || "Listing"}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span
-                          className={`text-[11px] ${
-                            selected ? "text-sky-100" : "text-slate-400"
-                          }`}
-                        >
-                          {formatMessageTime(conversation.lastMessageAt)}
-                        </span>
-                        {conversation.unreadCount > 0 ? (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-bold text-white">
-                            {conversation.unreadCount}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p
-                      className={`mt-2 truncate text-xs ${
-                        selected ? "text-sky-100" : "text-slate-500 dark:text-slate-400"
-                      }`}
-                    >
-                      {conversation.lastMessage || "No messages yet"}
-                    </p>
-                  </button>
-                );
-              })
+        {/* Nav items */}
+        <div className="flex-1 px-3 py-4 space-y-1">
+          <div className="bg-[#006591]/10 dark:bg-[#89ceff]/10 text-[#006591] dark:text-[#89ceff] border-e-4 border-[#006591] dark:border-[#89ceff] rounded-s-lg px-4 py-3 flex items-center gap-4">
+            <MdChat size={20} />
+            <span className="text-sm font-semibold">
+              {isArabic ? "كافة المحادثات" : "All Chats"}
+            </span>
+            {conversations.filter((c) => c.unreadCount > 0).length > 0 && (
+              <span className="ms-auto h-5 min-w-5 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] text-[10px] font-bold px-1">
+                {conversations.filter((c) => c.unreadCount > 0).length}
+              </span>
             )}
           </div>
-        </aside>
+          <div className="text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/30 px-4 py-3 flex items-center gap-4 cursor-pointer rounded-lg transition-colors">
+            <MdSettings size={20} />
+            <span className="text-sm">
+              {isArabic ? "الإعدادات" : "Settings"}
+            </span>
+          </div>
+        </div>
 
-        <section
-          className={`min-h-0 flex-col bg-[radial-gradient(circle_at_top,rgba(186,230,253,0.28),transparent_45%),radial-gradient(circle_at_bottom,rgba(147,197,253,0.18),transparent_42%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.25),transparent_42%),radial-gradient(circle_at_bottom,rgba(2,6,23,0.65),transparent_42%)] ${
-            showChatOnMobile ? "flex w-full" : "hidden lg:flex"
-          }`}
-        >
-          <header className="border-b border-slate-200/70 px-5 py-4 backdrop-blur-sm dark:border-slate-700/80">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setMobilePanel("list")}
-                  aria-label={
-                    isArabic ? "العودة لقائمة الدردشات" : "Back to chat list"
-                  }
-                  className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden"
-                >
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-200">
-                    {isArabic ? ">" : "<"}
-                  </span>
-                  {isArabic ? "العودة للمحادثات" : "Back to chats"}
-                </button>
-                <h2 className="truncate text-base font-bold text-slate-900 dark:text-slate-100">
-                  {selectedConversation?.otherParticipantName ||
-                    (isArabic ? "ابدأ محادثة" : "Start a conversation")}
-                </h2>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {selectedConversation?.listingTitle ||
-                    listingTitle ||
-                    (isArabic ? "اختر محادثة" : "Pick a chat from the list")}
-                </p>
-                {selectedConversationId && recipientUserId ? (
-                  <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-slate-400">
-                    {peerOnline
-                      ? isArabic
-                        ? "متصل الآن"
-                        : "Online now"
-                      : formatLastSeen(peerLastSeen, isArabic)}
-                  </p>
-                ) : null}
-              </div>
-              <GoBackBtn closeBtn={true} />
-            </div>
-          </header>
+        {/* New Message button */}
+        <div className="px-5 pb-6 mt-auto">
+          <button className="w-full py-3.5 bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-95 transition-all duration-200">
+            <MdAdd size={22} />
+            {isArabic ? "رسالة جديدة" : "New Message"}
+          </button>
+        </div>
+      </nav>
 
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-            {!selectedConversationId ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                {isArabic
-                  ? "افتح عنصرًا وابدأ الدردشة المباشرة، أو اختر محادثة من القائمة."
-                  : "Open an item and start direct chat, or pick a conversation."}
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                {isArabic ? "لا توجد رسائل بعد." : "No messages yet."}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {messages.map((message) => {
-                  const mine = message.senderId === userId;
-                  return (
+      {/* ══ CONVERSATION LIST ══ */}
+      <div
+        className={`flex flex-col border-e border-slate-200/60 dark:border-slate-700/30 bg-white/50 dark:bg-[#010f1f]/60 ${
+          showConversationListOnMobile
+            ? "w-full lg:w-96 lg:shrink-0"
+            : "hidden lg:flex lg:w-96 lg:shrink-0"
+        }`}
+      >
+        {/* Mobile-only top bar */}
+        <header className="lg:hidden sticky top-0 z-40 flex justify-between items-center w-full px-5 h-16 bg-white/80 dark:bg-[#051424]/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-700/30 shadow-sm">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {isArabic ? "الرسائل" : "Messages"}
+          </h1>
+          <button className="p-2 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200">
+            <MdMoreVert
+              size={22}
+              className="text-[#006591] dark:text-[#89ceff]"
+            />
+          </button>
+        </header>
+
+        {/* Desktop column header */}
+        <div className="hidden lg:flex items-center px-5 py-4 border-b border-slate-100 dark:border-slate-700/30">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            {isArabic ? "المحادثات" : "Conversations"}
+          </h2>
+        </div>
+
+        {/* Search bar */}
+        <div className="px-4 py-3">
+          <div
+            dir={isArabic ? "rtl" : "ltr"}
+            className="flex items-center  gap-2 bg-slate-100 dark:bg-[#1c2b3c] overflow-hidden rounded-full p-1"
+          >
+            <MdSearch
+              size={17}
+              className="text-slate-400 shrink-0 rounded-full bg-slate-100 dark:bg-[#1c2b3c]"
+            />
+            <input
+              type="text"
+              dir={isArabic ? "rtl" : "ltr"}
+              value={convSearch}
+              onChange={(e) => setConvSearch(e.target.value)}
+              placeholder={
+                isArabic ? "البحث في المحادثات..." : "Search conversations..."
+              }
+              className="flex-1 rounded-full px-2.5 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
+            />
+            {convSearch && (
+              <button
+                onClick={() => setConvSearch("")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
+              >
+                <MdClose size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: Active Now carousel */}
+        {activeUsers.length > 0 && (
+          <div className="lg:hidden flex gap-4 px-4 pb-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {activeUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex flex-col items-center gap-1.5 shrink-0"
+              >
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full p-0.5 border-2 border-[#0ea5e9]">
                     <div
-                      key={message.id}
-                      className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                      className={`w-full h-full rounded-full flex items-center justify-center text-sm font-bold text-white ${getAvatarColor(user.id)}`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-3xl px-4 py-2.5 text-sm shadow-sm ${
-                          mine
-                            ? "rounded-br-md bg-sky-600 text-white"
-                            : "rounded-bl-md bg-white text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                      {getInitials(user.name)}
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 inset-e-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-[#051424] rounded-full" />
+                </div>
+                <span className="text-[11px] text-slate-600 dark:text-slate-300 max-w-14 truncate text-center">
+                  {user.name.split(/\s+/)[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Conversation items */}
+        <div className="flex-1 overflow-y-auto [scrollbar-width:thin]">
+          {loadingConversations ? (
+            <div className="space-y-0.5 py-1">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center px-4 py-3 gap-4 animate-pulse"
+                >
+                  <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-44 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+              {convSearch
+                ? isArabic
+                  ? "لا توجد نتائج"
+                  : "No results"
+                : isArabic
+                  ? "لا توجد محادثات بعد."
+                  : "No conversations yet."}
+            </p>
+          ) : (
+            filteredConversations.map((conv) => {
+              const selected = conv.id === selectedConversationId;
+              const online = onlineUserIds.has(conv.otherParticipantId);
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => openConversation(conv.id)}
+                  className={`flex items-center w-full px-4 py-3 gap-4 text-start transition-all duration-200 ${
+                    selected
+                      ? "bg-[#006591]/8 dark:bg-[#89ceff]/8 border-e-4 border-[#006591] dark:border-[#89ceff]"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/40 active:scale-[0.99]"
+                  }`}
+                  style={
+                    selected
+                      ? {
+                          backgroundColor:
+                            "color-mix(in srgb, #006591 8%, transparent)",
+                        }
+                      : {}
+                  }
+                >
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ${getAvatarColor(conv.otherParticipantId)}`}
+                    >
+                      {getInitials(conv.otherParticipantName)}
+                    </div>
+                    {online && (
+                      <div className="absolute bottom-0.5 inset-e-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#051424] rounded-full" />
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <span
+                        className={`font-bold text-sm truncate ${
+                          selected
+                            ? "text-[#006591] dark:text-[#89ceff]"
+                            : "text-slate-900 dark:text-white"
                         }`}
                       >
-                        <p
-                          className={`text-[11px] font-semibold ${
-                            mine ? "text-sky-100" : "text-slate-500 dark:text-slate-300"
-                          }`}
-                        >
-                          {mine
-                            ? isArabic
-                              ? "أنت"
-                              : "You"
-                            : selectedConversation?.otherParticipantName ||
-                              (isArabic ? "مستخدم" : "User")}
+                        {conv.otherParticipantName}
+                      </span>
+                      <span
+                        className={`text-[11px] shrink-0 ms-2 ${
+                          selected
+                            ? "text-[#006591] dark:text-[#89ceff] font-bold"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      >
+                        {formatMessageTime(conv.lastMessageAt)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <p
+                        className={`text-xs truncate ${
+                          selected
+                            ? "text-[#006591]/70 dark:text-[#89ceff]/70 font-medium"
+                            : "text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        {conv.lastMessage ||
+                          (isArabic ? "ابدأ المحادثة" : "Start chatting")}
+                      </p>
+                      {conv.unreadCount > 0 && (
+                        <span className="h-5 min-w-5 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] text-[10px] font-bold px-1 shrink-0">
+                          {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Mobile FAB — compose */}
+        {showConversationListOnMobile && (
+          <button className="lg:hidden fixed bottom-6 inset-e-6 w-14 h-14 bg-[#006591] dark:bg-[#89ceff] shadow-xl rounded-full flex items-center justify-center text-white dark:text-[#001e2f] active:scale-90 transition-all duration-200 z-50">
+            <MdEdit size={26} />
+          </button>
+        )}
+      </div>
+
+      {/* ══ CHAT PANEL ══ */}
+      <section
+        className={`flex flex-col flex-1 min-w-0 overflow-hidden ${
+          showChatOnMobile ? "flex" : "hidden lg:flex"
+        }`}
+      >
+        {/* Chat header */}
+        <header className="sticky top-0 z-40 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/80 dark:bg-[#0d1c2d]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
+          {/* Left/Start: back + avatar + info */}
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Mobile back arrow */}
+            <button
+              onClick={() => setMobilePanel("list")}
+              aria-label={isArabic ? "رجوع" : "Back"}
+              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-slate-100/60 dark:hover:bg-slate-800/50 active:scale-95 duration-200 shrink-0"
+            >
+              <MdArrowForward
+                size={22}
+                className={`text-slate-700 dark:text-slate-300 ${isArabic ? "" : "rotate-180"}`}
+              />
+            </button>
+
+            {selectedConversation ? (
+              <>
+                <div className="relative shrink-0">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${getAvatarColor(selectedConversation.otherParticipantId)}`}
+                  >
+                    {getInitials(selectedConversation.otherParticipantName)}
+                  </div>
+                  {peerOnline && (
+                    <span className="absolute bottom-0 inset-e-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0d1c2d]" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                    {selectedConversation.otherParticipantName}
+                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    {peerOnline ? (
+                      <>
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                          {isArabic ? "نشط الآن" : "Active now"}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-400 truncate">
+                        {formatLastSeen(peerLastSeen, isArabic)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+                  {isArabic ? "الرسائل" : "Messages"}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {isArabic ? "اختر محادثة للبدء" : "Select a conversation"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right/End: search toggle + more + close */}
+          <div className="flex items-center gap-1 shrink-0">
+            {selectedConversationId && (
+              <button
+                onClick={() => {
+                  setShowMsgSearch((s) => !s);
+                  setMsgSearch("");
+                }}
+                className={`p-2 rounded-full transition-colors active:scale-95 duration-200 ${
+                  showMsgSearch
+                    ? "bg-[#006591]/15 text-[#006591] dark:bg-[#89ceff]/15 dark:text-[#89ceff]"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
+                }`}
+              >
+                <MdSearch size={22} />
+              </button>
+            )}
+            <button className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200">
+              <MdMoreVert size={22} />
+            </button>
+            <GoBackBtn closeBtn={true} />
+          </div>
+        </header>
+
+        {/* In-conversation search bar */}
+        {showMsgSearch && selectedConversationId && (
+          <div className="px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c2b3c] rounded-full px-4 py-2">
+              <MdSearch size={16} className="text-slate-400 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={msgSearch}
+                onChange={(e) => setMsgSearch(e.target.value)}
+                placeholder={
+                  isArabic ? "البحث في الرسائل..." : "Search messages..."
+                }
+                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+              />
+              {msgSearch && (
+                <button
+                  onClick={() => setMsgSearch("")}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
+                >
+                  <MdClose size={15} />
+                </button>
+              )}
+            </div>
+            {msgSearch && (
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 px-3">
+                {displayedMessages.length} {isArabic ? "نتيجة" : "result(s)"}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Chat canvas (dot-pattern background) ── */}
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-4 lg:px-10 py-6 bg-[#f6faff] dark:bg-[#051424] bg-[radial-gradient(rgba(0,101,145,0.065)_0.5px,transparent_0.5px)] dark:bg-[radial-gradient(rgba(137,206,255,0.05)_0.5px,transparent_0.5px)] bg-size-[24px_24px] [scrollbar-width:thin]"
+        >
+          {!selectedConversationId ? (
+            <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-400 dark:text-slate-600">
+              <MdChatBubbleOutline size={60} />
+              <p className="text-sm text-center max-w-xs leading-relaxed">
+                {isArabic
+                  ? "افتح عنصراً وابدأ الدردشة، أو اختر محادثة من القائمة."
+                  : "Open an item to start chatting, or pick a conversation from the list."}
+              </p>
+            </div>
+          ) : displayedMessages.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+              {msgSearch
+                ? isArabic
+                  ? "لا توجد رسائل مطابقة"
+                  : "No matching messages"
+                : isArabic
+                  ? "لا توجد رسائل بعد."
+                  : "No messages yet."}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {displayedMessages.map((message, i) => {
+                const mine = message.senderId === userId;
+                const prev = displayedMessages[i - 1];
+                const showDate =
+                  !prev ||
+                  new Date(message.createdAt).toDateString() !==
+                    new Date(prev.createdAt).toDateString();
+
+                return (
+                  <div key={message.id} className="flex flex-col">
+                    {/* Date separator */}
+                    {showDate && (
+                      <div className="flex justify-center my-4">
+                        <span className="bg-white/60 dark:bg-[#273647]/60 backdrop-blur-sm border border-slate-200/50 dark:border-slate-600/30 text-slate-600 dark:text-slate-300 text-[11px] font-semibold px-4 py-1 rounded-full shadow-sm">
+                          {new Date(message.createdAt).toLocaleDateString(
+                            isArabic ? "ar-SA" : "en-US",
+                            {
+                              weekday: "long",
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Bubble row */}
+                    <div
+                      dir={isArabic ? "rtl" : "ltr"}
+                      className={`flex flex-col mb-1 ${mine ? "items-end" : "items-start"}`}
+                    >
+                      <div
+                        className={`max-w-[78%] lg:max-w-[65%] px-4 py-3 shadow-md ${
+                          mine
+                            ? "rounded-3xl bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f]"
+                            : "rounded-3xl bg-white dark:bg-[#273647] text-slate-900 dark:text-[#d4e4fa] shadow-slate-200/80 dark:shadow-black/30"
+                        }`}
+                        style={{
+                          borderBottomRightRadius: mine ? "4px" : undefined,
+                          borderBottomLeftRadius: !mine ? "4px" : undefined,
+                        }}
+                      >
+                        <p className="text-sm leading-6 wrap-break-word whitespace-pre-wrap">
+                          {message.text}
                         </p>
-                        <p className="leading-6 whitespace-pre-wrap break-words">{message.text}</p>
                         <div
-                          className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${
-                            mine ? "text-sky-100" : "text-slate-400"
-                          }`}
+                          className={`flex items-center gap-1 mt-0.5 ${mine ? "justify-end" : "justify-start"}`}
                         >
-                          <span>{formatMessageTime(message.createdAt)}</span>
+                          <span
+                            className={`text-[11px] ${
+                              mine
+                                ? "text-white/75 dark:text-[#001e2f]/60"
+                                : "text-slate-400 dark:text-slate-400"
+                            }`}
+                          >
+                            {formatMessageTime(message.createdAt)}
+                          </span>
                           {renderStatus(message)}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-                {isPeerTyping ? (
-                  <div className="flex justify-start">
-                    <div className="rounded-2xl bg-white px-3 py-2 text-xs text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-300">
-                      {isArabic ? "يكتب الآن..." : "Typing..."}
-                    </div>
                   </div>
-                ) : null}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
+                );
+              })}
 
-            {!isAtBottom ? (
-              <button
-                onClick={() =>
-                  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="fixed bottom-24 right-6 rounded-full bg-sky-600 px-4 py-2 text-white shadow-lg"
-              >
-                ↓ {isArabic ? "رسائل جديدة" : "New messages"}
-              </button>
-            ) : null}
-          </div>
+              {/* Typing indicator */}
+              {isPeerTyping && (
+                <div className="flex flex-col items-start mb-1">
+                  <div
+                    className="flex gap-1 bg-white dark:bg-[#273647] px-4 py-3 rounded-3xl shadow-md"
+                    style={{ borderBottomLeftRadius: "4px" }}
+                  >
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0ms]" />
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:180ms]" />
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:360ms]" />
+                  </div>
+                </div>
+              )}
 
-          <footer className="border-t border-slate-200/70 p-3 dark:border-slate-700/80">
-            <div className="flex items-end gap-2 rounded-3xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-              <textarea
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+
+          {/* Scroll-to-bottom FAB */}
+          {!isAtBottom && (
+            <button
+              onClick={() =>
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="fixed bottom-24 inset-e-6 w-10 h-10 flex items-center justify-center bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] rounded-full shadow-lg hover:brightness-110 transition-all z-10"
+            >
+              <MdArrowDownward size={20} />
+            </button>
+          )}
+        </div>
+
+        {/* ── Input footer ── */}
+        <footer className="shrink-0 w-full flex items-center justify-center gap-2 px-4 lg:px-8 py-4 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
+          <div className="flex overflow-hidden items-center gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
+            <div className="w-full overflow-hidden">
+              <input
+                type="text"
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(e) => setInput(e.target.value)}
                 onBlur={() => sendTypingStop()}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
                     void sendMessage();
                   }
                 }}
-                rows={1}
-                placeholder={isArabic ? "اكتب رسالة" : "Write a message"}
-                className="max-h-36 min-h-11 flex-1 resize-none rounded-2xl border-none bg-transparent px-3 py-2 text-sm text-slate-900 outline-none dark:text-slate-100"
+                placeholder={
+                  selectedConversationId && recipientUserId
+                    ? isArabic
+                      ? "أكتب رسالتك هنا..."
+                      : "Write your message..."
+                    : isArabic
+                      ? "اختر محادثة للبدء"
+                      : "Select a conversation to start"
+                }
+                disabled={!selectedConversationId || !recipientUserId}
+                className="flex-1 w-full rounded-full px-4 bg-transparent text-slate-900 dark:text-white py-3 text-sm placeholder:text-slate-400 outline-none disabled:cursor-not-allowed"
               />
-              <button
-                onClick={() => void sendMessage()}
-                disabled={sending || !input.trim() || !recipientUserId || !listingId}
-                className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {sending
-                  ? isArabic
-                    ? "جارٍ الإرسال"
-                    : "Sending"
-                  : isArabic
-                    ? "إرسال"
-                    : "Send"}
-              </button>
             </div>
-          </footer>
-        </section>
-      </div>
+          </div>
+          <button
+            onClick={() => void sendMessage()}
+            disabled={
+              sending || !input.trim() || !recipientUserId || !listingId
+            }
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] shadow-lg hover:brightness-110 active:scale-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            <MdSend size={18} className={isArabic ? "rotate-180" : ""} />
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }

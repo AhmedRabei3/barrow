@@ -1,15 +1,12 @@
+// src/app/api/chat/messages/route.ts
+// Backed by PostgreSQL via Prisma — no Firestore reads or writes.
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { FieldValue } from "firebase-admin/firestore";
 import { auth } from "@/auth";
 import { buildChatConversationId } from "@/lib/chatConversation";
 import { isUserConnected, publishChatMessageEvent } from "@/lib/websocketServer";
 import { logger } from "@/lib/logger";
-import {
-  adminFirestore,
-  firebaseAdminSetupHint,
-  isFirebaseAdminConfigured,
-} from "@/server/firebase/admin";
+import { prisma } from "@/lib/prisma";
 import { sendChatPushNotification } from "@/server/firebase/push";
 
 const sendMessageSchema = z.object({
@@ -27,10 +24,7 @@ const sendMessageSchema = z.object({
 
 const parseLimit = (value: string | null) => {
   const parsed = Number(value ?? 50);
-  if (!Number.isFinite(parsed)) {
-    return 50;
-  }
-
+  if (!Number.isFinite(parsed)) return 50;
   return Math.max(1, Math.min(100, Math.floor(parsed)));
 };
 
@@ -42,71 +36,33 @@ const normalizeMessageText = (text: string) =>
     .join("\n")
     .trim();
 
-type ConversationDoc = {
-  createdAt?: string;
-  unreadBy?: Record<string, number>;
-  participantNames?: Record<string, string>;
-};
-
-type MessageDoc = {
-  id?: string;
-  senderId?: string;
-  recipientId?: string;
-  text?: string;
-  createdAt?: string;
-  isRead?: boolean;
-  status?: "sent" | "delivered" | "seen";
-  deliveredAt?: string;
-  seenAt?: string;
-  clientMessageId?: string;
-};
-
-type RateLimitState = {
-  count: number;
-  windowStartedAt: number;
-};
-
+// ── Per-process rate limiter (in-memory) ────────────────────────────────────
+type RateLimitState = { count: number; windowStartedAt: number };
 type RateLimitGlobals = typeof globalThis & {
   __chatSendRateLimit?: Map<string, RateLimitState>;
 };
-
 const rateLimitGlobals = globalThis as RateLimitGlobals;
 const sendRateLimitMap =
   rateLimitGlobals.__chatSendRateLimit ?? new Map<string, RateLimitState>();
 rateLimitGlobals.__chatSendRateLimit = sendRateLimitMap;
-
 const SEND_RATE_LIMIT_WINDOW_MS = 10_000;
 const SEND_RATE_LIMIT_MAX = 12;
 
 const canSendMessageNow = (userId: string) => {
   const now = Date.now();
   const current = sendRateLimitMap.get(userId);
-
   if (!current || now - current.windowStartedAt > SEND_RATE_LIMIT_WINDOW_MS) {
-    sendRateLimitMap.set(userId, {
-      count: 1,
-      windowStartedAt: now,
-    });
+    sendRateLimitMap.set(userId, { count: 1, windowStartedAt: now });
     return true;
   }
-
-  if (current.count >= SEND_RATE_LIMIT_MAX) {
-    return false;
-  }
-
+  if (current.count >= SEND_RATE_LIMIT_MAX) return false;
   current.count += 1;
   sendRateLimitMap.set(userId, current);
   return true;
 };
 
+// ── GET /api/chat/messages ───────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  if (!isFirebaseAdminConfigured) {
-    return NextResponse.json(
-      { message: firebaseAdminSetupHint },
-      { status: 503 },
-    );
-  }
-
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -121,61 +77,52 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const before = req.nextUrl.searchParams.get("before");
-    const limit = parseLimit(req.nextUrl.searchParams.get("limit"));
     const userId = session.user.id;
+    const limit = parseLimit(req.nextUrl.searchParams.get("limit"));
+    const before = req.nextUrl.searchParams.get("before");
 
-    const conversationRef = adminFirestore
-      .collection("conversations")
-      .doc(conversationId);
-    const conversationSnap = await conversationRef.get();
+    // Authorization: user must be a participant.
+    const conversation = await prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+      select: { participantIds: true },
+    });
 
-    if (!conversationSnap.exists) {
+    if (!conversation) {
       return NextResponse.json({ messages: [], hasMore: false, nextCursor: null });
     }
 
-    const conversationData = conversationSnap.data() as
-      | { participants?: string[] }
-      | undefined;
-    if (!conversationData?.participants?.includes(userId)) {
+    if (!conversation.participantIds.includes(userId)) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    let query = conversationRef
-      .collection("messages")
-      .orderBy("createdAt", "desc")
-      .limit(limit);
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        conversationId,
+        ...(before ? { createdAt: { lt: new Date(before) } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
 
-    if (before) {
-      query = query.where("createdAt", "<", before);
-    }
-
-    const snapshot = await query.get();
-    const docs = snapshot.docs;
-    const nextCursor = docs.length > 0 ? (docs[docs.length - 1]!.data().createdAt ?? null) : null;
-
-    const messages = docs
-      .map((docSnap) => {
-        const data = docSnap.data() as MessageDoc;
-
-        return {
-          id: data.id ?? docSnap.id,
-          clientMessageId: data.clientMessageId,
-          senderId: data.senderId ?? "",
-          recipientId: data.recipientId ?? "",
-          text: data.text ?? "",
-          createdAt: data.createdAt ?? "",
-          isRead: Boolean(data.isRead),
-          status: data.status ?? (data.isRead ? "seen" : "sent"),
-          deliveredAt: data.deliveredAt ?? null,
-          seenAt: data.seenAt ?? null,
-        };
-      })
-      .reverse();
+    const nextCursor =
+      messages.length > 0
+        ? (messages[messages.length - 1]!.createdAt.toISOString())
+        : null;
 
     return NextResponse.json({
-      messages,
-      hasMore: snapshot.size === limit,
+      messages: messages.map((m) => ({
+        id: m.id,
+        clientMessageId: m.clientMessageId ?? undefined,
+        senderId: m.senderId,
+        recipientId: m.recipientId,
+        text: m.text,
+        createdAt: m.createdAt.toISOString(),
+        isRead: m.isRead,
+        status: m.status.toLowerCase() as "sent" | "delivered" | "seen",
+        deliveredAt: m.deliveredAt?.toISOString() ?? null,
+        seenAt: m.seenAt?.toISOString() ?? null,
+      })),
+      hasMore: messages.length === limit,
       nextCursor,
     });
   } catch (error) {
@@ -187,14 +134,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ── POST /api/chat/messages ──────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  if (!isFirebaseAdminConfigured) {
-    return NextResponse.json(
-      { message: firebaseAdminSetupHint },
-      { status: 503 },
-    );
-  }
-
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -210,7 +151,6 @@ export async function POST(req: NextRequest) {
     }
 
     const senderUserId = session.user.id;
-
     if (!canSendMessageNow(senderUserId)) {
       return NextResponse.json(
         { message: "Too many messages. Please wait a few seconds." },
@@ -230,7 +170,6 @@ export async function POST(req: NextRequest) {
     if (!text) {
       return NextResponse.json({ message: "Message is empty" }, { status: 400 });
     }
-
     if (recipientUserId === senderUserId) {
       return NextResponse.json(
         { message: "You cannot start a chat with yourself" },
@@ -244,148 +183,141 @@ export async function POST(req: NextRequest) {
       userBId: recipientUserId,
     });
 
-    const nowIso = new Date().toISOString();
-    const conversationRef = adminFirestore
-      .collection("conversations")
-      .doc(conversationId);
-    const userRef = adminFirestore.collection("users").doc(recipientUserId);
-
-    const stableMessageId = clientMessageId
+    // Idempotency: check stable ID before any writes.
+    const stableId = clientMessageId
       ? `${senderUserId}_${clientMessageId}`
-      : conversationRef.collection("messages").doc().id;
-    const messageRef = conversationRef.collection("messages").doc(stableMessageId);
+      : null;
 
-    const transactionResult = await adminFirestore.runTransaction(
-      async (transaction) => {
-        let unreadCountForRecipient = 1;
+    if (stableId) {
+      const existing = await prisma.chatMessage.findUnique({
+        where: { stableId },
+      });
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          created: false,
+          conversationId,
+          messageId: existing.id,
+          message: {
+            id: existing.id,
+            conversationId,
+            senderId: existing.senderId,
+            recipientId: existing.recipientId,
+            text: existing.text,
+            createdAt: existing.createdAt.toISOString(),
+            isRead: existing.isRead,
+            status: existing.status.toLowerCase(),
+            clientMessageId: existing.clientMessageId ?? undefined,
+            deliveredAt: existing.deliveredAt?.toISOString() ?? null,
+            seenAt: existing.seenAt?.toISOString() ?? null,
+          },
+          receiverIsOnline: false,
+          pushSent: false,
+        });
+      }
+    }
 
-        const [conversationSnap, messageSnap] = await Promise.all([
-          transaction.get(conversationRef),
-          transaction.get(messageRef),
-        ]);
+    const now = new Date();
 
-        if (messageSnap.exists) {
-          const existing = messageSnap.data() as MessageDoc;
+    // Transaction: upsert conversation + unread counts + create message.
+    const { message: newMessage, unreadCountForRecipient } =
+      await prisma.$transaction(async (tx) => {
+        // Upsert conversation.
+        const existing = await tx.chatConversation.findUnique({
+          where: { id: conversationId },
+          select: { participantNames: true },
+        });
 
-          return {
-            created: false,
-            unreadCountForRecipient,
-            messagePayload: {
-              id: existing.id ?? messageRef.id,
-              conversationId,
-              senderId: existing.senderId ?? senderUserId,
-              recipientId: existing.recipientId ?? recipientUserId,
-              text: existing.text ?? text,
-              createdAt: existing.createdAt ?? nowIso,
-              isRead: Boolean(existing.isRead),
-              status: existing.status ?? "sent",
-              clientMessageId: existing.clientMessageId ?? clientMessageId,
-              deliveredAt: existing.deliveredAt ?? null,
-              seenAt: existing.seenAt ?? null,
-            },
-          };
-        }
-
-        const existingConversation = conversationSnap.exists
-          ? (conversationSnap.data() as ConversationDoc | undefined)
-          : undefined;
-
-        const recipientUnread = Number(
-          existingConversation?.unreadBy?.[recipientUserId] ?? 0,
-        );
-        unreadCountForRecipient = recipientUnread + 1;
+        const existingNames =
+          (existing?.participantNames as Record<string, string> | null) ?? {};
 
         const participantNames: Record<string, string> = {
-          ...(existingConversation?.participantNames ?? {}),
+          ...existingNames,
           [senderUserId]: session.user.name ?? "User",
         };
 
-        transaction.set(
-          conversationRef,
-          {
+        await tx.chatConversation.upsert({
+          where: { id: conversationId },
+          create: {
             id: conversationId,
             listingId,
             listingTitle: listingTitle ?? "",
             itemType: itemType ?? "",
-            participants: Array.from(new Set([senderUserId, recipientUserId])),
+            participantIds: [senderUserId, recipientUserId],
             participantNames,
             lastMessage: text,
-            lastMessageAt: nowIso,
+            lastMessageAt: now,
             lastMessageSenderId: senderUserId,
-            updatedAt: nowIso,
-            createdAt: existingConversation?.createdAt ?? nowIso,
-            [`unreadBy.${recipientUserId}`]: FieldValue.increment(1),
-            [`unreadBy.${senderUserId}`]: 0,
           },
-          { merge: true },
-        );
+          update: {
+            listingTitle: listingTitle ?? undefined,
+            participantNames,
+            lastMessage: text,
+            lastMessageAt: now,
+            lastMessageSenderId: senderUserId,
+          },
+        });
 
-        transaction.set(
-          messageRef,
-          {
-            id: messageRef.id,
+        // Increment recipient unread, reset sender unread.
+        const recipientUnread = await tx.chatUnread.upsert({
+          where: {
+            conversationId_userId: {
+              conversationId,
+              userId: recipientUserId,
+            },
+          },
+          create: { conversationId, userId: recipientUserId, count: 1 },
+          update: { count: { increment: 1 } },
+        });
+
+        await tx.chatUnread.upsert({
+          where: {
+            conversationId_userId: {
+              conversationId,
+              userId: senderUserId,
+            },
+          },
+          create: { conversationId, userId: senderUserId, count: 0 },
+          update: { count: 0 },
+        });
+
+        // Create message.
+        const msg = await tx.chatMessage.create({
+          data: {
+            ...(stableId ? { stableId } : {}),
             clientMessageId: clientMessageId ?? null,
             conversationId,
             senderId: senderUserId,
             recipientId: recipientUserId,
             text,
-            createdAt: nowIso,
-            isRead: false,
-            status: "sent",
-            deliveredAt: null,
-            seenAt: null,
+            createdAt: now,
           },
-          { merge: false },
-        );
-
-        transaction.set(
-          userRef,
-          {
-            unreadCount: FieldValue.increment(1),
-            lastUpdated: nowIso,
-          },
-          { merge: true },
-        );
-
-        transaction.set(
-          adminFirestore.collection("users").doc(senderUserId),
-          {
-            lastActiveAt: nowIso,
-            lastSeenAt: nowIso,
-          },
-          { merge: true },
-        );
+        });
 
         return {
-          created: true,
-          unreadCountForRecipient,
-          messagePayload: {
-            id: messageRef.id,
-            conversationId,
-            senderId: senderUserId,
-            recipientId: recipientUserId,
-            text,
-            createdAt: nowIso,
-            isRead: false,
-            status: "sent" as const,
-            clientMessageId,
-            deliveredAt: null,
-            seenAt: null,
-          },
+          message: msg,
+          unreadCountForRecipient: recipientUnread.count,
         };
-      },
-    );
+      });
 
-    const { created, unreadCountForRecipient, messagePayload } = transactionResult;
-
-    if (!messagePayload) {
-      throw new Error("Failed to build message payload");
-    }
+    const messagePayload = {
+      id: newMessage.id,
+      conversationId,
+      senderId: newMessage.senderId,
+      recipientId: newMessage.recipientId,
+      text: newMessage.text,
+      createdAt: newMessage.createdAt.toISOString(),
+      isRead: newMessage.isRead,
+      status: newMessage.status.toLowerCase() as "sent",
+      clientMessageId: newMessage.clientMessageId ?? undefined,
+      deliveredAt: null as string | null,
+      seenAt: null as string | null,
+    };
 
     const receiverIsOnline = await isUserConnected(recipientUserId);
     let pushSent = false;
 
-    if (created && !receiverIsOnline) {
+    if (!receiverIsOnline) {
       try {
         const pushResult = await sendChatPushNotification({
           recipientUserId,
@@ -401,16 +333,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (created) {
-      await publishChatMessageEvent({
-        conversationId,
-        message: messagePayload,
-      });
-    }
+    await publishChatMessageEvent({
+      conversationId,
+      message: messagePayload,
+    });
 
     return NextResponse.json({
       success: true,
-      created,
+      created: true,
       conversationId,
       messageId: messagePayload.id,
       message: messagePayload,

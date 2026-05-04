@@ -1,37 +1,13 @@
-import {
-  FieldPath,
-  FieldValue,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from "firebase-admin/firestore";
-import {
-  adminFirestore,
-  isFirebaseAdminConfigured,
-} from "@/server/firebase/admin";
-
-type FirestoreChatMessage = {
-  senderId?: string;
-  recipientId?: string;
-  isRead?: boolean;
-  status?: string;
-  deliveredAt?: string;
-  seenAt?: string;
-};
-
-const chunk = <T,>(items: T[], size: number): T[][] => {
-  const result: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-  return result;
-};
+// src/server/chat/messageStatus.ts
+// Backed by PostgreSQL via Prisma — no Firestore reads or writes.
+import { prisma } from "@/lib/prisma";
 
 const asUniqueIds = (ids: string[]) =>
   Array.from(
     new Set(
       ids
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0)
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
         .slice(0, 200),
     ),
   );
@@ -47,60 +23,32 @@ export const markMessagesDelivered = async ({
   recipientId: string;
   messageIds: string[];
 }) => {
-  if (!isFirebaseAdminConfigured) {
-    return { updatedMessageIds: [] as string[] };
-  }
-
   const uniqueIds = asUniqueIds(messageIds);
-  if (uniqueIds.length === 0) {
-    return { updatedMessageIds: [] as string[] };
-  }
+  if (uniqueIds.length === 0) return { updatedMessageIds: [] as string[] };
 
-  const nowIso = new Date().toISOString();
-  const conversationRef = adminFirestore
-    .collection("conversations")
-    .doc(conversationId);
-  const messagesRef = conversationRef.collection("messages");
-  const updatedMessageIds: string[] = [];
+  const now = new Date();
 
-  for (const idChunk of chunk(uniqueIds, 30)) {
-    const chunkSnapshot = await messagesRef
-      .where(FieldPath.documentId(), "in", idChunk)
-      .get();
+  // Find eligible messages (not yet seen, correct participants).
+  const eligible = await prisma.chatMessage.findMany({
+    where: {
+      id: { in: uniqueIds },
+      conversationId,
+      senderId,
+      recipientId,
+      status: { not: "SEEN" },
+    },
+    select: { id: true },
+  });
 
-    if (chunkSnapshot.empty) {
-      continue;
-    }
+  const eligibleIds = eligible.map((m) => m.id);
+  if (eligibleIds.length === 0) return { updatedMessageIds: [] as string[] };
 
-    const batch = adminFirestore.batch();
-    let hasWrites = false;
+  await prisma.chatMessage.updateMany({
+    where: { id: { in: eligibleIds } },
+    data: { status: "DELIVERED", deliveredAt: now },
+  });
 
-    for (const messageDoc of chunkSnapshot.docs) {
-      const data = messageDoc.data() as FirestoreChatMessage;
-
-      if (data.senderId !== senderId || data.recipientId !== recipientId) {
-        continue;
-      }
-
-      if (data.seenAt || data.status === "seen") {
-        continue;
-      }
-
-      batch.update(messageDoc.ref, {
-        status: "delivered",
-        deliveredAt: data.deliveredAt ?? nowIso,
-        deliveredTo: FieldValue.arrayUnion(recipientId),
-      });
-      updatedMessageIds.push(messageDoc.id);
-      hasWrites = true;
-    }
-
-    if (hasWrites) {
-      await batch.commit();
-    }
-  }
-
-  return { updatedMessageIds };
+  return { updatedMessageIds: eligibleIds };
 };
 
 export const markConversationMessagesSeen = async ({
@@ -114,117 +62,51 @@ export const markConversationMessagesSeen = async ({
   senderId?: string;
   messageIds?: string[];
 }) => {
-  if (!isFirebaseAdminConfigured) {
+  // Authorization check.
+  const conversation = await prisma.chatConversation.findUnique({
+    where: { id: conversationId },
+    select: { participantIds: true },
+  });
+
+  if (!conversation?.participantIds.includes(readerUserId)) {
     return { updatedMessageIds: [] as string[], readCount: 0 };
   }
 
-  const nowIso = new Date().toISOString();
-  const conversationRef = adminFirestore
-    .collection("conversations")
-    .doc(conversationId);
-  const conversationSnap = await conversationRef.get();
+  const now = new Date();
+  const uniqueIds = messageIds ? asUniqueIds(messageIds) : null;
 
-  if (!conversationSnap.exists) {
-    return { updatedMessageIds: [] as string[], readCount: 0 };
-  }
-
-  const conversationData = conversationSnap.data() as
-    | {
-        participants?: string[];
-      }
-    | undefined;
-
-  if (!conversationData?.participants?.includes(readerUserId)) {
-    return { updatedMessageIds: [] as string[], readCount: 0 };
-  }
-
-  const messagesRef = conversationRef.collection("messages");
-  const updatedMessageIds: string[] = [];
-  let readCount = 0;
-
-  const uniqueIds = messageIds ? asUniqueIds(messageIds) : [];
-
-  const applySeenToDocs = async (
-    docs: QueryDocumentSnapshot<DocumentData>[],
-  ) => {
-    if (docs.length === 0) {
-      return;
-    }
-
-    const batch = adminFirestore.batch();
-    let hasWrites = false;
-
-    for (const messageDoc of docs) {
-      const data = messageDoc.data() as FirestoreChatMessage;
-
-      if (data.recipientId !== readerUserId) {
-        continue;
-      }
-
-      if (senderId && data.senderId !== senderId) {
-        continue;
-      }
-
-      if (data.seenAt || data.isRead || data.status === "seen") {
-        continue;
-      }
-
-      batch.update(messageDoc.ref, {
-        isRead: true,
-        readAt: nowIso,
-        status: "seen",
-        seenAt: nowIso,
-        seenBy: FieldValue.arrayUnion(readerUserId),
-      });
-      updatedMessageIds.push(messageDoc.id);
-      readCount += 1;
-      hasWrites = true;
-    }
-
-    if (hasWrites) {
-      await batch.commit();
-    }
+  // Build where clause.
+  const where = {
+    conversationId,
+    recipientId: readerUserId,
+    status: { not: "SEEN" as const },
+    ...(senderId ? { senderId } : {}),
+    ...(uniqueIds && uniqueIds.length > 0 ? { id: { in: uniqueIds } } : {}),
   };
 
-  if (uniqueIds.length > 0) {
-    for (const idChunk of chunk(uniqueIds, 30)) {
-      const chunkSnapshot = await messagesRef
-        .where(FieldPath.documentId(), "in", idChunk)
-        .get();
-      await applySeenToDocs(chunkSnapshot.docs);
-    }
-  } else {
-    const unreadSnapshot = await messagesRef
-      .where("recipientId", "==", readerUserId)
-      .where("isRead", "==", false)
-      .limit(500)
-      .get();
-    await applySeenToDocs(unreadSnapshot.docs);
+  const eligible = await prisma.chatMessage.findMany({
+    where,
+    select: { id: true },
+  });
+
+  const eligibleIds = eligible.map((m) => m.id);
+  if (eligibleIds.length === 0) {
+    return { updatedMessageIds: [] as string[], readCount: 0 };
   }
 
-  const updateBatch = adminFirestore.batch();
-  updateBatch.set(
-    conversationRef,
-    {
-      [`unreadBy.${readerUserId}`]: 0,
-      updatedAt: nowIso,
+  await prisma.chatMessage.updateMany({
+    where: { id: { in: eligibleIds } },
+    data: { status: "SEEN", seenAt: now, isRead: true },
+  });
+
+  // Reset unread count.
+  await prisma.chatUnread.upsert({
+    where: {
+      conversationId_userId: { conversationId, userId: readerUserId },
     },
-    { merge: true },
-  );
+    create: { conversationId, userId: readerUserId, count: 0 },
+    update: { count: 0 },
+  });
 
-  if (readCount > 0) {
-    const userRef = adminFirestore.collection("users").doc(readerUserId);
-    updateBatch.set(
-      userRef,
-      {
-        unreadCount: FieldValue.increment(-readCount),
-        lastUpdated: nowIso,
-      },
-      { merge: true },
-    );
-  }
-
-  await updateBatch.commit();
-
-  return { updatedMessageIds, readCount };
+  return { updatedMessageIds: eligibleIds, readCount: eligibleIds.length };
 };
