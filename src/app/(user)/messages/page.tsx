@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { buildChatConversationId } from "@/lib/chatConversation";
@@ -26,7 +27,7 @@ import {
   MdChat,
   MdSettings,
   MdAdd,
-  MdEdit,
+  MdHome,
   MdMoreVert,
   MdClose,
 } from "react-icons/md";
@@ -140,6 +141,7 @@ const resolveMessageStatus = (message: Partial<ChatMessage>): MessageStatus => {
 };
 
 export default function MessagesPage() {
+  const router = useRouter();
   const params = useSearchParams();
   const { data: session, status } = useSession();
   const { isArabic } = useAppPreferences();
@@ -1183,19 +1185,27 @@ export default function MessagesPage() {
               </span>
             )}
           </div>
-          <div className="text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/30 px-4 py-3 flex items-center gap-4 cursor-pointer rounded-lg transition-colors">
+          <button
+            type="button"
+            onClick={() => router.push("/profile")}
+            className="w-full text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/30 px-4 py-3 flex items-center gap-4 cursor-pointer rounded-lg transition-colors"
+          >
             <MdSettings size={20} />
             <span className="text-sm">
               {isArabic ? "الإعدادات" : "Settings"}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* New Message button */}
         <div className="px-5 pb-6 mt-auto">
-          <button className="w-full py-3.5 bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-95 transition-all duration-200">
-            <MdAdd size={22} />
-            {isArabic ? "رسالة جديدة" : "New Message"}
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="w-full py-3.5 bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-95 transition-all duration-200"
+          >
+            <MdHome size={22} />
+            {isArabic ? "العودة للرئيسية" : "Back to Home"}
           </button>
         </div>
       </nav>
@@ -1393,8 +1403,12 @@ export default function MessagesPage() {
 
         {/* Mobile FAB — compose */}
         {showConversationListOnMobile && (
-          <button className="lg:hidden fixed bottom-6 inset-e-6 w-14 h-14 bg-[#006591] dark:bg-[#89ceff] shadow-xl rounded-full flex items-center justify-center text-white dark:text-[#001e2f] active:scale-90 transition-all duration-200 z-50">
-            <MdEdit size={26} />
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="lg:hidden fixed bottom-6 inset-e-6 w-14 h-14 bg-[#006591] dark:bg-[#89ceff] shadow-xl rounded-full flex items-center justify-center text-white dark:text-[#001e2f] active:scale-90 transition-all duration-200 z-50"
+          >
+            <MdHome size={26} />
           </button>
         )}
       </div>
@@ -1549,6 +1563,9 @@ export default function MessagesPage() {
             <div className="flex flex-col gap-1">
               {displayedMessages.map((message, i) => {
                 const mine = message.senderId === userId;
+                // In RTL flex-col, items-start = right side, items-end = left side
+                // Own messages should always appear on the RIGHT visually
+                const alignEnd = mine ? !isArabic : isArabic;
                 const prev = displayedMessages[i - 1];
                 const showDate =
                   !prev ||
@@ -1576,7 +1593,7 @@ export default function MessagesPage() {
                     {/* Bubble row */}
                     <div
                       dir={isArabic ? "rtl" : "ltr"}
-                      className={`flex flex-col mb-1 ${mine ? "items-end" : "items-start"}`}
+                      className={`flex flex-col mb-1 ${alignEnd ? "items-end" : "items-start"}`}
                     >
                       <div
                         className={`max-w-[78%] lg:max-w-[65%] px-4 py-3 shadow-md ${
@@ -1614,10 +1631,15 @@ export default function MessagesPage() {
 
               {/* Typing indicator */}
               {isPeerTyping && (
-                <div className="flex flex-col items-start mb-1">
+                <div
+                  className={`flex flex-col mb-1 ${isArabic ? "items-start" : "items-end"}`}
+                >
                   <div
                     className="flex gap-1 bg-white dark:bg-[#273647] px-4 py-3 rounded-3xl shadow-md"
-                    style={{ borderBottomLeftRadius: "4px" }}
+                    style={{
+                      borderBottomLeftRadius: isArabic ? "4px" : undefined,
+                      borderBottomRightRadius: isArabic ? undefined : "4px",
+                    }}
                   >
                     <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0ms]" />
                     <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:180ms]" />
