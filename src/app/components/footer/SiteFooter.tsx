@@ -46,7 +46,7 @@ const localizedSteps = [
   {
     arTitle: "تواصل مباشر",
     arBody:
-      "تواصل مع صاحب الإعلان مباشرة بدون وسطاء، لتسريع الصفقات وتجنب الرسوم الإضافية.",
+      "تواصل مع صاحب الإعلان مباشرة بدون وسطاء، لتسريع الصفقات وتجنب الرسوم الإضافية، عبر الدردشة المضمنة ضمن المنصة ",
     enTitle: "Direct communication",
     enBody:
       "Communicate directly with the listing owner without intermediaries, speeding up transactions and avoiding extra fees.",
@@ -68,7 +68,7 @@ const localizedSteps = [
   {
     arTitle: "دخل شهري متكرر",
     arBody:
-      "ادعُ الآخرين واكسب من كل اشتراك يتم تفعيله شهرياً عبر شرائح مختلفة تصل إلى 60% من اشتراك أول 10 مستخدمين.",
+      "ادعُ الآخرين واكسب من كل اشتراك يتم تفعيله شهرياً عبر شرائح مختلفة تصل إلى 60% من اشتراك أول 10 مستخدمين شهرياًمع نسب مختلفة من باقي المدعوين",
     enTitle: "Recurring monthly income",
     enBody:
       "Refer others and earn from every successful subscription via tiered rewards.",

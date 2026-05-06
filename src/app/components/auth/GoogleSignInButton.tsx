@@ -22,6 +22,11 @@ export default function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const { isArabic } = useAppPreferences();
 
+  // إخفاء الزر إذا لم تُضبط مفاتيح Google OAuth في البيئة
+  if (!process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED) {
+    return null;
+  }
+
   const handleGoogleContinue = async () => {
     try {
       if (beforeContinue) {

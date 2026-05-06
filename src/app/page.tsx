@@ -8,10 +8,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
 
   return buildMetadata({
-    title: isArabic ? `${SITE_NAME} | الرئيسية` : `${SITE_NAME} | Home`,
+    title: isArabic
+      ? `${SITE_NAME} | الرئيسية لبيع وشراء العقارات والسيارات والإيجار`
+      : `${SITE_NAME} | Home Marketplace for Property, Cars, and Rentals`,
     description: isArabic
-      ? "أفضل العروض وأرخص الأسعار للعقارات، السيارات، والإعلانات المتنوعة للبيع والإيجار!"
-      : "Find verified properties, cars, and listings for rent or sale with smart filters, secure payments, and high-converting marketplace tools.",
+      ? "اكتشف آلاف الإعلانات الموثوقة للعقارات والسيارات والأثاث والأجهزة الطبية، مع بحث ذكي وتواصل مباشر وخيارات بيع وشراء وإيجار بأسعار تنافسية على Mashhoor."
+      : "Discover trusted listings for properties, cars, furniture, and medical devices with smart search, direct contact, and seamless rent, buy, and sell on Mashhoor.",
     path: "/",
     keywords: [
       "marketplace home",

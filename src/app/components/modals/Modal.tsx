@@ -1,29 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { IoMdClose } from "react-icons/io";
 import Button from "../Button";
 import { FieldValues, UseFormReset } from "react-hook-form";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
-const ACTION_TITLES = new Set([
-  "Login",
-  "تسجيل الدخول",
-  "Register",
-  "إنشاء حساب",
-  "Activate Account",
-  "تفعيل الحساب",
-  "Add Car",
-  "إضافة سيارة جديدة",
-  "تعديل السيارة",
-  "Payment Settings Password",
-  "كلمة مرور إعدادات الدفع",
-  "Create Payment Settings Password",
-  "إنشاء كلمة مرور إعدادات الدفع",
-]);
-
-const shouldRenderActions = (title?: string) =>
-  Boolean(title && ACTION_TITLES.has(title));
+const shouldRenderActions = ({
+  actionLabel,
+  secondaryAction,
+  secondaryActionLabel,
+  footer,
+}: {
+  actionLabel?: string;
+  secondaryAction?: () => void;
+  secondaryActionLabel?: string;
+  footer?: React.ReactElement;
+}) =>
+  Boolean(actionLabel || (secondaryAction && secondaryActionLabel) || footer);
 
 interface ModalProps {
   isOpen: boolean;
@@ -54,6 +49,11 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(isOpen);
   const { isArabic } = useAppPreferences();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setShowModal(isOpen);
@@ -77,165 +77,109 @@ const Modal: React.FC<ModalProps> = ({
     secondaryAction();
   }, [disabled, secondaryAction]);
 
-  const renderActions = shouldRenderActions(title);
+  const renderActions = shouldRenderActions({
+    actionLabel,
+    secondaryAction,
+    secondaryActionLabel,
+    footer,
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
   }
 
-  return (
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="
-      justify-center
-      items-center
-      flex
-      overflow-x-hidden
-      overflow-y-auto
-      fixed
-      inset-0
-      z-99
-      outline-none
-      focus:outline-none
-      bg-neutral-800/70
-      backdrop-blur-sm
-    "
+      className="fixed inset-0 z-100 flex items-center justify-center overflow-hidden bg-neutral-800/70 backdrop-blur-sm p-4"
     >
       <div
-        className="
-            relative
-            w-full
-            md:w-4/6
-            sm:w-2/3
-            lg:w3/6
-            xl:w-2/5
-            my-4
-            sm:my-6
-            mx-auto
-            max-h-[calc(100vh-2rem)]
-          "
+        className={`
+          relative w-full sm:w-2/3 md:w-4/6 lg:w-3/6 xl:w-2/5
+          flex flex-col
+          border-0 rounded-lg shadow-lg
+          bg-white dark:bg-slate-900
+          text-slate-800 dark:text-slate-100
+          max-h-[90vh]
+          transition duration-300
+          ${showModal ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
+        `}
       >
-        <div
-          className={`
-            translate
-            duration-300
-            ${showModal ? "translate-y-0" : "translate-y-full"}
-            ${showModal ? "opacity-100" : "opacity-0"}
-            max-h-[calc(100vh-2rem)]
-            `}
-        >
-          <div
-            className="
-              translate
-              border-0
-              rounded-lg
-              shadow-lg
-              relative
-              flex
-              flex-col
-              max-h-[calc(100vh-2rem)]
-              bg-white dark:bg-slate-900
-              text-slate-800 dark:text-slate-100
-              outline-none
-              focus:outline-none
-              
-            "
+        {/* Header */}
+        <div className="shrink-0 flex items-center p-2 rounded-t justify-center relative border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={handleClose}
+            className="p-0.5 border-0 hover:opacity-70 transition absolute top-2 hover:cursor-pointer bg-rose-600 text-amber-50 rounded-md"
+            style={isArabic ? { right: "2rem" } : { left: "2rem" }}
           >
-            <div
-              className="
-              flex
-              items-center
-              p-2
-              rounded-t
-              justify-center
-              relative
-              border-b border-slate-200 dark:border-slate-700
-              "
-            >
-              <button
-                onClick={handleClose}
-                className="
-                p-0.5
-                border-0
-                hover:opacity-70
-                transition
-                absolute
-                top-2
-                hover:cursor-pointer
-                bg-rose-600
-                text-amber-50
-                rounded-md
-              "
-                style={isArabic ? { right: "2rem" } : { left: "2rem" }}
-              >
-                <IoMdClose size={19} />
-              </button>
-              <div
-                className="
-                text-lg font-semibold text-slate-900 dark:text-slate-100
-              "
-              >
-                {title}
-              </div>
-            </div>
-
-            <div
-              className="
-                relative
-                p-6
-                flex-1
-                min-h-0
-                overflow-y-auto
-                overscroll-contain
-                [&_input]:text-slate-900 dark:[&_input]:text-slate-100
-                [&_input]:placeholder:text-slate-400 dark:[&_input]:placeholder:text-slate-500
-                [&_input]:bg-white dark:[&_input]:bg-slate-800
-                [&_input]:border-slate-300 dark:[&_input]:border-slate-600
-                [&_textarea]:text-slate-900 dark:[&_textarea]:text-slate-100
-                [&_textarea]:placeholder:text-slate-400 dark:[&_textarea]:placeholder:text-slate-500
-                [&_textarea]:bg-white dark:[&_textarea]:bg-slate-800
-                [&_textarea]:border-slate-300 dark:[&_textarea]:border-slate-600
-                [&_select]:text-slate-900 dark:[&_select]:text-slate-100
-                [&_select]:bg-white dark:[&_select]:bg-slate-800
-                [&_select]:border-slate-300 dark:[&_select]:border-slate-600
-              "
-            >
-              {body}
-            </div>
-
-            {renderActions && (
-              <div className="shrink-0 flex flex-col gap-1 border-t border-slate-200 p-6 text-slate-700 dark:border-slate-700 dark:text-slate-300 [&_hr]:border-slate-200 dark:[&_hr]:border-slate-700">
-                <div
-                  className="
-                  flex
-                  flex-row
-                  items-center
-                  gap-4
-                  w-full
-                "
-                >
-                  {secondaryAction && secondaryActionLabel && (
-                    <Button
-                      outline
-                      disabled={disabled}
-                      onClick={handleSecondaryAction}
-                      label={secondaryActionLabel}
-                    />
-                  )}
-
-                  <Button
-                    disabled={disabled}
-                    onClick={handleSubmit}
-                    label={actionLabel}
-                  />
-                </div>
-                {footer}
-              </div>
-            )}
+            <IoMdClose size={19} />
+          </button>
+          <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {title}
           </div>
         </div>
+
+        {/* Body */}
+        <div
+          className="
+            relative p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain
+            [&_input]:text-slate-900 dark:[&_input]:text-slate-100
+            [&_input]:placeholder:text-slate-400 dark:[&_input]:placeholder:text-slate-500
+            [&_input]:bg-white dark:[&_input]:bg-slate-800
+            [&_input]:border-slate-300 dark:[&_input]:border-slate-600
+            [&_textarea]:text-slate-900 dark:[&_textarea]:text-slate-100
+            [&_textarea]:placeholder:text-slate-400 dark:[&_textarea]:placeholder:text-slate-500
+            [&_textarea]:bg-white dark:[&_textarea]:bg-slate-800
+            [&_textarea]:border-slate-300 dark:[&_textarea]:border-slate-600
+            [&_select]:text-slate-900 dark:[&_select]:text-slate-100
+            [&_select]:bg-white dark:[&_select]:bg-slate-800
+            [&_select]:border-slate-300 dark:[&_select]:border-slate-600
+          "
+        >
+          {body}
+        </div>
+
+        {/* Actions */}
+        {renderActions && (
+          <div className="shrink-0 flex flex-col gap-1 border-t border-slate-200 p-6 text-slate-700 dark:border-slate-700 dark:text-slate-300 [&_hr]:border-slate-200 dark:[&_hr]:border-slate-700">
+            <div className="flex flex-row items-center gap-4 w-full">
+              {secondaryAction && secondaryActionLabel && (
+                <Button
+                  outline
+                  disabled={disabled}
+                  onClick={handleSecondaryAction}
+                  label={secondaryActionLabel}
+                />
+              )}
+              <Button
+                disabled={disabled}
+                onClick={handleSubmit}
+                label={actionLabel}
+              />
+            </div>
+            {footer}
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

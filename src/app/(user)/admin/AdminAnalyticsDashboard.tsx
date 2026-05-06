@@ -496,8 +496,8 @@ const AdminAnalyticsDashboard = () => {
             title={t("الربح الصافي", "Net profit")}
             value={formatCurrency(data.overview.netProfitAmount)}
             hint={t(
-              "محسوب خادمياً = إجمالي المستلم - الالتزامات الإجمالية - 10% تشغيل.",
-              "Server-calculated = total received - live liabilities - 10% reserve.",
+              "محسوب خادمياً = إجمالي المستلم - الالتزامات الإجمالية - 1% تشغيل.",
+              "Server-calculated = total received - live liabilities - 1% reserve.",
             )}
             accent="zinc"
           />
@@ -514,7 +514,7 @@ const AdminAnalyticsDashboard = () => {
             accent="zinc"
           />
           <MetricCard
-            title={t("المصاريف التشغيلية 10%", "10% operating reserve")}
+            title={t("المصاريف التشغيلية 1%", "1% operating reserve")}
             value={formatCurrency(data.overview.operatingReserveAmount)}
             hint={t(
               "احتياطي تشغيلي محسوب من إجمالي الدخل المدفوع.",

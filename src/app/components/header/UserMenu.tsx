@@ -90,11 +90,6 @@ const UserMenu = () => {
     registerModal.onOpen();
   }, [closeMenu, registerModal]);
 
-  const goToProfile = useCallback(() => {
-    closeMenu();
-    router.push("/profile");
-  }, [closeMenu, router]);
-
   const goToProfileRequests = useCallback(() => {
     closeMenu();
     router.push("/profile?tab=requests");
@@ -345,14 +340,6 @@ const UserMenu = () => {
         iconName={subscriptionIcon}
         isArabic={isArabic}
       />
-      {!user?.isOwner && (
-        <UserMenueItem
-          label={isArabic ? "الصفحة الشخصية" : "Profile"}
-          onClick={goToProfile}
-          iconName="MdPerson"
-          isArabic={isArabic}
-        />
-      )}
       <UserMenueItem
         label={isArabic ? "الملف الشخصي" : "My Profile"}
         onClick={goToProfileRequests}

@@ -10,6 +10,17 @@ export const size = {
 };
 export const contentType = "image/png";
 
+const toOgSafeText = (value: string, fallback: string) => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return fallback;
+
+  if (/[^\u0000-\u00FF]/.test(normalized)) {
+    return fallback;
+  }
+
+  return normalized;
+};
+
 export default async function TwitterImage({
   params,
 }: {
@@ -23,7 +34,7 @@ export default async function TwitterImage({
     const item = await getListingDetailsById(id);
 
     if (item) {
-      title = item.title;
+      title = toOgSafeText(item.title, title);
     }
   } catch {
     // keep fallback text

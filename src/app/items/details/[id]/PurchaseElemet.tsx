@@ -5,6 +5,10 @@ import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { formatNumber } from "@/lib/locale-format";
+import Modal from "@/app/components/modals/Modal";
+import Heading from "@/app/components/Heading";
+import Input from "@/app/components/inputs/Input";
+import { useForm, FieldValues } from "react-hook-form";
 
 interface PurchaseElementProps {
   itemType: ItemType;
@@ -28,12 +32,22 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
   } = data;
 
   const [open, setOpen] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [offeredPrice, setOfferedPrice] = useState<number | undefined>();
-  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submitPurchaseRequest = async () => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FieldValues>({
+    defaultValues: {
+      phoneNumber: "",
+      offeredPrice: "",
+      note: "",
+    },
+  });
+
+  const submitPurchaseRequest = async (data: FieldValues) => {
     try {
       setLoading(true);
 
@@ -47,9 +61,11 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
         body: JSON.stringify({
           itemId: id,
           itemType,
-          phoneNumber,
-          offeredPrice,
-          buyerNote: note || undefined,
+          phoneNumber: data.phoneNumber,
+          offeredPrice: data.offeredPrice
+            ? Number(data.offeredPrice)
+            : undefined,
+          buyerNote: data.note || undefined,
         }),
       });
 
@@ -61,6 +77,7 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
 
       toast.success("تم إرسال طلب الشراء بنجاح، سيتم التواصل معك قريبًا");
       setOpen(false);
+      reset();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "فشل إرسال الطلب");
     } finally {
@@ -105,56 +122,71 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
       </button>
 
       {/* MODAL */}
-      {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-            <h4 className="text-lg font-semibold">طلب شراء</h4>
-
-            <input
+      <Modal
+        isOpen={open}
+        disabled={loading}
+        onClose={() => {
+          setOpen(false);
+          reset();
+        }}
+        onSubmit={handleSubmit(submitPurchaseRequest)}
+        title={isArabic ? "طلب شراء" : "Purchase Request"}
+        actionLabel={isArabic ? "إرسال الطلب" : "Send Request"}
+        secondaryActionLabel={isArabic ? "إلغاء" : "Cancel"}
+        secondaryAction={() => {
+          setOpen(false);
+          reset();
+        }}
+        body={
+          <div className="flex flex-col gap-4">
+            <Heading
+              title={isArabic ? "اطلب هذا المنتج" : "Request This Item"}
+              subtitle={
+                isArabic
+                  ? "أدخل بيانات التواصل وعرضك السعري"
+                  : "Provide your contact info and offer"
+              }
+            />
+            <Input
+              id="phoneNumber"
+              label={isArabic ? "رقم الهاتف" : "Phone Number"}
               type="tel"
-              name="purchaseRequestPhone"
-              placeholder="رقم الهاتف"
-              className="w-full border rounded-md p-2"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              disabled={loading}
+              register={register}
+              errors={errors}
+              required
             />
-
-            <input
+            <Input
+              id="offeredPrice"
+              label={
+                isArabic
+                  ? "السعر المقترح (اختياري)"
+                  : "Offered Price (Optional)"
+              }
               type="number"
-              name="purchaseRequestOfferedPrice"
-              placeholder="سعر مقترح (اختياري)"
-              className="w-full border rounded-md p-2"
-              onChange={(e) => setOfferedPrice(Number(e.target.value))}
+              disabled={loading}
+              register={register}
+              errors={errors}
             />
-
-            <textarea
-              name="purchaseRequestNote"
-              placeholder="ملاحظة (اختياري)"
-              className="w-full border rounded-md p-2"
-              rows={3}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-
-            <div className="flex gap-2">
-              <button
-                onClick={submitPurchaseRequest}
+            <div className="w-full">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                {isArabic
+                  ? "ملاحظة إضافية (اختياري)"
+                  : "Additional Note (Optional)"}
+              </label>
+              <textarea
+                {...register("note")}
                 disabled={loading}
-                className="flex-1 bg-emerald-600 text-white py-2 rounded-md"
-              >
-                {loading ? "جاري الإرسال..." : "إرسال الطلب"}
-              </button>
-
-              <button
-                onClick={() => setOpen(false)}
-                className="flex-1 bg-gray-200 py-2 rounded-md"
-              >
-                إلغاء
-              </button>
+                rows={4}
+                className="w-full rounded-md border-2 border-slate-300 bg-white p-3 text-slate-900 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/60"
+                placeholder={
+                  isArabic ? "اكتب ملاحظتك هنا..." : "Write your note here..."
+                }
+              />
             </div>
           </div>
-        </div>
-      )}
+        }
+      />
 
       <p className="text-xs text-gray-500 text-center">
         تتم عملية الدفع بحضور الطرفين لتوثيقها رسميًا

@@ -6,7 +6,7 @@ export type PlatformProfitSummaryInput = {
   operatingReserveRate?: number;
 };
 
-export const PLATFORM_OPERATING_RESERVE_RATE = 0.1;
+export const PLATFORM_OPERATING_RESERVE_RATE = 0.01;
 
 export type PlatformProfitSummary = {
   subscriptionRevenueTotal: number;

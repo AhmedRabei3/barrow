@@ -73,6 +73,9 @@ type MonthlyTrendRow = {
   receivedAmount: number;
   paidOutAmount: number;
   netProfitAmount: number;
+  carryOverFromPreviousMonth: number;
+  ownerWithdrawalsAmount: number;
+  carryOverToNextMonth: number;
   receivedCount: number;
   paidOutCount: number;
 };
@@ -501,7 +504,7 @@ const FinancialReportPanel = () => {
           value={`$${formatMoney(data?.summary.netProfitAmount || 0)}`}
         />
         <KpiCard
-          title={t("المصاريف التشغيلية 10%", "10% operating reserve")}
+          title={t("المصاريف التشغيلية 1%", "1% operating reserve")}
           value={`$${formatMoney(data?.summary.operatingReserveAmount || 0)}`}
         />
         <KpiCard
@@ -572,7 +575,7 @@ const FinancialReportPanel = () => {
               {formatMoney(data?.summary.todayReceivedAmount || 0)}
             </p>
             <p className="font-semibold text-white">
-              {t("بعد خصم 10% تشغيل", "After 10% reserve")}: $
+              {t("بعد خصم 1% تشغيل", "After 1% reserve")}: $
               {formatMoney(data?.summary.todayNetProfitAmount || 0)}
             </p>
           </div>
@@ -588,7 +591,7 @@ const FinancialReportPanel = () => {
               {formatMoney(data?.summary.weekReceivedAmount || 0)}
             </p>
             <p className="font-semibold text-white">
-              {t("بعد خصم 10% تشغيل", "After 10% reserve")}: $
+              {t("بعد خصم 1% تشغيل", "After 1% reserve")}: $
               {formatMoney(data?.summary.weekNetProfitAmount || 0)}
             </p>
           </div>
@@ -618,8 +621,8 @@ const FinancialReportPanel = () => {
             </p>
             <p>
               {t(
-                "صافي الربح = المستلم - الالتزامات - 10% تشغيل",
-                "Net profit = received - live liabilities - 10% reserve",
+                "صافي الربح = المستلم - الالتزامات - 1% تشغيل",
+                "Net profit = received - live liabilities - 1% reserve",
               )}
             </p>
             <p>
@@ -867,8 +870,8 @@ const FinancialReportPanel = () => {
           </h3>
           <p className="text-xs text-zinc-500">
             {t(
-              "يعرض الوارد والصادر والصافي ضمن الفترة المحددة",
-              "Shows inflow, outflow, and net values within the selected range",
+              "يعرض الوارد والصادر والصافي والمدور من/إلى كل شهر",
+              "Shows inflow, outflow, net, and month-to-month carry over",
             )}
           </p>
         </div>
@@ -893,6 +896,15 @@ const FinancialReportPanel = () => {
                   </th>
                   <th className="px-2 py-2 text-right">{t("الصافي", "Net")}</th>
                   <th className="px-2 py-2 text-right">
+                    {t("مدور من السابق", "Carry over in")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
+                    {t("سحب المالك", "Owner withdrawals")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
+                    {t("مدور للشهر التالي", "Carry over out")}
+                  </th>
+                  <th className="px-2 py-2 text-right">
                     {t("عدد الوارد", "Inflow count")}
                   </th>
                   <th className="px-2 py-2 text-right">
@@ -914,6 +926,15 @@ const FinancialReportPanel = () => {
                     </td>
                     <td className="px-2 py-2 font-semibold">
                       ${formatMoney(row.netProfitAmount)}
+                    </td>
+                    <td className="px-2 py-2">
+                      ${formatMoney(row.carryOverFromPreviousMonth)}
+                    </td>
+                    <td className="px-2 py-2">
+                      ${formatMoney(row.ownerWithdrawalsAmount)}
+                    </td>
+                    <td className="px-2 py-2 font-semibold">
+                      ${formatMoney(row.carryOverToNextMonth)}
                     </td>
                     <td className="px-2 py-2">{row.receivedCount}</td>
                     <td className="px-2 py-2">{row.paidOutCount}</td>

@@ -30,11 +30,11 @@ const Button: React.FC<ButtonProps> = ({
     rounded-lg
     hover:opacity-80
     transition
-    w-full
-    text-white
+    w-full 
+    text-sky-950
     ${outline ? "bg-white" : "bg-sky-900"}
-    ${outline ? "border-black" : "bg-sky-950"}
-    ${outline ? "text-black" : "text-white"}
+    ${outline ? "border-sky-950" : "bg-sky-950"}
+    ${outline ? "text-sky-950" : "text-white"}
     ${small ? "text-sm" : "text-md"}
     ${small ? "py-1" : "py-3"}
     ${small ? "font-light" : "font-semibold"}

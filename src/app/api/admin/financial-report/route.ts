@@ -94,6 +94,21 @@ const toStartOfWeek = (date: Date) => {
   return toStartOfDay(weekStart);
 };
 
+const buildMonthKeysBetween = (start: Date, end: Date): string[] => {
+  const keys: string[] = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const limit = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor.getTime() <= limit.getTime()) {
+    keys.push(
+      `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+    );
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return keys;
+};
+
 const resolvePaymentChannel = (method: string): ReportChannel => {
   if (method === "PAYPAL") return "PAYPAL";
   if (method === "SHAMCASH") return "SHAMCASH";
@@ -242,8 +257,11 @@ export async function GET(req: NextRequest) {
       activeSubscribers,
       pendingManualWithdrawalsAgg,
       previousOwnerWithdrawalsAgg,
+      ownerWithdrawalsBeforeRangeAgg,
+      ownerWithdrawalsInRange,
       todayProfitAgg,
       weekProfitAgg,
+      profitLedgerBeforeRangeAgg,
       profitLedgerInRange,
     ] = await Promise.all([
       prisma.payment.findMany({
@@ -360,6 +378,26 @@ export async function GET(req: NextRequest) {
       prisma.ownerProfitWithdrawal.aggregate({
         _sum: { amount: true },
       }),
+      prisma.ownerProfitWithdrawal.aggregate({
+        where: {
+          createdAt: {
+            lt: dateFrom,
+          },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.ownerProfitWithdrawal.findMany({
+        where: {
+          createdAt: {
+            gte: dateFrom,
+            lte: dateTo,
+          },
+        },
+        select: {
+          amount: true,
+          createdAt: true,
+        },
+      }),
       prisma.platformProfitLedger.aggregate({
         where: {
           createdAt: {
@@ -374,6 +412,14 @@ export async function GET(req: NextRequest) {
           createdAt: {
             gte: weekStart,
             lte: weekEnd,
+          },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.platformProfitLedger.aggregate({
+        where: {
+          createdAt: {
+            lt: dateFrom,
           },
         },
         _sum: { amount: true },
@@ -602,12 +648,56 @@ export async function GET(req: NextRequest) {
       monthBuckets.set(monthKey, existing);
     }
 
+    const ownerWithdrawalsByMonth = new Map<string, number>();
+    for (const withdrawal of ownerWithdrawalsInRange) {
+      const monthKey = `${withdrawal.createdAt.getFullYear()}-${String(withdrawal.createdAt.getMonth() + 1).padStart(2, "0")}`;
+      const currentAmount = ownerWithdrawalsByMonth.get(monthKey) ?? 0;
+      ownerWithdrawalsByMonth.set(
+        monthKey,
+        currentAmount + Number(withdrawal.amount ?? 0),
+      );
+    }
+
+    for (const monthKey of buildMonthKeysBetween(dateFrom, dateTo)) {
+      if (!monthBuckets.has(monthKey)) {
+        monthBuckets.set(monthKey, {
+          monthKey,
+          receivedAmount: 0,
+          paidOutAmount: 0,
+          receivedCount: 0,
+          paidOutCount: 0,
+          netProfitAmount: 0,
+        });
+      }
+    }
+
+    let carryOverFromPreviousMonth =
+      Number(profitLedgerBeforeRangeAgg._sum.amount ?? 0) -
+      Number(ownerWithdrawalsBeforeRangeAgg._sum.amount ?? 0);
+
     const monthlyTrend = Array.from(monthBuckets.values())
       .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
       .map((entry) => ({
         ...entry,
+        carryOverFromPreviousMonth: Number(
+          carryOverFromPreviousMonth.toFixed(2),
+        ),
+        ownerWithdrawalsAmount: Number(
+          (ownerWithdrawalsByMonth.get(entry.monthKey) ?? 0).toFixed(2),
+        ),
+        carryOverToNextMonth: Number(
+          (
+            carryOverFromPreviousMonth +
+            entry.netProfitAmount -
+            (ownerWithdrawalsByMonth.get(entry.monthKey) ?? 0)
+          ).toFixed(2),
+        ),
         netProfitAmount: Number(entry.netProfitAmount.toFixed(2)),
-      }));
+      }))
+      .map((entry) => {
+        carryOverFromPreviousMonth = entry.carryOverToNextMonth;
+        return entry;
+      });
 
     const profitLedgerBreakdownMap = new Map<
       string,

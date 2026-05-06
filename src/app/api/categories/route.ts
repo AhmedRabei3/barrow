@@ -119,18 +119,21 @@ const buildCategoryCacheKey = ({
 const getDistinctCategoryIds = async (
   type: ItemType | null,
 ): Promise<string[]> => {
-  if (type === ItemType.NEW_CAR || type === ItemType.USED_CAR) {
+  if (type === ItemType.NEW_CAR) {
     const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
       SELECT DISTINCT "categoryId"
-      FROM (
-        SELECT "categoryId"
-        FROM "NewCar"
-        WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
-        UNION
-        SELECT "categoryId"
-        FROM "OldCar"
-        WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
-      ) AS active_car_categories
+      FROM "NewCar"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
+    `;
+
+    return rows.map((row) => row.categoryId);
+  }
+
+  if (type === ItemType.USED_CAR) {
+    const rows = await prisma.$queryRaw<Array<{ categoryId: string }>>`
+      SELECT DISTINCT "categoryId"
+      FROM "OldCar"
+      WHERE "isDeleted" = false AND "status" = 'AVAILABLE'::"Availability"
     `;
 
     return rows.map((row) => row.categoryId);

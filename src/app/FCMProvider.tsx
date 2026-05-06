@@ -9,6 +9,18 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 const VAPID_KEY =
   "BKk02EJN6T1ZuZKV0xUx4MHz7Vw1Oz05PCvz5O577a5B1ZNylZ7xJjXk6wU0PR_ezNoCqyVSTIOJr36ot32HTFg";
 
+const updateDocumentTitleUnreadBadge = (unreadCount: number) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const cleaned = document.title.replace(/^\(\d+\)\s*/, "").trim();
+  const baseTitle = cleaned.length > 0 ? cleaned : "Barrow";
+
+  document.title =
+    unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+};
+
 const refreshUnreadBadge = async () => {
   try {
     const response = await fetch("/api/chat/unread-count", {
@@ -19,6 +31,7 @@ const refreshUnreadBadge = async () => {
 
     const data = (await response.json()) as { unreadCount?: number };
     const unreadCount = Number(data.unreadCount ?? 0);
+    updateDocumentTitleUnreadBadge(unreadCount);
 
     if ("setAppBadge" in navigator) {
       if (unreadCount > 0) {

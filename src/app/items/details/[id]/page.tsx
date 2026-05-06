@@ -1,6 +1,5 @@
 import "./market.css";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import {
   buildListingMetadata,
   getListingOrNull,
@@ -25,10 +24,6 @@ export async function generateMetadata({
 async function itemDetailsPage({ params }: PageProps) {
   const { id } = await params;
   const item = await getListingOrNull(id);
-
-  if (item?.canonicalPath) {
-    redirect(item.canonicalPath);
-  }
 
   return renderListingDetailsPage(item);
 }

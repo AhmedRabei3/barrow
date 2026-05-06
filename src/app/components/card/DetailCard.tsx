@@ -77,6 +77,16 @@ const DetailCard = ({
     itemLocation[0]?.address ??
     "";
 
+  const effectiveType =
+    itemType ?? (item.type as $Enums.ItemType | null) ?? null;
+  const isCarType = effectiveType === "NEW_CAR" || effectiveType === "USED_CAR";
+  const carMetaParts = isCarType
+    ? [item.year != null ? String(item.year) : null].filter(
+        (value): value is string => Boolean(value),
+      )
+    : [];
+  const carMetaLabel = carMetaParts.join(" • ");
+
   const titleLabel =
     item.name ||
     [item.brand, item.model].filter(Boolean).join(" ") ||
@@ -96,9 +106,7 @@ const DetailCard = ({
       ? isArabic
         ? `/ ${rentTypeLabelMap[item.rentType ?? ""]?.ar ?? "فترة"}`
         : `/ ${rentTypeLabelMap[item.rentType ?? ""]?.en ?? "period"}`
-      : isArabic
-        ? "إجمالي"
-        : "total";
+      : null;
 
   return (
     <div
@@ -107,8 +115,8 @@ const DetailCard = ({
       dark:bg-slate-950/70
       px-4 py-4 ${isStateMenuOpen ? "z-90" : "z-20"}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex justify-between gap-3">
+        <div className="min-w-0 ">
           <h3
             className="line-clamp-1 text-sm
           font-bold dark:text-white text-neutral-800 sm:text-[15px]"
@@ -116,9 +124,14 @@ const DetailCard = ({
             {titleLabel}
           </h3>
           <div
-            className="mt-1 flex items-center
-           gap-2 text-[11px] dark:text-slate-500 text-neutral-800
-           sm:text-xs"
+            className="
+             mt-1 flex items-center
+             gap-2 w-full
+             justify-between text-[11px] 
+             dark:text-slate-500 
+             text-neutral-800
+             sm:text-xs
+             "
           >
             <span className="inline-flex items-center gap-1 truncate">
               <DynamicIcon
@@ -136,9 +149,17 @@ const DetailCard = ({
           <p className="text-sm font-bold text-primary sm:text-[15px]">
             ${formattedPrice}
           </p>
-          <p className="mt-0.5 text-[11px] dark:text-slate-500 text-neutral-800 sm:text-xs">
-            {pricingSuffix}
-          </p>
+          {pricingSuffix ? (
+            <p className="mt-0.5 text-[11px] dark:text-slate-500 text-neutral-800 sm:text-xs">
+              {pricingSuffix}
+            </p>
+          ) : null}
+          {carMetaLabel ? (
+            <span className="inline-flex text-[11px] items-center gap-1 truncate">
+              {isArabic ? "عام" + " • " : "Year" + " • "}
+              <span className="truncate">{carMetaLabel}</span>
+            </span>
+          ) : null}
         </div>
       </div>
 

@@ -1,5 +1,8 @@
+"use client";
+
 import { FaExternalLinkAlt, FaGoogle } from "react-icons/fa";
-import Map from "@/app/components/Map";
+import { useEffect, useRef, useState } from "react";
+import Map from "../../../components/Map.tsx";
 
 interface LocationSectionProps {
   location: {
@@ -28,6 +31,23 @@ const LocationSection = ({
   googleMapsUrl,
   isArabic,
 }: LocationSectionProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
   return (
     <>
       {location?.latitude !== undefined &&
@@ -58,17 +78,25 @@ const LocationSection = ({
                 <FaExternalLinkAlt className="text-[10px]" aria-hidden="true" />
               </a>
             </div>
-            <div className="overflow-hidden rounded-[22px] border border-slate-300 bg-white/95 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-700/90 dark:bg-slate-950/70">
+            <div
+              ref={containerRef}
+              className="overflow-hidden rounded-[22px] border border-slate-300 bg-white/95 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-700/90 dark:bg-slate-950/70"
+            >
               <div className="aspect-16/10 overflow-hidden rounded-[18px]">
-                <Map
-                  latitude={location?.latitude}
-                  longitude={location?.longitude}
-                  name={
-                    normalizedData.brand ||
-                    normalizedData.title ||
-                    normalizedData.name
-                  }
-                />
+                {isVisible && (
+                  <Map
+                    latitude={location?.latitude}
+                    longitude={location?.longitude}
+                    name={
+                      normalizedData.brand ||
+                      normalizedData.title ||
+                      normalizedData.name
+                    }
+                  />
+                )}
+                {!isVisible && (
+                  <div className="w-full h-full rounded-[18px] bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                )}
               </div>
             </div>
           </div>

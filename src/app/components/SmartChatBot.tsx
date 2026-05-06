@@ -892,6 +892,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   const { reset } = useForm<FieldValues>();
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const lastWelcomeIndexRef = useRef<number>(-1);
+  const editingFromReviewRef = useRef(false);
 
   const t = useCallback(
     (ar: string, en: string) => (isArabic ? ar : en),
@@ -1652,6 +1653,14 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     setSelectedEditableMessageId(null);
     setSelectedEditableFieldKey(null);
 
+    if (editingFromReviewRef.current && !editItemId) {
+      editingFromReviewRef.current = false;
+      setIsReadyToSubmit(true);
+      setActiveIndex(questions.length);
+      setTextInput("");
+      return;
+    }
+
     if (editItemId) {
       setIsReadyToSubmit(true);
       setActiveIndex(questions.length);
@@ -1690,6 +1699,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       },
     ]);
 
+    editingFromReviewRef.current = isReadyToSubmit;
     setIsReadyToSubmit(false);
     setActiveIndex(questionIndex);
 

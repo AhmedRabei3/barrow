@@ -62,6 +62,18 @@ const prismaClient =
         }
       : undefined,
   );
+
+const DEFAULT_REALTIME_NOTIFICATION_TITLE = "إشعار جديد";
+const DEFAULT_REALTIME_NOTIFICATION_MESSAGE = "لديك إشعار جديد.";
+
+const normalizeRealtimeText = (
+  value: string | null | undefined,
+  fallback: string,
+) => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized.length > 0 ? normalized : fallback;
+};
+
 let prismaConnectPromise: Promise<void> | null = null;
 let sendNotificationToUserLoader:
   | null
@@ -93,10 +105,18 @@ export const prisma = prismaClient.$extends({
       async create({ args, query }) {
         const result = (await query(args)) as Notification;
         const userId = result.userId ?? args.data.userId;
+        const normalizedTitle = normalizeRealtimeText(
+          result.title,
+          DEFAULT_REALTIME_NOTIFICATION_TITLE,
+        );
+        const normalizedMessage = normalizeRealtimeText(
+          result.message,
+          DEFAULT_REALTIME_NOTIFICATION_MESSAGE,
+        );
         const payload = {
           id: result.id,
-          title: result.title ?? "إشعار جديد",
-          message: result.message ?? "",
+          title: normalizedTitle,
+          message: normalizedMessage,
           type: String(result.type ?? "INFO"),
           createdAt: result.createdAt
             ? new Date(result.createdAt).toISOString()

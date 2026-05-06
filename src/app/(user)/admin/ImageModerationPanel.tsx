@@ -154,6 +154,7 @@ const ImageModerationPanel = () => {
         const body = (await res.json()) as {
           success?: boolean;
           message?: string;
+          removedNotificationIds?: string[];
         };
         if (!res.ok) {
           throw new Error(
@@ -167,6 +168,23 @@ const ImageModerationPanel = () => {
         toast.success(
           body.message || t("تم تنفيذ الإجراء", "Action completed"),
         );
+        const removedNotificationIds = Array.isArray(
+          body.removedNotificationIds,
+        )
+          ? body.removedNotificationIds.filter(
+              (value): value is string => typeof value === "string",
+            )
+          : [];
+        if (
+          removedNotificationIds.length > 0 &&
+          typeof window !== "undefined"
+        ) {
+          window.dispatchEvent(
+            new CustomEvent<{ ids: string[] }>("notifications:remove", {
+              detail: { ids: removedNotificationIds },
+            }),
+          );
+        }
         if (action === "REJECT") {
           setRejectItem(null);
           setRejectNote("");

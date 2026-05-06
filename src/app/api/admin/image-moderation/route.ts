@@ -39,6 +39,9 @@ type ModerationQueueItem = {
 const isItemType = (value: string): value is ItemType =>
   ITEM_TYPES.includes(value as ItemType);
 
+const buildModerationDeepLinkToken = (itemType: ItemType, itemId: string) =>
+  `ITEM_MODERATION:${itemType}:${itemId}`;
+
 const buildLocationLabel = (
   location?: {
     city?: string | null;
@@ -491,7 +494,12 @@ export async function POST(req: NextRequest) {
       moderatedAt: new Date(),
       moderatedById: admin.id,
     } as const;
-    await prisma.$transaction(async (tx) => {
+    const moderationToken = buildModerationDeepLinkToken(
+      body.itemType,
+      body.itemId,
+    );
+
+    const transactionResult = await prisma.$transaction(async (tx) => {
       switch (body.itemType) {
         case ItemType.PROPERTY:
           await tx.property.update({
@@ -553,6 +561,36 @@ export async function POST(req: NextRequest) {
           type: approved ? NotificationType.INFO : NotificationType.WARNING,
         },
       });
+
+      const moderationNotifications = await tx.notification.findMany({
+        where: {
+          isRead: false,
+          message: { contains: moderationToken },
+        },
+        select: { id: true, userId: true },
+      });
+
+      if (moderationNotifications.length > 0) {
+        await tx.notification.updateMany({
+          where: {
+            id: {
+              in: moderationNotifications.map(
+                (notification) => notification.id,
+              ),
+            },
+          },
+          data: { isRead: true },
+        });
+      }
+
+      const removedForCurrentAdminIds = moderationNotifications
+        .filter((notification) => notification.userId === admin.id)
+        .map((notification) => notification.id);
+
+      return {
+        removedForCurrentAdminIds,
+        removedNotificationsCount: moderationNotifications.length,
+      };
     });
 
     if (approved) {
@@ -573,6 +611,8 @@ export async function POST(req: NextRequest) {
             "تم رفض الصور وإبقاء العنصر مخفياً",
             "Images rejected and item kept hidden",
           ),
+      removedNotificationIds: transactionResult.removedForCurrentAdminIds,
+      removedNotificationsCount: transactionResult.removedNotificationsCount,
     });
   } catch (error) {
     console.error("Failed to moderate item images:", error);

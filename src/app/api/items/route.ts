@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const response = await withTimeout(
       searchItems(query),
-      7000,
+      12000,
       "Item search timed out",
     );
 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           userLat: null,
           userLng: null,
         }),
-        7000,
+        12000,
         "Item search timed out",
       );
 
@@ -64,6 +64,28 @@ export async function GET(req: NextRequest) {
         headers: {
           "Cache-Control": "private, no-store",
           "X-Search-Fallback": "non-geo",
+        },
+      });
+    }
+
+    if (err instanceof RequestTimeoutError) {
+      const reducedLimit = Math.min(
+        Math.max(Math.floor(query.limit / 2), 8),
+        12,
+      );
+      const fallbackResponse = await withTimeout(
+        searchItems({
+          ...query,
+          limit: reducedLimit,
+        }),
+        12000,
+        "Item search timed out",
+      );
+
+      return NextResponse.json(fallbackResponse, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "X-Search-Fallback": "reduced-limit",
         },
       });
     }

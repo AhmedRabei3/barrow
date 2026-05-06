@@ -3,13 +3,12 @@ import { loginUserSchema } from "./app/validations/userValidations";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { prisma } from "./lib/prisma";
-import * as bcrypt from "bcryptjs";
 import { ensureOwnerAccount } from "@/lib/ensureOwnerAccount";
 
 const googleClientId =
   process.env.AUTH_GOOGLE_ID ??
   process.env.GOOGLE_CLIENT_ID ??
-  process.env.AUTH_GOOGLE_CLIENT_ID; 
+  process.env.AUTH_GOOGLE_CLIENT_ID;
 
 const googleClientSecret =
   process.env.AUTH_GOOGLE_SECRET ??
@@ -27,6 +26,7 @@ export default {
       },
       async authorize(credentials) {
         await ensureOwnerAccount();
+        const bcrypt = await import("bcryptjs");
 
         const validation = loginUserSchema.safeParse(credentials);
         if (!validation.success) return null;

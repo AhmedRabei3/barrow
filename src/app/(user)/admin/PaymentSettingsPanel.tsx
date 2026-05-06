@@ -406,8 +406,8 @@ const PaymentSettingsPanel = () => {
             </h3>
             <p className="text-xs text-slate-400">
               {t(
-                "الرصيد القابل للسحب = إجمالي إيرادات الاشتراكات المدفوعة - سحوبات المالك السابقة - أرباح المستخدمين الجاهزة - أرباح المستخدمين المعلقة - 10% مصاريف تشغيلية.",
-                "Withdrawable balance = total paid-subscription revenue - previous owner withdrawals - ready user profits - pending user profits - 10% operating reserve.",
+                "الرصيد القابل للسحب = إجمالي إيرادات الاشتراكات المدفوعة - سحوبات المالك السابقة - أرباح المستخدمين الجاهزة - أرباح المستخدمين المعلقة - 1% مصاريف تشغيلية.",
+                "Withdrawable balance = total paid-subscription revenue - previous owner withdrawals - ready user profits - pending user profits - 1% operating reserve.",
               )}
             </p>
           </div>
@@ -432,7 +432,7 @@ const PaymentSettingsPanel = () => {
               value={formatMoney(ownerData.summary.pendingUserProfitsTotal)}
             />
             <SummaryCard
-              title={t("المصاريف التشغيلية 10%", "10% operating reserve")}
+              title={t("المصاريف التشغيلية 1%", "1% operating reserve")}
               value={formatMoney(ownerData.summary.operatingReserve)}
             />
             <SummaryCard

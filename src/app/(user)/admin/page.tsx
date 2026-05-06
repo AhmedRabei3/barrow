@@ -2,24 +2,81 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import GoBackBtn from "@/app/components/GoBackBtn";
 import AdminSideBar, { AdminPageKey } from "./AdminSideBar";
-import AddCategoryForm from "@/app/components/addCategory/AddCategory";
-import AddCode from "@/app/components/activeCode/AddCode";
-import AdminAnalyticsDashboard from "./AdminAnalyticsDashboard";
-import ImageModerationPanel from "./ImageModerationPanel";
-import FinancialReportPanel from "./FinancialReportPanel";
-
-import SupportMessagesPanel from "./SupportMessagesPanel";
-
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
-import PaymentSettingsPanel from "./PaymentSettingsPanel";
 import PaymentPassword from "./PaymentPassword";
 import usePaymentPasswordModal from "@/app/hooks/usePasswordPaymentModal";
-import AdminShamCashPanel from "./AdminShamCashPanel";
-import PurchaseRequestsPage from "./purchase-request/page";
 import MobileNavbar from "./MobileNavbar";
+
+const AdminPanelSkeleton = () => (
+  <div className="animate-pulse rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+    Loading...
+  </div>
+);
+
+type AdminShamCashPanelProps = {
+  focusManualRequestId?: string;
+  focusActivationRequestId?: string;
+};
+
+const AddCategoryForm = dynamic(
+  () => import("./AddCategoryPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const AddCode = dynamic(
+  () => import("./AddCodePanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const AdminAnalyticsDashboard = dynamic(
+  () =>
+    import("./AdminAnalyticsDashboard.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const ImageModerationPanel = dynamic(
+  () => import("./ImageModerationPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const FinancialReportPanel = dynamic(
+  () => import("./FinancialReportPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const SupportMessagesPanel = dynamic(
+  () => import("./SupportMessagesPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const PaymentSettingsPanel = dynamic(
+  () => import("./PaymentSettingsPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const AdminShamCashPanel = dynamic<AdminShamCashPanelProps>(
+  () => import("./AdminShamCashPanel.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
+const PurchaseRequestsPage = dynamic(
+  () => import("./purchase-request/page.tsx").then((module) => module.default),
+  {
+    loading: () => <AdminPanelSkeleton />,
+  },
+);
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
 const PAYMENT_SETTINGS_ACCESS_KEY = "admin-payment-settings-authorized";
@@ -193,7 +250,7 @@ const AdminDashBoard = () => {
           isSidebarCollapsed ? "md:mr-24" : "md:mr-72"
         }`}
       >
-        <GoBackBtn/>
+        <GoBackBtn />
         {page === "analytics" && <AdminAnalyticsDashboard />}
         {page === "image-moderation" && <ImageModerationPanel />}
         {page === "financial-report" && <FinancialReportPanel />}
@@ -229,7 +286,6 @@ const AdminDashBoard = () => {
         isLight={isLight}
         isArabic={isArabic}
       />
-
     </section>
   );
 };

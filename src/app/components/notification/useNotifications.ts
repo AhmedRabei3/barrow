@@ -265,6 +265,53 @@ export const useNotifications = (enabled: boolean) => {
     [t],
   );
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const onNotificationsRemove = (event: Event) => {
+      const customEvent = event as CustomEvent<{ ids?: string[] }>;
+      const ids = Array.isArray(customEvent.detail?.ids)
+        ? customEvent.detail.ids
+        : [];
+
+      if (ids.length === 0) {
+        return;
+      }
+
+      const idSet = new Set(ids);
+      let removedCount = 0;
+
+      setNotifications((prev) => {
+        const next = prev.filter((notification) => {
+          const shouldRemove = idSet.has(notification.id);
+          if (shouldRemove) {
+            removedCount += 1;
+          }
+          return !shouldRemove;
+        });
+        return next;
+      });
+
+      if (removedCount > 0) {
+        setUnreadCount((prev) => Math.max(0, prev - removedCount));
+      }
+
+      // Keep count in sync when removed notifications are outside the loaded page.
+      void fetchUnreadCount();
+    };
+
+    window.addEventListener("notifications:remove", onNotificationsRemove);
+
+    return () => {
+      window.removeEventListener(
+        "notifications:remove",
+        onNotificationsRemove,
+      );
+    };
+  }, [fetchUnreadCount, isAuthenticated]);
+
   const refetch = useCallback(async () => {
     if (!isAuthenticated) {
       setNotifications([]);

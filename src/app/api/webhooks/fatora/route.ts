@@ -10,9 +10,22 @@ import {
 } from "@/app/i18n/errorMessages";
 
 function verifySignature(payload: string, signature: string) {
-  const hmac = crypto.createHmac("sha256", process.env.FATORA_WEBHOOK_SECRET!);
+  const secret = process.env.FATORA_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    return false;
+  }
+
+  const hmac = crypto.createHmac("sha256", secret);
   hmac.update(payload);
-  return hmac.digest("hex") === signature;
+  const expected = hmac.digest("hex");
+  const providedBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 }
 
 export async function POST(req: NextRequest) {
@@ -27,8 +40,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const event = JSON.parse(rawBody);
-  const { status, metadata } = event;
+  let event: {
+    status?: string;
+    metadata?: {
+      paymentId?: string;
+      userId?: string;
+      type?: string;
+      itemId?: string;
+      itemType?: string;
+      referralDiscountApplied?: boolean;
+      originalAmount?: number | string;
+      discountedAmount?: number | string;
+    };
+  };
+
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json(
+      { message: localizeErrorMessage("Invalid webhook payload", isArabic) },
+      { status: 400 },
+    );
+  }
+
+  const { status } = event;
+  const metadata = event.metadata ?? {};
 
   if (status !== "PAID") {
     return NextResponse.json({ received: true });

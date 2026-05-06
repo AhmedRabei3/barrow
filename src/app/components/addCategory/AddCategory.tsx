@@ -43,11 +43,13 @@ type ActiveTab = "add" | "existing";
 const CATEGORY_TYPE_OPTIONS: Array<{
   value: $Enums.ItemType;
   label: { ar: string; en: string };
+  // extra types that belong to this display group
+  extraTypes?: $Enums.ItemType[];
 }> = [
-  { value: "NEW_CAR", label: { ar: "سيارات جديدة", en: "New cars" } },
   {
-    value: "USED_CAR",
-    label: { ar: "سيارات مستعملة", en: "Used cars" },
+    value: "NEW_CAR",
+    label: { ar: "سيارات", en: "Cars" },
+    extraTypes: ["USED_CAR"],
   },
   { value: "PROPERTY", label: { ar: "عقارات", en: "Real estate" } },
   {
@@ -116,7 +118,9 @@ export default function AddCategoryForm() {
       CATEGORY_TYPE_OPTIONS.map((option) => ({
         ...option,
         items: visibleCategories.filter(
-          (category) => category.type === option.value,
+          (category) =>
+            category.type === option.value ||
+            (option.extraTypes ?? []).includes(category.type),
         ),
       })).filter((group) => group.items.length > 0),
     [visibleCategories],
@@ -322,9 +326,8 @@ export default function AddCategoryForm() {
                 }`}
               >
                 <option value="">{t("اختر النوع...", "Select type...")}</option>
-                <option value="NEW_CAR">{t("سيارة جديدة", "New car")}</option>
-                <option value="USED_CAR">
-                  {t("سيارة مستعملة", "Used car")}
+                <option value="NEW_CAR">
+                  {t("سيارات (جديدة ومستعملة)", "Cars (new & used)")}
                 </option>
                 <option value="PROPERTY">{t("عقار", "Real estate")}</option>
                 <option value="HOME_FURNITURE">
@@ -629,10 +632,7 @@ export default function AddCategoryForm() {
                     className="mt-1 p-2 border rounded-md bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-700"
                   >
                     <option value="NEW_CAR">
-                      {t("سيارة جديدة", "New car")}
-                    </option>
-                    <option value="USED_CAR">
-                      {t("سيارة مستعملة", "Used car")}
+                      {t("سيارات (جديدة ومستعملة)", "Cars (new & used)")}
                     </option>
                     <option value="PROPERTY">{t("عقار", "Real estate")}</option>
                     <option value="HOME_FURNITURE">

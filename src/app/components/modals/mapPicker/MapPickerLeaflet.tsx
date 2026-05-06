@@ -41,6 +41,37 @@ type LocationPayload = {
   country: string;
 };
 
+// Debounce pending geocode requests to avoid hammering Nominatim on rapid clicks
+let geocodeTimer: ReturnType<typeof setTimeout> | null = null;
+let geocodePendingResolve: ((v: LocationPayload) => void) | null = null;
+
+const reverseGeocodeDebounced = (
+  lat: number,
+  lng: number,
+  delayMs = 400,
+): Promise<LocationPayload> =>
+  new Promise((resolve) => {
+    if (geocodeTimer) clearTimeout(geocodeTimer);
+    // Cancel previous pending resolve with empty payload
+    if (geocodePendingResolve) {
+      geocodePendingResolve({
+        lat,
+        lng,
+        address: "",
+        city: "",
+        state: "",
+        country: "",
+      });
+      geocodePendingResolve = null;
+    }
+    geocodePendingResolve = resolve;
+    geocodeTimer = setTimeout(async () => {
+      geocodePendingResolve = null;
+      const result = await reverseGeocode(lat, lng);
+      resolve(result);
+    }, delayMs);
+  });
+
 const reverseGeocode = async (
   lat: number,
   lng: number,
@@ -112,7 +143,7 @@ function ClickableMap({
       setPosition([lat, lng]);
       if (radius) map.flyTo(e.latlng, 13);
 
-      const location = await reverseGeocode(lat, lng);
+      const location = await reverseGeocodeDebounced(lat, lng);
       onLocationSelect(location);
     },
   });
@@ -142,7 +173,7 @@ function LocateMe({ onLocationSelect, setPosition }: InteractiveMapProps) {
           setPosition([lat, lng]);
           map.flyTo(e.latlng, 14);
 
-          const location = await reverseGeocode(lat, lng);
+          const location = await reverseGeocodeDebounced(lat, lng, 0);
           onLocationSelect(location);
         });
 

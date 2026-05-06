@@ -14,38 +14,56 @@ export default function ChatBadge() {
   const { data: session } = useSession();
   const router = useRouter();
   const [unread, setUnread] = useState(0);
+  const [hasConversations, setHasConversations] = useState<boolean | null>(
+    null,
+  );
 
-  const loadUnreadCount = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!session?.user?.id) {
       setUnread(0);
+      setHasConversations(false);
       return;
     }
 
     try {
-      const response = await fetch("/api/chat/unread-count", { cache: "no-store" });
-      if (!response.ok) {
-        return;
+      const [unreadRes, convsRes] = await Promise.all([
+        fetch("/api/chat/unread-count", { cache: "no-store" }),
+        fetch("/api/chat/conversations", { cache: "no-store" }),
+      ]);
+
+      if (unreadRes.ok) {
+        const data = (await unreadRes.json()) as { unreadCount?: number };
+        setUnread(Math.max(0, Number(data.unreadCount ?? 0)));
       }
 
-      const data = (await response.json()) as { unreadCount?: number };
-      setUnread(Math.max(0, Number(data.unreadCount ?? 0)));
+      if (convsRes.ok) {
+        const data = (await convsRes.json()) as { conversations?: unknown[] };
+        setHasConversations((data.conversations?.length ?? 0) > 0);
+      } else {
+        setHasConversations(false);
+      }
     } catch {
-      // noop
+      setHasConversations(false);
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) {
       setUnread(0);
+      setHasConversations(false);
       return;
     }
 
     initializeWebSocket(session.user.id);
-    void loadUnreadCount();
+    void loadData();
 
     const unsubscribeSocket = subscribeWebSocketEvents((event) => {
-      if (event.type === "chat_message" && event.data.recipientId === session.user.id) {
+      if (
+        event.type === "chat_message" &&
+        event.data.recipientId === session.user.id
+      ) {
         setUnread((prev) => prev + 1);
+        setHasConversations(true);
         sendWebSocketEvent({
           type: "message_delivered",
           conversationId: event.conversationId,
@@ -56,7 +74,7 @@ export default function ChatBadge() {
     });
 
     const refreshHandler = () => {
-      void loadUnreadCount();
+      void loadData();
     };
 
     window.addEventListener("chat_unread_refresh", refreshHandler);
@@ -65,7 +83,12 @@ export default function ChatBadge() {
       unsubscribeSocket();
       window.removeEventListener("chat_unread_refresh", refreshHandler);
     };
-  }, [loadUnreadCount, session?.user?.id]);
+  }, [loadData, session?.user?.id]);
+
+  // Hide the icon entirely if the user has no conversations at all
+  if (hasConversations === false) {
+    return null;
+  }
 
   return (
     <button

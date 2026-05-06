@@ -141,29 +141,48 @@ export const itemSearchRepository = {
     }
 
     const itemIds = items.map((item) => item.id);
+    const newCarIds = items
+      .filter((item) => item.type === "NEW_CAR")
+      .map((item) => item.id);
+    const oldCarIds = items
+      .filter((item) => item.type === "USED_CAR")
+      .map((item) => item.id);
     const featuredCutoff = getFeaturedCutoffDate();
 
-    const [images, reviewsAgg, featuredPins] = await Promise.all([
-      prisma.itemImage.findMany({
-        where: { itemId: { in: itemIds } },
-        orderBy: [{ itemId: "asc" }, { createdAt: "asc" }],
-        select: { itemId: true, url: true },
-      }),
-      prisma.review.groupBy({
-        by: ["itemId"],
-        where: { itemId: { in: itemIds } },
-        _count: { _all: true },
-        _avg: { rate: true },
-      }),
-      prisma.pinnedItem.findMany({
-        where: {
-          itemId: { in: itemIds },
-          createdAt: { gte: featuredCutoff },
-        },
-        orderBy: { createdAt: "desc" },
-        select: { itemId: true, itemType: true, createdAt: true },
-      }),
-    ]);
+    const [images, reviewsAgg, featuredPins, newCars, oldCars] =
+      await Promise.all([
+        prisma.itemImage.findMany({
+          where: { itemId: { in: itemIds } },
+          orderBy: [{ itemId: "asc" }, { createdAt: "asc" }],
+          select: { itemId: true, url: true },
+        }),
+        prisma.review.groupBy({
+          by: ["itemId"],
+          where: { itemId: { in: itemIds } },
+          _count: { _all: true },
+          _avg: { rate: true },
+        }),
+        prisma.pinnedItem.findMany({
+          where: {
+            itemId: { in: itemIds },
+            createdAt: { gte: featuredCutoff },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { itemId: true, itemType: true, createdAt: true },
+        }),
+        newCarIds.length > 0
+          ? prisma.newCar.findMany({
+              where: { id: { in: newCarIds } },
+              select: { id: true, model: true, year: true },
+            })
+          : Promise.resolve([]),
+        oldCarIds.length > 0
+          ? prisma.oldCar.findMany({
+              where: { id: { in: oldCarIds } },
+              select: { id: true, model: true, year: true },
+            })
+          : Promise.resolve([]),
+      ]);
 
     const imagesMap = images.reduce<Record<string, Array<{ url: string }>>>(
       (result, image) => {
@@ -195,12 +214,26 @@ export const itemSearchRepository = {
       {},
     );
 
+    const carMetaMap = new Map<string, { model: string; year: number }>();
+    for (const row of newCars) {
+      carMetaMap.set(`NEW_CAR:${row.id}`, { model: row.model, year: row.year });
+    }
+    for (const row of oldCars) {
+      carMetaMap.set(`USED_CAR:${row.id}`, {
+        model: row.model,
+        year: row.year,
+      });
+    }
+
     return items.map((item) => {
       const review = reviewsMap[item.id] ?? { count: 0, average: null };
       const featuredAt = featuredMap[`${item.type}:${item.id}`];
+      const carMeta = carMetaMap.get(`${item.type}:${item.id}`);
 
       return {
         ...item,
+        model: carMeta?.model ?? item.model ?? null,
+        year: carMeta?.year ?? item.year,
         images: imagesMap[item.id] ?? [],
         reviewsCount: review.count,
         averageRating:

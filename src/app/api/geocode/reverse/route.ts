@@ -4,6 +4,29 @@ import {
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
 
+// Simple in-memory cache: key = "lat,lon" → { data, expiresAt }
+const geocodeCache = new Map<string, { data: unknown; expiresAt: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function getFromCache(key: string) {
+  const entry = geocodeCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    geocodeCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache(key: string, data: unknown) {
+  // Limit cache size to 500 entries
+  if (geocodeCache.size >= 500) {
+    const firstKey = geocodeCache.keys().next().value;
+    if (firstKey !== undefined) geocodeCache.delete(firstKey);
+  }
+  geocodeCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const isArabic = resolveIsArabicFromRequest(req);
@@ -22,6 +45,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const cacheKey = `${parseFloat(lat).toFixed(4)},${parseFloat(lon).toFixed(4)}`;
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
 
     const res = await fetch(url, {
@@ -31,6 +60,7 @@ export async function GET(req: NextRequest) {
         From: "realestate.contact.app@gmail.com", // ضع إيميل حقيقي هنا
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
 
     if (!res.ok) {
@@ -48,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     const addr = data.address || {};
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       display_name: data.display_name || "",
       address: {
@@ -58,16 +88,27 @@ export async function GET(req: NextRequest) {
         road: addr.road || "",
         suburb: addr.suburb || "",
       },
-    });
+    };
+
+    setCache(cacheKey, responsePayload);
+    return NextResponse.json(responsePayload);
   } catch (e) {
-    console.error(e);
     const isArabic = resolveIsArabicFromRequest(req);
+    const isTimeout =
+      e instanceof Error &&
+      (e.name === "TimeoutError" || e.name === "AbortError");
+    if (!isTimeout) {
+      console.error(e);
+    }
     return NextResponse.json(
       {
         success: false,
-        message: localizeErrorMessage("Server Error", isArabic),
+        message: localizeErrorMessage(
+          isTimeout ? "Geocode service timed out" : "Server Error",
+          isArabic,
+        ),
       },
-      { status: 500 },
+      { status: isTimeout ? 504 : 500 },
     );
   }
 }

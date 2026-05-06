@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { $Enums } from "@prisma/client";
 import { unstable_cache } from "next/cache";
-import { itemSearchRepository } from "@/server/repositories/item-search.repository";
+import { prisma } from "@/lib/prisma";
 
 const BASE_WHERE = { isDeleted: false, status: "AVAILABLE" as const };
+
+const TYPE_COUNTS_TTL_MS = 30 * 1000;
+const TYPE_COUNTS_STALE_TTL_MS = 5 * 60 * 1000;
 
 const TYPE_ENTRIES: Array<{ key: string; type: $Enums.ItemType }> = [
   { key: "PROPERTY", type: $Enums.ItemType.PROPERTY },
@@ -14,18 +17,59 @@ const TYPE_ENTRIES: Array<{ key: string; type: $Enums.ItemType }> = [
   { key: "OTHER", type: $Enums.ItemType.OTHER },
 ];
 
+let typeCountsSnapshot: {
+  value: Record<string, number>;
+  expiresAt: number;
+  staleUntil: number;
+} | null = null;
+
+const readTypeCountsCache = (allowStale = false) => {
+  if (!typeCountsSnapshot) {
+    return null;
+  }
+
+  const now = Date.now();
+  if (typeCountsSnapshot.staleUntil <= now) {
+    typeCountsSnapshot = null;
+    return null;
+  }
+
+  if (!allowStale && typeCountsSnapshot.expiresAt <= now) {
+    return null;
+  }
+
+  return typeCountsSnapshot.value;
+};
+
+const writeTypeCountsCache = (value: Record<string, number>) => {
+  typeCountsSnapshot = {
+    value,
+    expiresAt: Date.now() + TYPE_COUNTS_TTL_MS,
+    staleUntil: Date.now() + TYPE_COUNTS_STALE_TTL_MS,
+  };
+};
+
 const getCachedTypeCounts = unstable_cache(
   async () => {
-    const pairs = await Promise.all(
-      TYPE_ENTRIES.map(async ({ key, type }) => {
-        const count = await itemSearchRepository.countByIndex({
-          ...BASE_WHERE,
-          itemType: type,
-        });
-        return [key, count] as const;
-      }),
+    const grouped = await prisma.listingSearchIndex.groupBy({
+      by: ["itemType"],
+      where: BASE_WHERE,
+      _count: {
+        _all: true,
+      },
+    });
+
+    const countMap = new Map(
+      grouped.map((entry) => [entry.itemType, entry._count._all]),
     );
-    return Object.fromEntries(pairs) as Record<string, number>;
+
+    const result = Object.fromEntries(
+      TYPE_ENTRIES.map(({ key, type }) => [key, countMap.get(type) ?? 0]),
+    ) as Record<string, number>;
+
+    writeTypeCountsCache(result);
+
+    return result;
   },
   ["items:type-counts"],
   { revalidate: 300, tags: ["items"] },
@@ -33,6 +77,16 @@ const getCachedTypeCounts = unstable_cache(
 
 export async function GET() {
   try {
+    const warmCache = readTypeCountsCache(false);
+    if (warmCache) {
+      return NextResponse.json(warmCache, {
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "x-cache": "memory-hit",
+        },
+      });
+    }
+
     const counts = await getCachedTypeCounts();
     return NextResponse.json(counts, {
       headers: {
@@ -40,6 +94,16 @@ export async function GET() {
       },
     });
   } catch {
+    const staleCache = readTypeCountsCache(true);
+    if (staleCache) {
+      return NextResponse.json(staleCache, {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=600",
+          "x-cache": "stale-fallback",
+        },
+      });
+    }
+
     return NextResponse.json({}, { status: 500 });
   }
 }

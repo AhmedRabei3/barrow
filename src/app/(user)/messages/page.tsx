@@ -26,7 +26,6 @@ import {
   MdChatBubbleOutline,
   MdChat,
   MdSettings,
-  MdAdd,
   MdHome,
   MdMoreVert,
   MdClose,

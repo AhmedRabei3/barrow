@@ -3,12 +3,16 @@
 import { memo, useState } from "react";
 import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
-import ContactModal from "./ContactModal";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { useSession } from "next-auth/react";
 import { formatNumber } from "@/lib/locale-format";
 import { useRouter } from "next/navigation";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import Modal from "@/app/components/modals/Modal";
+import Heading from "@/app/components/Heading";
+import Input from "@/app/components/inputs/Input";
+import { useForm, FieldValues } from "react-hook-form";
 
 interface ContactOwnerElementProps {
   itemType: ItemType;
@@ -27,6 +31,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
   const router = useRouter();
+  const loginModal = useLoginModal();
   const {
     price,
     currency = "USD",
@@ -38,10 +43,20 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
   } = data;
 
   const [open, setOpen] = useState(false);
-  const [fullName, setFullName] = useState(session?.user?.name || "");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FieldValues>({
+    defaultValues: {
+      fullName: session?.user?.name || "",
+      phoneNumber: "",
+      note: "",
+    },
+  });
   const isAvailable = status === Availability.AVAILABLE;
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const requestKind = sellOrRent === "RENT" ? "RENT" : "BUY";
@@ -49,13 +64,14 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
     requestKind === "RENT"
       ? t("طلب إيجار", "Rental request")
       : t("طلب شراء", "Purchase request");
-  const canStartChat = Boolean(
-    ownerId && session?.user?.id && ownerId !== session.user.id,
+  const isOwnListing = Boolean(
+    ownerId && session?.user?.id && ownerId === session.user.id,
   );
+  const canStartChat = Boolean(ownerId) && !isOwnListing;
 
   const openChat = () => {
     if (!session?.user?.id) {
-      toast.error(t("يرجى تسجيل الدخول أولاً", "Please sign in first"));
+      loginModal.onOpen();
       return;
     }
 
@@ -73,14 +89,14 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
     router.push(`/messages?${params.toString()}`);
   };
 
-  const submitContact = async () => {
+  const submitContact = async (data: FieldValues) => {
     try {
-      if (!fullName.trim()) {
+      if (!data.fullName?.trim()) {
         toast.error(t("يرجى إدخال الاسم", "Please enter your name"));
         return;
       }
 
-      if (!phoneNumber.trim()) {
+      if (!data.phoneNumber?.trim()) {
         toast.error(
           t("يرجى إدخال رقم الهاتف", "Please enter your phone number"),
         );
@@ -99,10 +115,10 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         body: JSON.stringify({
           itemId: id,
           itemType,
-          fullName,
+          fullName: data.fullName,
           requestKind,
-          phoneNumber,
-          note: note || undefined,
+          phoneNumber: data.phoneNumber,
+          note: data.note || undefined,
         }),
       });
 
@@ -122,9 +138,7 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
         ),
       );
       setOpen(false);
-      setFullName(session?.user?.name || fullName.trim());
-      setPhoneNumber("");
-      setNote("");
+      reset();
     } catch (err: unknown) {
       toast.error(
         err instanceof Error
@@ -230,19 +244,68 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       </button>
 
       {/* MODAL */}
-      {open && (
-        <ContactModal
-          fullName={fullName}
-          setFullName={setFullName}
-          phoneNumber={phoneNumber}
-          setNote={setNote}
-          setOpen={setOpen}
-          submitContact={submitContact}
-          loading={loading}
-          note={note}
-          setPhoneNumber={setPhoneNumber}
-        />
-      )}
+      <Modal
+        isOpen={open}
+        disabled={loading}
+        onClose={() => {
+          setOpen(false);
+          reset();
+        }}
+        onSubmit={handleSubmit(submitContact)}
+        title={requestTitle}
+        actionLabel={isArabic ? "إرسال معلوماتي" : "Send My Info"}
+        secondaryActionLabel={isArabic ? "إلغاء" : "Cancel"}
+        secondaryAction={() => {
+          setOpen(false);
+          reset();
+        }}
+        body={
+          <div className="flex flex-col gap-4">
+            <Heading
+              title={isArabic ? "تواصل مع المالك" : "Contact the Owner"}
+              subtitle={
+                isArabic
+                  ? "أدخل بيانات التواصل الخاصة بك"
+                  : "Provide your contact information"
+              }
+            />
+            <Input
+              id="fullName"
+              label={isArabic ? "الاسم الكامل" : "Full Name"}
+              type="text"
+              disabled={loading}
+              register={register}
+              errors={errors}
+              required
+            />
+            <Input
+              id="phoneNumber"
+              label={isArabic ? "رقم الهاتف" : "Phone Number"}
+              type="tel"
+              disabled={loading}
+              register={register}
+              errors={errors}
+              required
+            />
+            <div className="w-full">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                {isArabic
+                  ? "ملاحظة إضافية (اختياري)"
+                  : "Additional Note (Optional)"}
+              </label>
+              <textarea
+                {...register("note")}
+                disabled={loading}
+                rows={4}
+                className="w-full rounded-md border-2 border-slate-300 bg-white p-3 text-slate-900 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/60"
+                placeholder={
+                  isArabic ? "اكتب ملاحظتك هنا..." : "Write your note here..."
+                }
+              />
+            </div>
+          </div>
+        }
+      />
 
       <p className="mt-4 text-center text-xs leading-6 text-rose-600 dark:text-rose-400">
         {t(

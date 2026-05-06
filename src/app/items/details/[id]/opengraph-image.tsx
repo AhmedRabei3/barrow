@@ -13,6 +13,18 @@ export const contentType = "image/png";
 const trimText = (value: string, max: number) =>
   value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
+const toOgSafeText = (value: string, fallback: string) => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return fallback;
+
+  // Avoid known Satori font-shaping crashes for some glyph combinations in dynamic titles.
+  if (/[^\u0000-\u00FF]/.test(normalized)) {
+    return fallback;
+  }
+
+  return normalized;
+};
+
 export default async function OpengraphImage({
   params,
 }: {
@@ -32,8 +44,8 @@ export default async function OpengraphImage({
         .filter(Boolean)
         .join(", ");
 
-      title = item.title;
-      subtitle = itemLocation || subtitle;
+      title = toOgSafeText(item.title, title);
+      subtitle = toOgSafeText(itemLocation || subtitle, subtitle);
       price =
         typeof item.data.price === "number"
           ? `$${item.data.price.toFixed(0)}`
