@@ -1,8 +1,16 @@
 const BASE_URL = "http://localhost:3000";
 
 const ACCOUNTS = [
-  { email: "ahmed@mail.com", password: "12345678", expectAdmin: true },
-  { email: "ali@mail.com", password: "12345678", expectAdmin: false },
+  {
+    email: process.env.SMOKE_ADMIN_EMAIL || "ahmed@mail.com",
+    password: process.env.SMOKE_ADMIN_PASSWORD || "12345678",
+    expectAdmin: true,
+  },
+  {
+    email: process.env.SMOKE_USER_EMAIL || "ali@mail.com",
+    password: process.env.SMOKE_USER_PASSWORD || "12345678",
+    expectAdmin: false,
+  },
 ] as const;
 
 type CookieHeaders = { getSetCookie?: () => string[] };

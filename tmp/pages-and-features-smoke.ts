@@ -1,8 +1,15 @@
 const BASE_URL = process.env.PAGES_SMOKE_BASE_URL || "http://localhost:3000";
 const REQUEST_TIMEOUT_MS = Number(process.env.PAGES_SMOKE_TIMEOUT_MS || 60000);
+const REQUEST_RETRIES = Number(process.env.PAGES_SMOKE_RETRIES || 3);
 
-const ADMIN = { email: "ahmed@mail.com", password: "12345678" };
-const USER = { email: "ali@mail.com", password: "12345678" };
+const ADMIN = {
+  email: process.env.SMOKE_ADMIN_EMAIL || "ahmed@mail.com",
+  password: process.env.SMOKE_ADMIN_PASSWORD || "12345678",
+};
+const USER = {
+  email: process.env.SMOKE_USER_EMAIL || "ali@mail.com",
+  password: process.env.SMOKE_USER_PASSWORD || "12345678",
+};
 
 type CookieHeaders = { getSetCookie?: () => string[] };
 
@@ -55,17 +62,28 @@ async function fetchWithTimeout(
   input: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let lastError: unknown;
 
-  try {
-    return await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
+  for (let attempt = 1; attempt <= REQUEST_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      return await fetch(input, {
+        ...init,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === REQUEST_RETRIES) {
+        break;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  throw lastError;
 }
 
 async function login(email: string, password: string) {
@@ -133,6 +151,16 @@ async function check(
   };
 }
 
+async function runChecksSequentially(
+  checks: Array<() => Promise<CheckResult>>,
+): Promise<CheckResult[]> {
+  const results: CheckResult[] = [];
+  for (const getCheck of checks) {
+    results.push(await getCheck());
+  }
+  return results;
+}
+
 async function run() {
   const results: CheckResult[] = [];
   const errors: string[] = [];
@@ -140,19 +168,20 @@ async function run() {
   const admin = await login(ADMIN.email, ADMIN.password);
   const user = await login(USER.email, USER.password);
 
-  const publicChecks: Array<Promise<CheckResult>> = [
-    check("page:/", "/", {}, (s) => s === 200),
-    check(
-      "page:/verify-email",
-      "/verify-email",
-      {},
-      (s) => s === 200 || s === 307 || s === 308,
-    ),
-    check("api:/api/items", "/api/items", {}, (s) => s === 200),
-    check("api:/api/categories", "/api/categories", {}, (s) => s === 200),
+  const publicChecks: Array<() => Promise<CheckResult>> = [
+    () => check("page:/", "/", {}, (s) => s === 200),
+    () =>
+      check(
+        "page:/verify-email",
+        "/verify-email",
+        {},
+        (s) => s === 200 || s === 307 || s === 308,
+      ),
+    () => check("api:/api/items", "/api/items", {}, (s) => s === 200),
+    () => check("api:/api/categories", "/api/categories", {}, (s) => s === 200),
   ];
 
-  results.push(...(await Promise.all(publicChecks)));
+  results.push(...(await runChecksSequentially(publicChecks)));
 
   const itemRes = await fetchWithTimeout(`${BASE_URL}/api/items`);
   if (itemRes.ok) {
@@ -196,75 +225,85 @@ async function run() {
     });
   }
 
-  const adminChecks: Array<Promise<CheckResult>> = [
-    check(
-      "admin-page:/admin",
-      "/admin",
-      { headers: { Cookie: admin.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "admin-page:/admin/purchase-request",
-      "/admin/purchase-request",
-      { headers: { Cookie: admin.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "admin-api:/api/admin/dashboard",
-      "/api/admin/dashboard",
-      { headers: { Cookie: admin.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "admin-api:/api/admin/purchase-req/unassigned",
-      "/api/admin/purchase-req/unassigned",
-      { headers: { Cookie: admin.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "admin-api:/api/profile",
-      "/api/profile",
-      { headers: { Cookie: admin.cookieJar } },
-      (s) => s === 200,
-    ),
+  const adminChecks: Array<() => Promise<CheckResult>> = [
+    () =>
+      check(
+        "admin-page:/admin",
+        "/admin",
+        { headers: { Cookie: admin.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "admin-page:/admin/purchase-request",
+        "/admin/purchase-request",
+        { headers: { Cookie: admin.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "admin-api:/api/admin/dashboard",
+        "/api/admin/dashboard",
+        { headers: { Cookie: admin.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "admin-api:/api/admin/purchase-req/unassigned",
+        "/api/admin/purchase-req/unassigned",
+        { headers: { Cookie: admin.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "admin-api:/api/profile",
+        "/api/profile",
+        { headers: { Cookie: admin.cookieJar } },
+        (s) => s === 200,
+      ),
   ];
 
-  results.push(...(await Promise.all(adminChecks)));
+  results.push(...(await runChecksSequentially(adminChecks)));
 
-  const userChecks: Array<Promise<CheckResult>> = [
-    check(
-      "user-page:/profile",
-      "/profile",
-      { headers: { Cookie: user.cookieJar } },
-      (s) => s === 200 || s === 307 || s === 308,
-    ),
-    check(
-      "user-api:/api/profile",
-      "/api/profile",
-      { headers: { Cookie: user.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "user-api:/api/notifications/unread-count",
-      "/api/notifications/unread-count",
-      { headers: { Cookie: user.cookieJar } },
-      (s) => s === 200,
-    ),
-    check(
-      "user-forbidden:/api/admin/dashboard",
-      "/api/admin/dashboard",
-      { headers: { Cookie: user.cookieJar } },
-      (s) => s === 401 || s === 403,
-    ),
-    check(
-      "user-forbidden:/api/admin/purchase-req/unassigned",
-      "/api/admin/purchase-req/unassigned",
-      { headers: { Cookie: user.cookieJar } },
-      (s) => s === 401 || s === 403,
-    ),
+  const userChecks: Array<() => Promise<CheckResult>> = [
+    () =>
+      check(
+        "user-page:/profile",
+        "/profile",
+        { headers: { Cookie: user.cookieJar } },
+        (s) => s === 200 || s === 307 || s === 308,
+      ),
+    () =>
+      check(
+        "user-api:/api/profile",
+        "/api/profile",
+        { headers: { Cookie: user.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "user-api:/api/notifications/unread-count",
+        "/api/notifications/unread-count",
+        { headers: { Cookie: user.cookieJar } },
+        (s) => s === 200,
+      ),
+    () =>
+      check(
+        "user-forbidden:/api/admin/dashboard",
+        "/api/admin/dashboard",
+        { headers: { Cookie: user.cookieJar } },
+        (s) => s === 401 || s === 403,
+      ),
+    () =>
+      check(
+        "user-forbidden:/api/admin/purchase-req/unassigned",
+        "/api/admin/purchase-req/unassigned",
+        { headers: { Cookie: user.cookieJar } },
+        (s) => s === 401 || s === 403,
+      ),
   ];
 
-  results.push(...(await Promise.all(userChecks)));
+  results.push(...(await runChecksSequentially(userChecks)));
 
   for (const result of results) {
     if (!result.ok) {

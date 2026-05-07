@@ -340,6 +340,11 @@ model User {
   identityVerificationRequest   IdentityVerificationRequest?  @relation("IdentityVerificationUser")
   reviewedIdentityVerifications IdentityVerificationRequest[] @relation("IdentityVerificationReviewedBy")
 
+  /// قائمة الحظر: مستخدمون حظرهم هذا المستخدم
+  chatBlocksGiven    ChatBlock[] @relation("ChatBlocker")
+  /// قائمة الحظر: مستخدمون قاموا بحظر هذا المستخدم
+  chatBlocksReceived ChatBlock[] @relation("ChatBlocked")
+
   @@index([freeActivationGrantedByAdminId])
 }
 
@@ -1100,4 +1105,24 @@ model ListingSearchIndex {
   @@index([isDeleted, status, price])
   @@index([locationCity, isDeleted, status])
   @@index([ownerId, isDeleted, createdAt])
+}
+
+// =========================
+// CHAT BLOCKING
+// يُسجَّل حظر دردشة بين مستخدمَين — المحادثات الجديدة والمرسلة تُرفض إذا كان أحد الطرفين محظوراً
+// =========================
+model ChatBlock {
+  id        String   @id @default(cuid())
+  /// المستخدم الذي قام بالحظر
+  blockerId String
+  /// المستخدم المحظور
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("ChatBlocker", fields: [blockerId], references: [id])
+  blocked User @relation("ChatBlocked", fields: [blockedId], references: [id])
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }

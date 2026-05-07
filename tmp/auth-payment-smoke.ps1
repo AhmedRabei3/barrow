@@ -1,13 +1,15 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$base = 'http://localhost:3000'
+$base = if ($env:SMOKE_BASE_URL) { $env:SMOKE_BASE_URL } else { 'http://localhost:3000' }
+$email = if ($env:SMOKE_E2E_EMAIL) { $env:SMOKE_E2E_EMAIL } else { 'e2e.user@example.com' }
+$password = if ($env:SMOKE_E2E_PASSWORD) { $env:SMOKE_E2E_PASSWORD } else { 'Test@12345' }
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 
 $csrfResp = Invoke-WebRequest -Uri "$base/api/auth/csrf" -WebSession $session -UseBasicParsing
 $csrf = (ConvertFrom-Json $csrfResp.Content).csrfToken
 
-$body = "csrfToken=$([uri]::EscapeDataString($csrf))&email=$([uri]::EscapeDataString('e2e.user@example.com'))&password=$([uri]::EscapeDataString('Test@12345'))&callbackUrl=$([uri]::EscapeDataString($base + '/'))"
+$body = "csrfToken=$([uri]::EscapeDataString($csrf))&email=$([uri]::EscapeDataString($email))&password=$([uri]::EscapeDataString($password))&callbackUrl=$([uri]::EscapeDataString($base + '/'))"
 
 try {
   Invoke-WebRequest -Method POST -Uri "$base/api/auth/callback/credentials" -WebSession $session -ContentType 'application/x-www-form-urlencoded' -Body $body -MaximumRedirection 0 -UseBasicParsing | Out-Null

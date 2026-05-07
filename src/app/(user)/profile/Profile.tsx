@@ -38,6 +38,7 @@ import {
   waitForDeleteAnimation,
 } from "@/app/utils/deleteFeedback";
 import { OPEN_SMART_CHAT_ON_HOME_KEY } from "@/app/components/ActivationWelcomeOverlay";
+import InvitedFriendsSection from "./InvitedFriendsSection";
 
 const SmartChatBot = lazy(async () => {
   const importedModule = await import("@/app/components/SmartChatBot.lazy.js");
@@ -171,6 +172,14 @@ const Profile = () => {
       setActiveTab("WITHDRAWALS");
       setActiveSidebarSection("WITHDRAWALS");
       return;
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const openTarget = (searchParams.get("open") || "").toLowerCase();
+
+    if (openTarget === "account" || openTarget === "settings") {
+      setEditProfileModalOpen(true);
     }
   }, [searchParams]);
 
@@ -841,6 +850,9 @@ const Profile = () => {
           </div>
 
           <ProfileInterestOrderEditor />
+
+          {/* قسم الأصدقاء المدعوون */}
+          <InvitedFriendsSection />
 
           <div ref={listingsSectionRef}>
             <TabbedView

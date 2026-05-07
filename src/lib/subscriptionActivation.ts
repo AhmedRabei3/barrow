@@ -24,6 +24,8 @@ export interface ApplySubscriptionActivationInput {
   subscriptionAmount: number;
   sourceLabel: string;
   referralDiscountValue?: number;
+  /** اسم المستخدم الذي يقوم بالتفعيل — يُستخدم في إشعار الداعي */
+  activatingUserName?: string;
 }
 
 export interface ApplySubscriptionActivationResult {
@@ -34,6 +36,7 @@ type ActivationTransactionClient = {
   user: {
     findUnique: (args: Prisma.UserFindUniqueArgs) => Promise<{
       id?: string;
+      name?: string | null;
       isActive?: boolean;
       isDeleted?: boolean;
       activeUntil?: Date | null;
@@ -76,6 +79,7 @@ export const applySubscriptionActivation = async (
     subscriptionAmount,
     sourceLabel,
     referralDiscountValue = 0,
+    activatingUserName,
   } = input;
 
   if (!Number.isFinite(subscriptionAmount) || subscriptionAmount <= 0) {
@@ -200,6 +204,16 @@ export const applySubscriptionActivation = async (
   }
 
   if (referrerId && referrerShare > 0) {
+    // جلب الرصيد المعلق للداعي بعد الإضافة لاستخدامه في الإشعار
+    const referrerAfterUpdate = await tx.user.findUnique({
+      where: { id: referrerId },
+      // نقرأ pendingReferralEarnings قبل تحديثها لاحتساب المجموع
+    });
+    const referrerPendingBefore = Number(
+      referrerAfterUpdate?.pendingReferralEarnings ?? 0,
+    );
+    const newTotalPending = referrerPendingBefore + referrerShare;
+
     await tx.user.update({
       where: { id: referrerId },
       data: {
@@ -207,11 +221,14 @@ export const applySubscriptionActivation = async (
       },
     });
 
+    // اسم المستخدم المدعو لعرضه في الإشعار
+    const inviteeName = activatingUserName ?? user.name ?? "أحد المدعوين";
+
     await tx.notification.create({
       data: {
         userId: referrerId,
-        title: "💰 أرباح إحالة معلقة",
-        message: `لديك ${referrerShare.toFixed(2)}$ أرباح معلقة حتى تجديد اشتراكك.`,
+        title: "🎉 تهانينا! مدعوّك فعّل حسابه",
+        message: `تهانينا! لقد قام "${inviteeName}" الذي دعوته للاشتراك بتفعيل اشتراكه. تم إضافة ${referrerShare.toFixed(2)}$ إلى أرصدتك المعلقة. أصبح لديك ${newTotalPending.toFixed(2)}$ متاح للسحب عند تجديد تفعيلك.`,
       },
     });
   }

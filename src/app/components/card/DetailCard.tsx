@@ -156,14 +156,14 @@ const DetailCard = ({
           ) : null}
           {carMetaLabel ? (
             <span className="inline-flex text-[11px] items-center gap-1 truncate">
-              {isArabic ? "عام" + " • " : "Year" + " • "}
+              {isArabic ? "سنة" + " • " : "Year" + " • "}
               <span className="truncate">{carMetaLabel}</span>
             </span>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-3 flex items-start justify-between gap-3 z-index-999">
+      <div className="mt-3 flex items-start just ify-between gap-3 z-index-999">
         <OwnerListingStateControl
           itemId={item.id}
           itemType={itemType}

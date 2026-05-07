@@ -72,6 +72,8 @@ export async function PUT(req: NextRequest) {
         subscriptionAmount: Number(code.balance),
         sourceLabel: "كود التفعيل",
         referralDiscountValue,
+        // تمرير اسم المستخدم لعرضه في إشعار الداعي
+        activatingUserName: user.name ?? undefined,
       });
 
       newActiveUntil = result.newActiveUntil;
@@ -96,7 +98,6 @@ export async function PUT(req: NextRequest) {
       success: true,
       activeUntil: newActiveUntil!.toISOString(),
     });
-    
   } catch (error) {
     console.error("Activation error:", error);
     return handleApiError(error, req);

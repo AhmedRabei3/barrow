@@ -12,6 +12,7 @@ import { getManualRentalEndsAtFromTransactions } from "@/app/components/card/own
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import type { ListingDetailsDto } from "@/server/services/listing-details.service";
 import LocationSection from "./LocatonSection";
+import ShareButton from "./ShareButton";
 
 interface ItemDetailsProps {
   item: Pick<
@@ -53,7 +54,11 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
 
   return (
     <div className="market-shell rounded-[28px] shadow-[0_24px_64px_rgba(15,23,42,0.2)] dark:shadow-[0_26px_70px_rgba(2,6,23,0.55)] sm:px-6 lg:px-7 lg:py-7">
-      <GoBackBtn />
+      {/* شريط علوي: زر الرجوع + زر المشاركة */}
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <GoBackBtn />
+        <ShareButton title={title} />
+      </div>
       <div className="relative z-10 flex flex-col gap-6">
         <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-blue-600/95 via-sky-900/90 to-indigo-600 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

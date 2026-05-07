@@ -2,6 +2,7 @@
 
 const baseUrl = process.env.SEO_BASE_URL || "http://localhost:3000";
 const REQUEST_TIMEOUT_MS = Number(process.env.SEO_REQUEST_TIMEOUT_MS || 60000);
+const REQUEST_RETRIES = Number(process.env.SEO_REQUEST_RETRIES || 3);
 
 const checks = [];
 
@@ -10,22 +11,33 @@ const pushCheck = (name, ok, details) => {
 };
 
 const fetchText = async (url) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let lastError;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "user-agent": "seo-smoke-check/1.0",
-      },
-      signal: controller.signal,
-    });
+  for (let attempt = 1; attempt <= REQUEST_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    const text = await response.text();
-    return { response, text };
-  } finally {
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "user-agent": "seo-smoke-check/1.0",
+        },
+        signal: controller.signal,
+      });
+
+      const text = await response.text();
+      return { response, text };
+    } catch (error) {
+      lastError = error;
+      if (attempt === REQUEST_RETRIES) {
+        break;
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
+
+  throw lastError;
 };
 
 const run = async () => {

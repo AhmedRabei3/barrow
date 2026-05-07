@@ -218,6 +218,20 @@ export const registerAction = async (
               userId: referredBy,
             },
           });
+
+          // إشعار الداعي بأن شخصاً اشترك عبر رابطه
+          await tx.notification.create({
+            data: {
+              userId: referredBy,
+              title: isArabic
+                ? "🔔 اشتراك جديد عبر رابطك"
+                : "🔔 New signup via your referral link",
+              message: isArabic
+                ? `لقد قام "${name}" بالاشتراك عبر رابط الدعوة الخاص بك. ستحصل على مكافأتك عند قيامه بتفعيل حسابه.`
+                : `"${name}" signed up using your referral link. You will receive your reward once they activate their account.`,
+              type: NotificationType.INFO,
+            },
+          });
         }
       }
 

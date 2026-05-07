@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { buildChatConversationId } from "@/lib/chatConversation";
 import {
@@ -27,8 +28,8 @@ import {
   MdChat,
   MdSettings,
   MdHome,
-  MdMoreVert,
   MdClose,
+  MdBlock,
 } from "react-icons/md";
 
 type MessageStatus = "sending" | "sent" | "delivered" | "seen";
@@ -178,6 +179,16 @@ export default function MessagesPage() {
   const [convSearch, setConvSearch] = useState("");
   const [msgSearch, setMsgSearch] = useState("");
   const [showMsgSearch, setShowMsgSearch] = useState(false);
+
+  // ── حالة الحظر ─────────────────────────────────────────────────────────────
+  /** هل الطرف الآخر محظور من قِبلنا؟ */
+  const [iBlockedThem, setIBlockedThem] = useState(false);
+  /** هل نحن محظورون من قِبل الطرف الآخر؟ */
+  const [theyBlockedMe, setTheyBlockedMe] = useState(false);
+  /** إظهار مودال تأكيد الحظر */
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  /** جارٍ تنفيذ الحظر / رفع الحظر */
+  const [blockLoading, setBlockLoading] = useState(false);
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
@@ -910,6 +921,66 @@ export default function MessagesPage() {
     userId,
   ]);
 
+  // جلب حالة الحظر عند تغيير الطرف الآخر
+  useEffect(() => {
+    if (!recipientUserId) {
+      setIBlockedThem(false);
+      setTheyBlockedMe(false);
+      return;
+    }
+
+    const checkBlock = async () => {
+      try {
+        const res = await fetch(`/api/chat/block?userId=${recipientUserId}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          iBlockedThem: boolean;
+          theyBlockedMe: boolean;
+        };
+        setIBlockedThem(data.iBlockedThem ?? false);
+        setTheyBlockedMe(data.theyBlockedMe ?? false);
+      } catch {
+        // نتجاهل الأخطاء الشبكية بصمت
+      }
+    };
+
+    void checkBlock();
+  }, [recipientUserId]);
+
+  /** تنفيذ الحظر أو رفعه */
+  const handleToggleBlock = async () => {
+    if (!recipientUserId || blockLoading) return;
+    setBlockLoading(true);
+    try {
+      if (iBlockedThem) {
+        // رفع الحظر
+        const res = await fetch("/api/chat/block", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blockedUserId: recipientUserId }),
+        });
+        if (!res.ok) throw new Error("Failed to unblock");
+        setIBlockedThem(false);
+        toast.success(isArabic ? "تم رفع الحظر" : "User unblocked");
+      } else {
+        // الحظر
+        const res = await fetch("/api/chat/block", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blockedUserId: recipientUserId }),
+        });
+        if (!res.ok) throw new Error("Failed to block");
+        setIBlockedThem(true);
+        toast.success(isArabic ? "تم حظر المستخدم" : "User blocked");
+      }
+    } catch {
+      toast.error(isArabic ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong");
+    } finally {
+      setBlockLoading(false);
+      setShowBlockConfirm(false);
+    }
+  };
+
   const renderStatus = useCallback(
     (message: ChatMessage) => {
       if (message.senderId !== userId) {
@@ -1149,7 +1220,7 @@ export default function MessagesPage() {
   return (
     <div
       dir={isArabic ? "rtl" : "ltr"}
-      className="flex h-[calc(100dvh-64px)] overflow-hidden bg-[#f6faff] dark:bg-[#051424]"
+      className="flex h-dvh overflow-hidden bg-[#f6faff] dark:bg-[#051424]"
     >
       {/* ══ DESKTOP NAV SIDEBAR ══ */}
       <nav className="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 bg-white/80 dark:bg-[#0d1c2d]/80 backdrop-blur-md border-e border-slate-200/60 dark:border-slate-700/30 shadow-lg z-10">
@@ -1186,7 +1257,7 @@ export default function MessagesPage() {
           </div>
           <button
             type="button"
-            onClick={() => router.push("/profile")}
+            onClick={() => router.push("/profile?open=account")}
             className="w-full text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/30 px-4 py-3 flex items-center gap-4 cursor-pointer rounded-lg transition-colors"
           >
             <MdSettings size={20} />
@@ -1198,14 +1269,13 @@ export default function MessagesPage() {
 
         {/* New Message button */}
         <div className="px-5 pb-6 mt-auto">
-          <button
-            type="button"
-            onClick={() => router.push("/")}
+          <Link
+            href="/"
             className="w-full py-3.5 bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-95 transition-all duration-200"
           >
             <MdHome size={22} />
             {isArabic ? "العودة للرئيسية" : "Back to Home"}
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -1218,15 +1288,17 @@ export default function MessagesPage() {
         }`}
       >
         {/* Mobile-only top bar */}
-        <header className="lg:hidden sticky top-0 z-40 flex justify-between items-center w-full px-5 h-16 bg-white/80 dark:bg-[#051424]/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-700/30 shadow-sm">
+        <header className="lg:hidden fixed top-0 z-40 flex justify-between items-center w-full px-5 h-16 bg-white/80 dark:bg-[#051424]/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-700/30 shadow-sm">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {isArabic ? "الرسائل" : "Messages"}
           </h1>
-          <button className="p-2 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200">
-            <MdMoreVert
-              size={22}
-              className="text-[#006591] dark:text-[#89ceff]"
-            />
+          <button
+            type="button"
+            onClick={() => router.push("/profile?open=account")}
+            className="p-2 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200 text-[#006591] dark:text-[#89ceff]"
+            aria-label={isArabic ? "الإعدادات" : "Settings"}
+          >
+            <MdSettings size={22} />
           </button>
         </header>
 
@@ -1402,13 +1474,12 @@ export default function MessagesPage() {
 
         {/* Mobile FAB — compose */}
         {showConversationListOnMobile && (
-          <button
-            type="button"
-            onClick={() => router.push("/")}
+          <Link
+            href="/"
             className="lg:hidden fixed bottom-6 inset-e-6 w-14 h-14 bg-[#006591] dark:bg-[#89ceff] shadow-xl rounded-full flex items-center justify-center text-white dark:text-[#001e2f] active:scale-90 transition-all duration-200 z-50"
           >
             <MdHome size={26} />
-          </button>
+          </Link>
         )}
       </div>
 
@@ -1478,8 +1549,30 @@ export default function MessagesPage() {
             )}
           </div>
 
-          {/* Right/End: search toggle + more + close */}
+          {/* Right/End: block + search toggle + more + close */}
           <div className="flex items-center gap-1 shrink-0">
+            {selectedConversationId && recipientUserId && (
+              <button
+                type="button"
+                title={
+                  iBlockedThem
+                    ? isArabic
+                      ? "رفع الحظر"
+                      : "Unblock user"
+                    : isArabic
+                      ? "حظر المستخدم"
+                      : "Block user"
+                }
+                onClick={() => setShowBlockConfirm(true)}
+                className={`p-2 rounded-full transition-colors active:scale-95 duration-200 ${
+                  iBlockedThem
+                    ? "text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
+                }`}
+              >
+                <MdBlock size={22} />
+              </button>
+            )}
             {selectedConversationId && (
               <button
                 onClick={() => {
@@ -1495,8 +1588,13 @@ export default function MessagesPage() {
                 <MdSearch size={22} />
               </button>
             )}
-            <button className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200">
-              <MdMoreVert size={22} />
+            <button
+              type="button"
+              onClick={() => router.push("/profile?open=account")}
+              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 rounded-full transition-colors active:scale-95 duration-200"
+              aria-label={isArabic ? "الإعدادات" : "Settings"}
+            >
+              <MdSettings size={22} />
             </button>
             <GoBackBtn closeBtn={true} />
           </div>
@@ -1505,7 +1603,7 @@ export default function MessagesPage() {
         {/* In-conversation search bar */}
         {showMsgSearch && selectedConversationId && (
           <div className="px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c2b3c] rounded-full px-4 py-2">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1">
               <MdSearch size={16} className="text-slate-400 shrink-0" />
               <input
                 autoFocus
@@ -1515,7 +1613,7 @@ export default function MessagesPage() {
                 placeholder={
                   isArabic ? "البحث في الرسائل..." : "Search messages..."
                 }
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+                className="flex-1 bg-transparent text-sm rounded-full text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
               />
               {msgSearch && (
                 <button
@@ -1664,6 +1762,31 @@ export default function MessagesPage() {
           )}
         </div>
 
+        {/* ── شريط الحظر (عند حظر أحد الطرفين) ── */}
+        {(iBlockedThem || theyBlockedMe) && selectedConversationId && (
+          <div className="shrink-0 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800/40 text-red-600 dark:text-red-400 text-xs font-medium">
+            <MdBlock size={15} />
+            <span>
+              {iBlockedThem
+                ? isArabic
+                  ? "لقد قمت بحظر هذا المستخدم. لا يمكنك إرسال رسائل."
+                  : "You have blocked this user. Messaging is disabled."
+                : isArabic
+                  ? "هذا المستخدم قام بحظرك. لا يمكنك إرسال رسائل."
+                  : "This user has blocked you. Messaging is disabled."}
+            </span>
+            {iBlockedThem && (
+              <button
+                type="button"
+                onClick={() => setShowBlockConfirm(true)}
+                className="ms-2 underline underline-offset-2 hover:opacity-70"
+              >
+                {isArabic ? "رفع الحظر؟" : "Unblock?"}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── Input footer ── */}
         <footer className="shrink-0 w-full flex items-center justify-center gap-2 px-4 lg:px-8 py-4 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
           <div className="flex overflow-hidden items-center gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
@@ -1688,7 +1811,12 @@ export default function MessagesPage() {
                       ? "اختر محادثة للبدء"
                       : "Select a conversation to start"
                 }
-                disabled={!selectedConversationId || !recipientUserId}
+                disabled={
+                  !selectedConversationId ||
+                  !recipientUserId ||
+                  iBlockedThem ||
+                  theyBlockedMe
+                }
                 className="flex-1 w-full rounded-full px-4 bg-transparent text-slate-900 dark:text-white py-3 text-sm placeholder:text-slate-400 outline-none disabled:cursor-not-allowed"
               />
             </div>
@@ -1696,7 +1824,12 @@ export default function MessagesPage() {
           <button
             onClick={() => void sendMessage()}
             disabled={
-              sending || !input.trim() || !recipientUserId || !listingId
+              sending ||
+              !input.trim() ||
+              !recipientUserId ||
+              !listingId ||
+              iBlockedThem ||
+              theyBlockedMe
             }
             className="w-11 h-11 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] shadow-lg hover:brightness-110 active:scale-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
@@ -1704,6 +1837,101 @@ export default function MessagesPage() {
           </button>
         </footer>
       </section>
+
+      {/* ══ مودال تأكيد الحظر ══ */}
+      {showBlockConfirm && (
+        <div
+          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => !blockLoading && setShowBlockConfirm(false)}
+        >
+          <div
+            dir={isArabic ? "rtl" : "ltr"}
+            className="bg-white dark:bg-[#0d1c2d] rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-200/60 dark:border-slate-700/30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* أيقونة */}
+            <div className="flex justify-center mb-4">
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                  iBlockedThem
+                    ? "bg-emerald-100 dark:bg-emerald-900/30"
+                    : "bg-red-100 dark:bg-red-900/30"
+                }`}
+              >
+                <MdBlock
+                  size={28}
+                  className={
+                    iBlockedThem
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  }
+                />
+              </div>
+            </div>
+
+            {/* العنوان */}
+            <h3 className="text-center text-lg font-bold text-slate-900 dark:text-white mb-2">
+              {iBlockedThem
+                ? isArabic
+                  ? "رفع الحظر"
+                  : "Unblock User"
+                : isArabic
+                  ? "حظر المستخدم"
+                  : "Block User"}
+            </h3>
+
+            {/* الوصف */}
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              {iBlockedThem
+                ? isArabic
+                  ? `هل تريد رفع الحظر عن "${selectedConversation?.otherParticipantName}"؟ سيتمكن من إرسال الرسائل إليك مجدداً.`
+                  : `Unblock "${selectedConversation?.otherParticipantName}"? They will be able to message you again.`
+                : isArabic
+                  ? `هل تريد حظر "${selectedConversation?.otherParticipantName}"؟ لن تتمكن من إرسال رسائل لبعضكما.`
+                  : `Block "${selectedConversation?.otherParticipantName}"? Neither of you will be able to message each other.`}
+            </p>
+
+            {/* الأزرار */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={blockLoading}
+                onClick={() => setShowBlockConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors disabled:opacity-50"
+              >
+                {isArabic ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                disabled={blockLoading}
+                onClick={() => void handleToggleBlock()}
+                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-50 ${
+                  iBlockedThem
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {blockLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    {isArabic ? "جارٍ التنفيذ..." : "Processing..."}
+                  </span>
+                ) : iBlockedThem ? (
+                  isArabic ? (
+                    "رفع الحظر"
+                  ) : (
+                    "Unblock"
+                  )
+                ) : isArabic ? (
+                  "حظر"
+                ) : (
+                  "Block"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

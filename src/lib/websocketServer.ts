@@ -75,7 +75,8 @@ g.__watchedUsersBySocket = watchedUsersBySocket;
 
 let wss = g.__wss ?? null;
 
-const unique = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+const unique = (values: string[]) =>
+  Array.from(new Set(values.filter(Boolean)));
 
 const safeSend = (ws: ExtendedWebSocket, payload: ChatServerEvent) => {
   if (ws.readyState !== WSWebSocket.OPEN) {
@@ -122,7 +123,10 @@ const publishRealtimeEnvelope = async (envelope: RealtimeEnvelope) => {
   try {
     await redis.publish(CHAT_EVENTS_CHANNEL, JSON.stringify(envelope));
   } catch (error) {
-    logger.error("Failed to publish realtime envelope, using local fallback.", error);
+    logger.error(
+      "Failed to publish realtime envelope, using local fallback.",
+      error,
+    );
     emitToUsers(envelope.targetUserIds, envelope.event);
   }
 };
@@ -140,7 +144,10 @@ const publishPresenceEvent = async (
   try {
     await redis.publish(PRESENCE_EVENTS_CHANNEL, JSON.stringify(event));
   } catch (error) {
-    logger.error("Failed to publish presence event, using local fallback.", error);
+    logger.error(
+      "Failed to publish presence event, using local fallback.",
+      error,
+    );
     emitPresenceToWatchers(event);
   }
 };
@@ -154,48 +161,56 @@ const ensureRedisSubscriptions = async () => {
   if (!redisSubscriber || !redisSubscriber.isOpen) {
     g.__wsRedisSubscriber = null;
     g.__wsRedisSubscriberReady = false;
-    logger.warn("Realtime Redis subscriber unavailable, running local-only mode.");
+    logger.warn(
+      "Realtime Redis subscriber unavailable, running local-only mode.",
+    );
     return;
   }
 
   try {
-    await redisSubscriber.subscribe(CHAT_EVENTS_CHANNEL, (rawMessage: string) => {
-      let parsedJson: unknown;
-      try {
-        parsedJson = JSON.parse(rawMessage);
-      } catch {
-        logger.warn("Invalid JSON on realtime Redis channel.");
-        return;
-      }
+    await redisSubscriber.subscribe(
+      CHAT_EVENTS_CHANNEL,
+      (rawMessage: string) => {
+        let parsedJson: unknown;
+        try {
+          parsedJson = JSON.parse(rawMessage);
+        } catch {
+          logger.warn("Invalid JSON on realtime Redis channel.");
+          return;
+        }
 
-      const parsed = realtimeEnvelopeSchema.safeParse(parsedJson);
+        const parsed = realtimeEnvelopeSchema.safeParse(parsedJson);
 
-      if (!parsed.success) {
-        logger.warn("Invalid realtime envelope received from Redis.");
-        return;
-      }
+        if (!parsed.success) {
+          logger.warn("Invalid realtime envelope received from Redis.");
+          return;
+        }
 
-      emitToUsers(parsed.data.targetUserIds, parsed.data.event);
-    });
+        emitToUsers(parsed.data.targetUserIds, parsed.data.event);
+      },
+    );
 
-    await redisSubscriber.subscribe(PRESENCE_EVENTS_CHANNEL, (rawMessage: string) => {
-      let parsedJson: unknown;
-      try {
-        parsedJson = JSON.parse(rawMessage);
-      } catch {
-        logger.warn("Invalid JSON on presence Redis channel.");
-        return;
-      }
+    await redisSubscriber.subscribe(
+      PRESENCE_EVENTS_CHANNEL,
+      (rawMessage: string) => {
+        let parsedJson: unknown;
+        try {
+          parsedJson = JSON.parse(rawMessage);
+        } catch {
+          logger.warn("Invalid JSON on presence Redis channel.");
+          return;
+        }
 
-      const parsed = chatServerEventSchema.safeParse(parsedJson);
+        const parsed = chatServerEventSchema.safeParse(parsedJson);
 
-      if (!parsed.success) {
-        logger.warn("Invalid presence event received from Redis.");
-        return;
-      }
+        if (!parsed.success) {
+          logger.warn("Invalid presence event received from Redis.");
+          return;
+        }
 
-      emitPresenceToWatchers(parsed.data);
-    });
+        emitPresenceToWatchers(parsed.data);
+      },
+    );
 
     g.__wsRedisSubscriber = redisSubscriber;
     g.__wsRedisSubscriberReady = true;
@@ -234,7 +249,9 @@ const detachPresenceSubscriptions = (ws: ExtendedWebSocket) => {
 };
 
 const subscribePresence = async (ws: ExtendedWebSocket, userIds: string[]) => {
-  const cleanedUserIds = unique(userIds).filter((userId) => userId !== ws.userId);
+  const cleanedUserIds = unique(userIds).filter(
+    (userId) => userId !== ws.userId,
+  );
   if (cleanedUserIds.length === 0) {
     return;
   }
@@ -244,7 +261,8 @@ const subscribePresence = async (ws: ExtendedWebSocket, userIds: string[]) => {
   for (const userId of cleanedUserIds) {
     watchedUsers.add(userId);
 
-    const watchers = presenceWatchers.get(userId) ?? new Set<ExtendedWebSocket>();
+    const watchers =
+      presenceWatchers.get(userId) ?? new Set<ExtendedWebSocket>();
     watchers.add(ws);
     presenceWatchers.set(userId, watchers);
 
@@ -442,13 +460,41 @@ const attachUpgradeHandler = (server: HTTPServer) => {
         return;
       }
 
-      const token = await getToken({
-        req: req as GetTokenParams["req"],
-        secret: process.env.NEXTAUTH_SECRET,
+      logger.info("WebSocket upgrade request received", {
+        host: req.headers.host,
+        path: url.pathname,
       });
 
-      const userId = token?.sub;
+      const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
+      // Support both Auth.js and NextAuth cookie names during WS upgrade auth.
+      const token =
+        (await getToken({
+          req: req as GetTokenParams["req"],
+          secret,
+        })) ||
+        (await getToken({
+          req: req as GetTokenParams["req"],
+          secret,
+          cookieName: "authjs.session-token",
+        }));
+
+      let userId = token?.sub ?? null;
+
+      if (!userId && process.env.NODE_ENV !== "production") {
+        const fallbackUserId = url.searchParams.get("userId");
+        if (fallbackUserId) {
+          userId = fallbackUserId;
+          logger.warn(
+            "WebSocket upgrade used non-production userId query fallback",
+          );
+        }
+      }
+
       if (!userId) {
+        logger.warn(
+          "WebSocket upgrade rejected: missing authenticated user token",
+        );
         socket.destroy();
         return;
       }
@@ -723,7 +769,10 @@ export async function publishMessageSeenEvent({
   });
 }
 
-export function sendNotificationToUser(userId: string, data: NotificationPayload) {
+export function sendNotificationToUser(
+  userId: string,
+  data: NotificationPayload,
+) {
   const event = chatServerEventSchema.parse({
     type: "notification",
     data,
