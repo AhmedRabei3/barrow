@@ -54,36 +54,16 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
 
   return (
     <div className="market-shell rounded-[28px] shadow-[0_24px_64px_rgba(15,23,42,0.2)] dark:shadow-[0_26px_70px_rgba(2,6,23,0.55)] sm:px-6 lg:px-7 lg:py-7">
-      {/* شريط علوي: زر الرجوع + زر المشاركة */}
-      <div className="flex items-center justify-between gap-3 mb-2">
+      {/* شريط علوي: زر الرجوع */}
+      <div className="mb-2 flex fixed items-center">
         <GoBackBtn />
-        <ShareButton title={title} />
       </div>
       <div className="relative z-10 flex flex-col gap-6">
         <div className="market-panel rounded-[26px] border border-slate-200/60 bg-linear-to-r from-blue-600/95 via-sky-900/90 to-indigo-600 px-5 py-5 shadow-[0_16px_32px_rgba(15,23,42,0.35)] sm:px-6 dark:border-slate-700/80">
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-black tracking-tight text-sky-50 sm:text-3xl lg:text-[2.15rem]">
-                {title}
-              </h1>
-              {subtitle ? (
-                <p className="mt-2 text-sm text-blue-200 sm:text-base">
-                  {subtitle}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-              <OwnerListingStateControl
-                itemId={data.id}
-                itemType={type}
-                sellOrRent={data.sellOrRent}
-                status={data.status}
-                rentType={data.rentType}
-                initialManualRentalEndsAt={manualRentalEndsAt}
-                isOwner={isOwner}
-                align="right"
-                variant="hero"
-              />
+            <div
+              className={`flex flex-wrap items-center gap-3 ${isArabic ? "order-1 justify-start" : "order-2 justify-end"}`}
+            >
               <div
                 className={`${isArabic ? "rtl" : "ltr"} 
                   rounded-2xl 
@@ -100,6 +80,37 @@ const ItemDetails = ({ item }: ItemDetailsProps) => {
                   ${priceLabel}
                 </p>
               </div>
+              <OwnerListingStateControl
+                itemId={data.id}
+                itemType={type}
+                sellOrRent={data.sellOrRent}
+                status={data.status}
+                rentType={data.rentType}
+                initialManualRentalEndsAt={manualRentalEndsAt}
+                isOwner={isOwner}
+                align="right"
+                variant="hero"
+              />
+            </div>
+            <div
+              className={`flex min-w-0 flex-col gap-3 ${isArabic ? "order-2 lg:items-end lg:text-right" : "order-1 lg:items-start lg:text-left"}`}
+            >
+              <div className="rounded-md bg-sky-950/35 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <h1
+                  className={`  text-lg font-extrabold tracking-tight text-white sm:text-2xl ${isArabic ? "rtl" : "ltr"}`}
+                >
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className="mt-2 text-sm text-blue-200 sm:text-base">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+              <ShareButton
+                title={title}
+                className={`${isArabic ? "self-end" : "self-start"} min-w-28 justify-center`}
+              />
             </div>
           </div>
         </div>
