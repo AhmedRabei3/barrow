@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import Image from "next/image";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import logoImage from "../../../../public/images/logo.png";
@@ -40,6 +41,10 @@ const Logo = ({
   const displayWidth = Math.max(1, Math.round(logoSize.width));
   const displayHeight = Math.max(1, Math.round(logoSize.height));
 
+  const handleLogoClick = useCallback(() => {
+    router.push("/");
+  }, [router]);
+
   return (
     <div
       className="
@@ -48,9 +53,7 @@ const Logo = ({
     "
     >
       <Image
-        onClick={() => {
-          router.push("/");
-        }}
+        onClick={handleLogoClick}
         alt="logo"
         className="cursor-pointer 
         overflow-hidden"

@@ -1,4 +1,11 @@
-import React, { useState, FC, ReactNode } from "react";
+import React, {
+  useState,
+  FC,
+  ReactNode,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 
 interface Tab {
   id: string;
@@ -14,10 +21,17 @@ interface TabsProps {
 
 const Tabs: FC<TabsProps> = ({ tabs, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(
-    defaultTab || (tabs.length > 0 ? tabs[0].id : "")
+    defaultTab || (tabs.length > 0 ? tabs[0].id : ""),
   );
 
-  const activeTabContent = tabs.find((tab) => tab.id === activeTab);
+  const activeTabContent = useMemo(
+    () => tabs.find((tab) => tab.id === activeTab),
+    [activeTab, tabs],
+  );
+
+  const handleTabClick = useCallback((tabId: string) => {
+    setActiveTab(tabId);
+  }, []);
 
   return (
     <div className="w-full">
@@ -26,7 +40,7 @@ const Tabs: FC<TabsProps> = ({ tabs, defaultTab }) => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 font-medium transition-all ${
               activeTab === tab.id
                 ? "border-blue-600 text-blue-600"
@@ -45,4 +59,4 @@ const Tabs: FC<TabsProps> = ({ tabs, defaultTab }) => {
   );
 };
 
-export default Tabs;
+export default memo(Tabs);

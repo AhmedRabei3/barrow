@@ -3,6 +3,7 @@ import {
   Suspense,
   lazy,
   type ComponentType,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -98,6 +99,10 @@ const FloatingChatButton = () => {
     setWaveKey((prev) => prev + 1);
   };
 
+  const closeAssistant = useCallback(() => {
+    setOpen(false);
+  }, []);
+
   if (!shouldRender) {
     return null;
   }
@@ -159,7 +164,7 @@ const FloatingChatButton = () => {
                 </div>
               }
             >
-              <SmartChatBot onClose={() => setOpen(false)} />
+              <SmartChatBot onClose={closeAssistant} />
             </Suspense>
           ) : (
             <div

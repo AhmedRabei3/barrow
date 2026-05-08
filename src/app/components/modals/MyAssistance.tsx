@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 import { $Enums } from "@prisma/client";
 import { useEffect, useState, useCallback } from "react";
 import { useAddForm } from "@/app/hooks";
@@ -142,3 +143,4 @@ const MyAssistance = ({ isOpen, onClose, onSuccess }: Props) => {
 };
 
 export default MyAssistance;
+/* eslint-enable react/jsx-no-bind */

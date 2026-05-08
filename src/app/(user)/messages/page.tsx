@@ -148,6 +148,7 @@ export default function MessagesPage() {
   const userId = session?.user?.id ?? "";
 
   const ownerId = params.get("ownerId") ?? "";
+  const ownerNameFromQuery = params.get("ownerName") ?? "";
   const listingIdFromQuery = params.get("listingId") ?? "";
   const listingTitleFromQuery = params.get("title") ?? "";
   const directConversationId = params.get("conversationId") ?? "";
@@ -223,6 +224,11 @@ export default function MessagesPage() {
       ),
     [conversations, selectedConversationId],
   );
+
+  const otherParticipantNameFallback =
+    selectedConversation?.otherParticipantName ||
+    ownerNameFromQuery ||
+    (isArabic ? "مستخدم" : "User");
 
   const recipientUserId = selectedConversation?.otherParticipantId ?? ownerId;
   const listingId = selectedConversation?.listingId || listingIdFromQuery;
@@ -1131,8 +1137,7 @@ export default function MessagesPage() {
           lastMessageAt: serverMessage.createdAt,
           lastMessageSenderId: userId,
           otherParticipantId: recipientUserId,
-          otherParticipantName:
-            selectedConversation?.otherParticipantName || "User",
+          otherParticipantName: otherParticipantNameFallback,
           otherParticipantIsOnline: onlineUserIds.has(recipientUserId),
           otherParticipantLastSeenAt: peerLastSeen,
           unreadCount: 0,
@@ -1168,6 +1173,7 @@ export default function MessagesPage() {
     peerLastSeen,
     recipientUserId,
     selectedConversation,
+    otherParticipantNameFallback,
     selectedConversationId,
     sendTypingStop,
     userId,
@@ -1490,7 +1496,7 @@ export default function MessagesPage() {
         }`}
       >
         {/* Chat header */}
-        <header className="sticky top-0 z-40 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/80 dark:bg-[#0d1c2d]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
+        <header className="fixed top-0 inset-x-0 lg:sticky lg:top-0 z-40 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
           {/* Left/Start: back + avatar + info */}
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile back arrow */}
@@ -1505,13 +1511,13 @@ export default function MessagesPage() {
               />
             </button>
 
-            {selectedConversation ? (
+            {selectedConversation || ownerNameFromQuery ? (
               <>
                 <div className="relative shrink-0">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${getAvatarColor(selectedConversation.otherParticipantId)}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${getAvatarColor(recipientUserId || "guest")}`}
                   >
-                    {getInitials(selectedConversation.otherParticipantName)}
+                    {getInitials(otherParticipantNameFallback)}
                   </div>
                   {peerOnline && (
                     <span className="absolute bottom-0 inset-e-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0d1c2d]" />
@@ -1519,7 +1525,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                    {selectedConversation.otherParticipantName}
+                    {otherParticipantNameFallback}
                   </h2>
                   <div className="flex items-center gap-1.5">
                     {peerOnline ? (
@@ -1602,7 +1608,7 @@ export default function MessagesPage() {
 
         {/* In-conversation search bar */}
         {showMsgSearch && selectedConversationId && (
-          <div className="px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
+          <div className="mt-16 lg:mt-0 px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1">
               <MdSearch size={16} className="text-slate-400 shrink-0" />
               <input
@@ -1635,7 +1641,7 @@ export default function MessagesPage() {
         {/* ── Chat canvas (dot-pattern background) ── */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-4 lg:px-10 py-6 bg-[#f6faff] dark:bg-[#051424] bg-[radial-gradient(rgba(0,101,145,0.065)_0.5px,transparent_0.5px)] dark:bg-[radial-gradient(rgba(137,206,255,0.05)_0.5px,transparent_0.5px)] bg-size-[24px_24px] [scrollbar-width:thin]"
+          className="pt-16 lg:pt-0 flex-1 overflow-y-auto px-4 lg:px-10 py-6 bg-[#f6faff] dark:bg-[#051424] bg-[radial-gradient(rgba(0,101,145,0.065)_0.5px,transparent_0.5px)] dark:bg-[radial-gradient(rgba(137,206,255,0.05)_0.5px,transparent_0.5px)] bg-size-[24px_24px] [scrollbar-width:thin]"
         >
           {!selectedConversationId ? (
             <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-400 dark:text-slate-600">

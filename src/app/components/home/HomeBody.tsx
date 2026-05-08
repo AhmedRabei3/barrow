@@ -45,11 +45,7 @@ const HomeBody = ({
     () => items.filter((it) => Boolean(it.item.isFeatured)),
     [items],
   );
-  // Only use dedicated featured API result (not fallback from main items) to
-  // avoid the CLS caused by fallbackFeaturedItems appearing when main items load.
-  // featuredItems === undefined  → still loading (show skeleton placeholder)
-  // featuredItems === []         → loaded, none found
-  // featuredItems.length > 0    → has dedicated featured items
+
   const topFeaturedItems = useMemo(
     () =>
       featuredItems !== undefined && featuredItems.length > 0
@@ -108,7 +104,7 @@ const HomeBody = ({
   ) {
     return <Tryagain isArabic={isArabic} refetch={onRefresh} />;
   }
-
+  
   /** 🔹 المكون الرئيسي */
   return (
     <Container>

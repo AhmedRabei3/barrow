@@ -1,5 +1,5 @@
 import { TransactionType } from "@prisma/client";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
 interface Props {
@@ -15,6 +15,13 @@ const SellRentSwitch = ({
 }: Props) => {
   const { isArabic } = useAppPreferences();
   const isMobile = layout === "mobile";
+  const handleSell = useCallback(() => {
+    handelSellOrRent("SELL");
+  }, [handelSellOrRent]);
+
+  const handleRent = useCallback(() => {
+    handelSellOrRent("RENT");
+  }, [handelSellOrRent]);
 
   return (
     <div
@@ -26,7 +33,7 @@ const SellRentSwitch = ({
        `}
     >
       <button
-        onClick={() => handelSellOrRent("SELL")}
+        onClick={handleSell}
         className={`${isMobile ? "px-2.5 py-1.5 text-[10px] md:text-xs" : "px-3 py-1 text-xs w-full"} overflow-hidden font-medium leading-tight transition-colors ${
           sellOrRent === TransactionType.SELL
             ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white"
@@ -36,7 +43,7 @@ const SellRentSwitch = ({
         {isArabic ? "شراء" : "Buy"}
       </button>
       <button
-        onClick={() => handelSellOrRent("RENT")}
+        onClick={handleRent}
         className={`${isMobile ? "px-2.5 py-1.5 text-[10px] md:text-xs" : "px-3 py-1 text-xs rounded-b-xl"} font-medium leading-tight transition-colors ${
           sellOrRent === "RENT"
             ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white"

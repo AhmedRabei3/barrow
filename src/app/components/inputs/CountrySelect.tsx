@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Select from "react-select";
 import useCountries from "@/app/hooks/useCountries";
 
@@ -18,6 +19,27 @@ interface CountrySelectProps {
 
 const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange }) => {
   const { getAll } = useCountries();
+
+  const handleChange = useCallback(
+    (nextValue: CountrySelectValue | null) => {
+      onChange(nextValue ?? undefined);
+    },
+    [onChange],
+  );
+
+  const handleFormatOptionLabel = useCallback(
+    (option: CountrySelectValue) => (
+      <div className="flex flex-row items-center gap-3">
+        <div>{option.flag}</div>
+        <div>
+          {option.label},
+          <span className="text-neutral-500 ml-l">{option.region}</span>
+        </div>
+      </div>
+    ),
+    [],
+  );
+
   return (
     <div>
       <Select
@@ -25,16 +47,8 @@ const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange }) => {
         isClearable
         options={getAll()}
         value={value}
-        onChange={(nextValue) => onChange(nextValue ?? undefined)}
-        formatOptionLabel={(option: CountrySelectValue) => (
-          <div className="flex flex-row items-center gap-3">
-            <div>{option.flag}</div>
-            <div>
-              {option.label},
-              <span className="text-neutral-500 ml-l">{option.region}</span>
-            </div>
-          </div>
-        )}
+        onChange={handleChange}
+        formatOptionLabel={handleFormatOptionLabel}
         classNames={{
           control: () => "p-3 border-2",
           input: () => "text-lg",

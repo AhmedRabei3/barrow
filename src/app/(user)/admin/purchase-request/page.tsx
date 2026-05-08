@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Unassigned from "./tabs/Unassigned";
 import MyPurchaseRequests from "./tabs/MyRequests";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
@@ -11,6 +11,8 @@ export default function PurchaseRequestsPage() {
   const { isArabic } = useAppPreferences();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const [activeTab, setActiveTab] = useState<Tab>("new");
+  const showNewRequests = useCallback(() => setActiveTab("new"), []);
+  const showMyRequests = useCallback(() => setActiveTab("mine"), []);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -20,17 +22,11 @@ export default function PurchaseRequestsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
-        <TabButton
-          active={activeTab === "new"}
-          onClick={() => setActiveTab("new")}
-        >
+        <TabButton active={activeTab === "new"} onClick={showNewRequests}>
           {t("الطلبات الجديدة", "New requests")}
         </TabButton>
 
-        <TabButton
-          active={activeTab === "mine"}
-          onClick={() => setActiveTab("mine")}
-        >
+        <TabButton active={activeTab === "mine"} onClick={showMyRequests}>
           {t("طلباتي", "My requests")}
         </TabButton>
       </div>

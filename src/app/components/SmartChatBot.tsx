@@ -1447,6 +1447,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
   };
 
   const resetConversation = () => {
+    editingFromReviewRef.current = false;
     setItemType(null);
     setAssistantMode("home");
     setEditItemId(null);
@@ -1682,6 +1683,10 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     moveToNextQuestion(currentQuestion.index, nextAnswers);
   };
 
+  // Keep a stable reference so UI callbacks do not depend on handleAnswer identity.
+  const handleAnswerRef = useRef(handleAnswer);
+  handleAnswerRef.current = handleAnswer;
+
   const handleSelectEditField = (questionIndex: number, fieldLabel: string) => {
     setEditingMessageId(null);
     setSelectedEditableMessageId(null);
@@ -1730,6 +1735,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
     setSelectedEditableFieldKey(message.questionKey ?? selectedQuestion.key);
     setSelectedEditableMessageId(message.id);
     setEditingMessageId(message.id);
+    editingFromReviewRef.current = isReadyToSubmit;
     setIsReadyToSubmit(false);
     setActiveIndex(message.questionIndex);
 
@@ -1800,6 +1806,46 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
       maxHeight: `${availableHeight}px`,
     };
   }, [isCompactViewport, viewportMetrics.height]);
+
+  // Callback handlers for JSX props
+  const handleMultiSelectConfirm = useCallback(
+    (values: unknown) =>
+      void handleAnswerRef.current(
+        values as string | string[] | File[] | LocationSelection,
+      ),
+    [],
+  );
+
+  const handleImageConfirm = useCallback(() => {
+    void handleAnswerRef.current(selectedImages);
+  }, [selectedImages]);
+
+  const handleLocationSelectChange = useCallback((location: unknown) => {
+    setSelectedLocation(location as typeof selectedLocation);
+  }, []);
+
+  const handleLocationConfirm = useCallback(() => {
+    if (!selectedLocation) return;
+    void handleAnswerRef.current(selectedLocation);
+  }, [selectedLocation]);
+
+  const handleTextInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setTextInput(event.target.value);
+    },
+    [],
+  );
+
+  const handleSubmitText = useCallback(() => {
+    const value = textInput.trim();
+    if (!value && currentQuestion?.required === false) {
+      void handleAnswerRef.current("");
+      setTextInput("");
+    } else if (value) {
+      void handleAnswerRef.current(value);
+      setTextInput("");
+    }
+  }, [textInput, currentQuestion?.required]);
 
   return (
     <div
@@ -2166,7 +2212,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
           !isReadyToSubmit && (
             <MultiSelectComposer
               options={currentQuestion.options || []}
-              onConfirm={(values) => handleAnswer(values)}
+              onConfirm={handleMultiSelectConfirm}
               disabled={isLoading}
             />
           )}
@@ -2181,7 +2227,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               type="button"
               disabled={selectedImages.length === 0 || isLoading}
               className={`w-full ${primaryButtonClass}`}
-              onClick={() => handleAnswer(selectedImages)}
+              onClick={handleImageConfirm}
             >
               {tc("confirmImages")} ({selectedImages.length})
             </button>
@@ -2195,18 +2241,13 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
               <MapPicker
                 radius={600}
                 initialCenter={mapInitialCenter}
-                onLocationSelect={(location) => {
-                  setSelectedLocation(location);
-                }}
+                onLocationSelect={handleLocationSelectChange}
               />
               <button
                 type="button"
                 disabled={!selectedLocation || isLoading}
                 className={`w-full ${primaryButtonClass}`}
-                onClick={() => {
-                  if (!selectedLocation) return;
-                  handleAnswer(selectedLocation);
-                }}
+                onClick={handleLocationConfirm}
               >
                 {tc("confirmLocation")}
               </button>
@@ -2222,7 +2263,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
             <input
               name="smartChatTextInput"
               value={textInput}
-              onChange={(event) => setTextInput(event.target.value)}
+              onChange={handleTextInputChange}
               placeholder={
                 currentQuestion?.placeholder || tc("answerPlaceholder")
               }
@@ -2243,17 +2284,7 @@ const SmartChatBot = ({ onClose }: SmartChatBotProps) => {
                  hover:shadow-md
                   transition-all
                   p-1"
-              onClick={() => {
-                const value = textInput.trim();
-                if (!value && currentQuestion?.required === false) {
-                  handleAnswer("");
-                  setTextInput("");
-                  return;
-                }
-                if (!value) return;
-                handleAnswer(value);
-                setTextInput("");
-              }}
+              onClick={handleSubmitText}
             >
               <DynamicIcon iconName="BsSendFill" size={18} />
             </button>

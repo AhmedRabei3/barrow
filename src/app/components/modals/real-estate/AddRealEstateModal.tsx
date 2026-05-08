@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import h from "@/app/hooks";
 import Modal from "../Modal";
 import { FieldValues, SubmitHandler } from "react-hook-form";
@@ -84,17 +84,24 @@ const AddPropertyModal = () => {
     />,
   ];
 
-  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
-    await submitMethod({
-      selectedImages,
-      data,
-      setIsLoading,
-      url: "/api/realestate",
-      router,
-      onClose,
-      reset,
-    });
-  };
+  const onSubmit = useCallback<SubmitHandler<FieldValues>>(
+    async (data) => {
+      await submitMethod({
+        selectedImages,
+        data,
+        setIsLoading,
+        url: "/api/realestate",
+        router,
+        onClose,
+        reset,
+      });
+    },
+    [onClose, reset, router, selectedImages],
+  );
+
+  const handleModalSubmit = useCallback(() => {
+    void handleSubmit(onSubmit)();
+  }, [handleSubmit, onSubmit]);
 
   return (
     <Modal
@@ -104,7 +111,7 @@ const AddPropertyModal = () => {
       actionLabel={isArabic ? "حفظ" : "Save"}
       onClose={onClose}
       reset={reset}
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleModalSubmit}
       body={
         <Wizard
           onSubmit={onSubmit}

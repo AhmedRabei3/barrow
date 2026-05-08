@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
+
+const REFERRAL_CHAT_LISTING_ID = "referral-direct-chat-v1";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // أنواع البيانات
@@ -85,6 +87,9 @@ const InviteeCard = ({
   onMessage: (userId: string, name: string) => void;
 }) => {
   const { isArabic } = useAppPreferences();
+  const handleMessageClick = useCallback(() => {
+    onMessage(user.userId, user.name);
+  }, [onMessage, user.name, user.userId]);
 
   return (
     <div
@@ -132,13 +137,14 @@ const InviteeCard = ({
               : "Pending"}
         </span>
 
-        {/* زر المراسلة — يفتح الدردشة مع المدعو */}
+        {/* زر المراسلة — يفتح دردشة مباشرة مع المدعو */}
         <button
-          onClick={() => onMessage(user.userId, user.name)}
+          type="button"
+          onClick={handleMessageClick}
           aria-label={isArabic ? `مراسلة ${user.name}` : `Message ${user.name}`}
-          title={isArabic ? "مراسلة" : "Message"}
+          title={isArabic ? "دردشة" : "Chat"}
           className="
-            flex h-8 w-8 items-center justify-center
+            inline-flex h-8 items-center justify-center gap-1.5 px-2.5
             rounded-xl
             border border-slate-200 dark:border-slate-700
             bg-sky-50 dark:bg-sky-900/30
@@ -148,6 +154,9 @@ const InviteeCard = ({
           "
         >
           <DynamicIcon iconName="MdChat" size={16} />
+          <span className="text-[11px] font-semibold leading-none">
+            {isArabic ? "دردشة" : "Chat"}
+          </span>
         </button>
       </div>
     </div>
@@ -195,32 +204,59 @@ const InvitedFriendsSection = () => {
   const pendingCount = referrals.filter((r) => !r.isActive).length;
 
   // فتح صفحة الرسائل مع المدعو
-  const handleMessage = (userId: string, name: string) => {
-    // نفتح صفحة الرسائل ونحدد المستخدم الآخر فقط بدون listing محدد
-    // سيبدأ المستخدم محادثة مع المدعو يدوياً
-    router.push(
-      `/messages?ownerId=${userId}&title=${encodeURIComponent(name)}`,
-    );
-  };
+  const handleMessage = useCallback(
+    (userId: string, name: string) => {
+      // نستخدم listingId ثابتًا لمحادثات الإحالة حتى تفتح محادثة مباشرة
+      const chatTitle = isArabic
+        ? `دردشة إحالة مع ${name}`
+        : `Referral chat with ${name}`;
+
+      router.push(
+        `/messages?ownerId=${encodeURIComponent(userId)}&ownerName=${encodeURIComponent(name)}&listingId=${encodeURIComponent(REFERRAL_CHAT_LISTING_ID)}&itemType=REFERRAL&title=${encodeURIComponent(chatTitle)}`,
+      );
+    },
+    [isArabic, router],
+  );
+
+  const showAllInvites = useCallback(() => {
+    setActiveTab("ALL");
+  }, []);
+
+  const showActivatedInvites = useCallback(() => {
+    setActiveTab("ACTIVATED");
+  }, []);
+
+  const showPendingInvites = useCallback(() => {
+    setActiveTab("PENDING");
+  }, []);
 
   const tabs: {
     key: InviteeTab;
     labelAr: string;
     labelEn: string;
     count: number;
+    onClick: () => void;
   }[] = [
-    { key: "ALL", labelAr: "الكل", labelEn: "All", count: referrals.length },
+    {
+      key: "ALL",
+      labelAr: "الكل",
+      labelEn: "All",
+      count: referrals.length,
+      onClick: showAllInvites,
+    },
     {
       key: "ACTIVATED",
       labelAr: "مفعّلون",
       labelEn: "Activated",
       count: activatedCount,
+      onClick: showActivatedInvites,
     },
     {
       key: "PENDING",
       labelAr: "بانتظار التفعيل",
       labelEn: "Pending",
       count: pendingCount,
+      onClick: showPendingInvites,
     },
   ];
 
@@ -257,7 +293,7 @@ const InvitedFriendsSection = () => {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={tab.onClick}
             className={`
               shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold
               transition-colors duration-200

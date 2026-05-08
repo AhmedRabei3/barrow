@@ -178,9 +178,24 @@ const HomeTab = ({
     };
   }, [loadAvailableTabs]);
 
-  const handleSelectType = (value: string) => {
-    onSelectTab(value as PrimaryCategoryKey);
-  };
+  const handleSelectType = useCallback(
+    (value: string) => {
+      onSelectTab(value as PrimaryCategoryKey);
+    },
+    [onSelectTab],
+  );
+
+  const handleTabClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const nextKey = event.currentTarget.dataset.key;
+      if (!nextKey) {
+        return;
+      }
+
+      onSelectTab(nextKey as PrimaryCategoryKey);
+    },
+    [onSelectTab],
+  );
 
   return (
     <>
@@ -205,7 +220,8 @@ const HomeTab = ({
               <button
                 key={item.key}
                 type="button"
-                onClick={() => onSelectTab(item.key)}
+                data-key={item.key}
+                onClick={handleTabClick}
                 className={`
                   group relative mx-0.5 flex cursor-pointer select-none items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-all duration-300 xl:px-4
                   ${isActive ? "bg-linear-to-r from-blue-500 to-indigo-500 text-white shadow-md" : "text-gray-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300"}

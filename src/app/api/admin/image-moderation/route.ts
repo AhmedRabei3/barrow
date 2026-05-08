@@ -543,15 +543,15 @@ export async function POST(req: NextRequest) {
         data: {
           userId: itemOwner.ownerId,
           title: approved
-            ? t("✅ تمت الموافقة على صور العنصر", "✅ Item images approved")
+            ? t("✅ تمت الموافقة على العنصر", "✅ Item approved")
             : t(
                 "⚠️ تحتاج صور العنصر إلى تعديل",
                 "⚠️ Item images need revision",
               ),
           message: approved
             ? t(
-                "تمت مراجعة صور عنصرِك وأصبح الإعلان منشوراً الآن.",
-                "Your item images were reviewed and the listing is now published.",
+                "تمت مراجعة عنصرِك وأصبح الإعلان منشوراً الآن.",
+                "Your item was reviewed and the listing is now published.",
               )
             : body.note?.trim() ||
               t(

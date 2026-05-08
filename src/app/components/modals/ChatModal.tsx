@@ -5,7 +5,7 @@ import ChatInterface from "../ChatInterface";
 import MapPicker from "../modals/mapPicker/MapPickerModal";
 import ImageUpload from "../imageUploader/ImageUpload";
 import { FieldValues, UseFormSetValue } from "react-hook-form";
-import React, { SetStateAction } from "react";
+import React, { SetStateAction, useCallback } from "react";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
 type ChatOption = {
@@ -59,6 +59,31 @@ const ChatModal = ({
 }: ChatModalProps) => {
   const { isArabic } = useAppPreferences();
 
+  const handleLocationSelect = useCallback(
+    (loc: {
+      lat: number;
+      lng: number;
+      address?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+    }) => {
+      setValue("location", {
+        lat: loc.lat,
+        lng: loc.lng,
+        address: loc.address,
+        city: loc.city,
+        state: loc.state,
+        country: loc.country,
+      });
+    },
+    [setValue],
+  );
+
+  const handleConfirmLocation = useCallback(() => {
+    setStep("images");
+  }, [setStep]);
+
   return (
     <AnimatePresence>
       <motion.div className="fixed inset-0 bg-black/50 flex justify-center items-center z-40">
@@ -76,18 +101,9 @@ const ChatModal = ({
             <div className="flex flex-col h-full">
               <MapPicker
                 radius={1000}
-                onLocationSelect={(loc) =>
-                  setValue("location", {
-                    lat: loc.lat,
-                    lng: loc.lng,
-                    address: loc.address,
-                    city: loc.city,
-                    state: loc.state,
-                    country: loc.country,
-                  })
-                }
+                onLocationSelect={handleLocationSelect}
               />
-              <button className="btn-primary" onClick={() => setStep("images")}>
+              <button className="btn-primary" onClick={handleConfirmLocation}>
                 {isArabic ? "تأكيد الموقع" : "Confirm location"}
               </button>
             </div>

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { MdOutlineRefresh } from "react-icons/md";
 import toast from "react-hot-toast";
+import { MdOutlineRefresh } from "react-icons/md";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { ARABIC_LATIN_DIGITS_LOCALE } from "@/lib/locale-format";
 
@@ -110,14 +110,6 @@ export default function MyPurchaseRequests() {
             <Link
               href={`/admin/purchase-request/${req.id}`}
               className="mt-2 text-sm text-cyan-700 dark:text-cyan-300 hover:underline"
-              onClick={() =>
-                toast(
-                  t(
-                    "سيتم لاحقًا فتح صفحة تفاصيل الطلب",
-                    "Request details page will open",
-                  ),
-                )
-              }
               // TODO replace with link (/admin/purchase-request/[requestId])
             >
               {t("متابعة الطلب", "Track request")}

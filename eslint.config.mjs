@@ -11,6 +11,22 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      // Guardrail: reduce inline function props that trigger avoidable child re-renders.
+      "react/jsx-no-bind": [
+        "warn",
+        {
+          allowArrowFunctions: false,
+          allowFunctions: false,
+          allowBind: false,
+          ignoreDOMComponents: true,
+        },
+      ],
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

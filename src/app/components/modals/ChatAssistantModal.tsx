@@ -325,6 +325,17 @@ const ChatAssistantModal = ({
     onSuccess?.();
   };
 
+  const handleLocationSelect = useCallback(
+    (loc: { lat: number; lng: number }) => {
+      setValue("location", { lat: loc.lat, lng: loc.lng });
+    },
+    [setValue],
+  );
+
+  const handleConfirmLocation = useCallback(() => {
+    setStep("images");
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -345,15 +356,13 @@ const ChatAssistantModal = ({
               <div className="flex-1 overflow-y-auto p-3 sm:p-4">
                 <MapPicker
                   radius={1000}
-                  onLocationSelect={(loc) =>
-                    setValue("location", { lat: loc.lat, lng: loc.lng })
-                  }
+                  onLocationSelect={handleLocationSelect}
                 />
               </div>
               <div className="border-t border-slate-200 p-3 dark:border-slate-800 sm:p-4">
                 <button
                   className="btn-primary w-full"
-                  onClick={() => setStep("images")}
+                  onClick={handleConfirmLocation}
                 >
                   {t("تأكيد الموقع", "Confirm location")}
                 </button>

@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { buildChatConversationId } from "@/lib/chatConversation";
-import { isUserConnected, publishChatMessageEvent } from "@/lib/websocketServer";
+import {
+  isUserConnected,
+  publishChatMessageEvent,
+} from "@/lib/websocketServer";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { sendChatPushNotification } from "@/server/firebase/push";
@@ -88,7 +91,11 @@ export async function GET(req: NextRequest) {
     });
 
     if (!conversation) {
-      return NextResponse.json({ messages: [], hasMore: false, nextCursor: null });
+      return NextResponse.json({
+        messages: [],
+        hasMore: false,
+        nextCursor: null,
+      });
     }
 
     if (!conversation.participantIds.includes(userId)) {
@@ -106,7 +113,7 @@ export async function GET(req: NextRequest) {
 
     const nextCursor =
       messages.length > 0
-        ? (messages[messages.length - 1]!.createdAt.toISOString())
+        ? messages[messages.length - 1]!.createdAt.toISOString()
         : null;
 
     return NextResponse.json({
@@ -167,8 +174,22 @@ export async function POST(req: NextRequest) {
     } = parsed.data;
     const text = normalizeMessageText(parsed.data.text);
 
+    const recipientUser = await prisma.user.findUnique({
+      where: { id: recipientUserId },
+      select: { id: true, name: true, isDeleted: true },
+    });
+
     if (!text) {
-      return NextResponse.json({ message: "Message is empty" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Message is empty" },
+        { status: 400 },
+      );
+    }
+    if (!recipientUser || recipientUser.isDeleted) {
+      return NextResponse.json(
+        { message: "Recipient user not found" },
+        { status: 404 },
+      );
     }
     if (recipientUserId === senderUserId) {
       return NextResponse.json(
@@ -234,6 +255,7 @@ export async function POST(req: NextRequest) {
         const participantNames: Record<string, string> = {
           ...existingNames,
           [senderUserId]: session.user.name ?? "User",
+          [recipientUserId]: recipientUser.name ?? "User",
         };
 
         await tx.chatConversation.upsert({

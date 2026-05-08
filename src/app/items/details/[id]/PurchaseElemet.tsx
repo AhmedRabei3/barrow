@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
@@ -85,6 +85,11 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
     }
   };
 
+  const handleCloseModal = useCallback(() => {
+    setOpen(false);
+    reset();
+  }, [reset]);
+
   return (
     <div className="bg-emerald-50 rounded-xl shadow-md p-4 flex flex-col gap-4">
       {title && (
@@ -125,18 +130,12 @@ const PurchaseElement = ({ data, itemType }: PurchaseElementProps) => {
       <Modal
         isOpen={open}
         disabled={loading}
-        onClose={() => {
-          setOpen(false);
-          reset();
-        }}
+        onClose={handleCloseModal}
         onSubmit={handleSubmit(submitPurchaseRequest)}
         title={isArabic ? "طلب شراء" : "Purchase Request"}
         actionLabel={isArabic ? "إرسال الطلب" : "Send Request"}
         secondaryActionLabel={isArabic ? "إلغاء" : "Cancel"}
-        secondaryAction={() => {
-          setOpen(false);
-          reset();
-        }}
+        secondaryAction={handleCloseModal}
         body={
           <div className="flex flex-col gap-4">
             <Heading

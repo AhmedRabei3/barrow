@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DateRange, Range, RangeKeyDict } from "react-date-range";
 import { addDays, addMonths, addWeeks, isWithinInterval } from "date-fns";
 import "react-date-range/dist/styles.css";
@@ -28,11 +28,14 @@ const BookingDateRange: React.FC<BookingDateRangeProps> = ({
   /**
    * 🧠 دالة تتحقق مما إذا كان اليوم المحدد محجوزًا
    */
-  const isDateBooked = (date: Date) => {
-    return bookedDates.some(({ start, end }) =>
-      isWithinInterval(date, { start, end }),
-    );
-  };
+  const isDateBooked = useCallback(
+    (date: Date) => {
+      return bookedDates.some(({ start, end }) =>
+        isWithinInterval(date, { start, end }),
+      );
+    },
+    [bookedDates],
+  );
 
   /**
    * 🧩 توليد نهاية افتراضية حسب نوع الإيجار
@@ -62,15 +65,23 @@ const BookingDateRange: React.FC<BookingDateRangeProps> = ({
   /**
    * 🎯 عند اختيار المستخدم نطاق جديد
    */
-  const handleSelect = (ranges: RangeKeyDict) => {
-    const selected = ranges.selection;
-    if (!selected?.startDate || !selected?.endDate) return;
-    setRange([selected]);
-    onSelectRange({
-      startDate: selected.startDate,
-      endDate: selected.endDate,
-    });
-  };
+  const handleSelect = useCallback(
+    (ranges: RangeKeyDict) => {
+      const selected = ranges.selection;
+      if (!selected?.startDate || !selected?.endDate) return;
+      setRange([selected]);
+      onSelectRange({
+        startDate: selected.startDate,
+        endDate: selected.endDate,
+      });
+    },
+    [onSelectRange],
+  );
+
+  const handleDisabledDay = useCallback(
+    (date: Date) => isDateBooked(date),
+    [isDateBooked],
+  );
 
   return (
     <div className="flex flex-col items-center gap-3 w-full">
@@ -85,7 +96,7 @@ const BookingDateRange: React.FC<BookingDateRangeProps> = ({
         minDate={new Date()}
         rangeColors={["#3b82f6"]}
         direction="horizontal"
-        disabledDay={(date) => isDateBooked(date)} // 🚫 منع الأيام المحجوزة
+        disabledDay={handleDisabledDay} // 🚫 منع الأيام المحجوزة
       />
 
       {/* 🩶 توضيح مرئي أسفل التقويم */}

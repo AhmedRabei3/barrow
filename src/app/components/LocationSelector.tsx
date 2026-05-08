@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FieldErrors, FieldValues, UseFormSetValue } from "react-hook-form";
 import MapPicker from "./modals/mapPicker/MapPickerModal";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
@@ -19,6 +19,23 @@ const LocationSelector = ({ setValue, errors }: LocationSelectorProps) => {
     country: "",
   });
 
+  const handleLocationSelect = useCallback(
+    (loc: typeof locationInfo & { lat: number; lng: number }) => {
+      setValue("latitude", loc.lat, { shouldValidate: true });
+      setValue("longitude", loc.lng, { shouldValidate: true });
+      setValue("city", loc.city, { shouldValidate: true });
+      setValue("address", loc.address, {
+        shouldValidate: true,
+      });
+      setValue("state", loc.state);
+      setValue("country", loc.country, {
+        shouldValidate: true,
+      });
+      setLocationInfo(loc);
+    },
+    [setValue],
+  );
+
   return (
     <div>
       <div className="flex flex-col gap-2">
@@ -26,22 +43,7 @@ const LocationSelector = ({ setValue, errors }: LocationSelectorProps) => {
           <p className="text-sm text-gray-700">
             {isArabic ? "اختر الموقع" : "Select Location"}
           </p>
-          <MapPicker
-            radius={1000}
-            onLocationSelect={(loc) => {
-              setValue("latitude", loc.lat, { shouldValidate: true });
-              setValue("longitude", loc.lng, { shouldValidate: true });
-              setValue("city", loc.city, { shouldValidate: true });
-              setValue("address", loc.address, {
-                shouldValidate: true,
-              });
-              setValue("state", loc.state);
-              setValue("country", loc.country, {
-                shouldValidate: true,
-              });
-              setLocationInfo(loc);
-            }}
-          />
+          <MapPicker radius={1000} onLocationSelect={handleLocationSelect} />
         </div>
 
         {(errors.latitude || errors.longitude) && (

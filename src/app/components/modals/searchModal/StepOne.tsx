@@ -1,11 +1,11 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Filters } from "@/app/hooks/useSearchFilters";
 import QuestionContainer from "./Question";
 import Choice from "./Choice";
 import categoryFetcher from "../../category/CategoryFetcher";
-import { ItemType } from "@prisma/client";
+import { ItemType, TransactionType } from "@prisma/client";
 import CityCountrySelect from "./CityCountrySelect";
 import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 import {
@@ -45,6 +45,25 @@ const StepOne = ({ filters, onChange }: StepOneProps) => {
     [categories],
   );
 
+  const handleActionChange = useCallback(
+    (value: string) => {
+      onChange("action", value as TransactionType);
+    },
+    [onChange],
+  );
+
+  const handleTypeChange = useCallback(
+    (value: string) => {
+      onChange("type", value as ItemType);
+    },
+    [onChange],
+  );
+
+  const handleCategoryChange = useCallback(
+    (value: string) => onChange("catName", value),
+    [onChange],
+  );
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <CityCountrySelect />
@@ -56,7 +75,7 @@ const StepOne = ({ filters, onChange }: StepOneProps) => {
           value: index === 0 ? "RENT" : "SELL",
         }))}
         selected={filters.action ?? "SELL"}
-        onSelect={(v) => onChange("action", v as Filters["action"])}
+        onSelect={handleActionChange}
       />
 
       <Choice
@@ -75,16 +94,14 @@ const StepOne = ({ filters, onChange }: StepOneProps) => {
                     : "PROPERTY",
         }))}
         selected={filters.type ?? "CAR"}
-        onSelect={(v) =>
-          onChange("type", v === "CAR" ? undefined : (v as ItemType))
-        }
+        onSelect={handleTypeChange}
       />
 
       <Choice
         question={SEARCH_MODAL_TEXT.exactCategory[locale]}
         options={subCategoryOptions}
         selected={filters.catName ?? ""}
-        onSelect={(v) => onChange("catName", v)}
+        onSelect={handleCategoryChange}
       />
 
       <QuestionContainer title={SEARCH_MODAL_TEXT.minPrice[locale]}>

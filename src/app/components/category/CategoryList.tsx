@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useMemo, useRef, useCallback } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import type { CategoryItem } from "./types";
@@ -17,11 +17,12 @@ const CategoryList = ({
   isFiltering = false,
 }: ListProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const uniqueList = Array.from(
-    new Map(list.map((item) => [item.name, item])).values(),
+  const uniqueList = useMemo(
+    () => Array.from(new Map(list.map((item) => [item.name, item])).values()),
+    [list],
   );
 
-  const scroll = (direction: "left" | "right") => {
+  const scroll = useCallback((direction: "left" | "right") => {
     if (!scrollRef.current) return;
     const { scrollLeft, clientWidth } = scrollRef.current;
     const scrollAmount =
@@ -30,14 +31,17 @@ const CategoryList = ({
       left: scrollLeft + scrollAmount,
       behavior: "smooth",
     });
-  };
+  }, []);
+
+  const handleScrollLeft = useCallback(() => scroll("left"), [scroll]);
+  const handleScrollRight = useCallback(() => scroll("right"), [scroll]);
 
   return (
     <>
       {" "}
       <button
         type="button"
-        onClick={() => scroll("left")}
+        onClick={handleScrollLeft}
         aria-label="Scroll categories left"
         className="absolute left-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-800 p-2 rounded-full transition-all duration-200 disabled:opacity-30 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
@@ -90,7 +94,7 @@ const CategoryList = ({
       </div>
       <button
         type="button"
-        onClick={() => scroll("right")}
+        onClick={handleScrollRight}
         aria-label="Scroll categories right"
         className="absolute right-0 z-10 bg-white shadow-md hover:bg-sky-100 text-sky-600 p-2 rounded-full transition-all duration-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-sky-300"
       >
@@ -100,4 +104,4 @@ const CategoryList = ({
   );
 };
 
-export default CategoryList;
+export default memo(CategoryList);

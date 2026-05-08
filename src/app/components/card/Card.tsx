@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState, FC, Dispatch } from "react";
+import { memo, useCallback, useEffect, useState, FC, Dispatch } from "react";
 import Link from "next/link";
 import ToolBox from "./ToolBox";
 import LikeBtn from "./LikeBtn";
@@ -75,6 +75,10 @@ const Card: FC<CardProps> = ({
     }
   }, [currentIndex, itemImages.length]);
 
+  const handleDotClick = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
+
   if (!grandItem || !item) return <p>No item to preview</p>;
 
   const { brand, model } = item;
@@ -128,7 +132,6 @@ const Card: FC<CardProps> = ({
         : [],
   };
 
-  const handleDotClick = (index: number) => setCurrentIndex(index);
   const itemType =
     ("category" in grandItem &&
       ((grandItem as GrandItem).category?.type as

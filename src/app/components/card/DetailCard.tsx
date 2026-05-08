@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { $Enums } from "@prisma/client";
@@ -108,6 +108,14 @@ const DetailCard = ({
         : `/ ${rentTypeLabelMap[item.rentType ?? ""]?.en ?? "period"}`
       : null;
 
+  const handleMenuOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setIsStateMenuOpen(isOpen);
+      onMenuOpenChange?.(isOpen);
+    },
+    [onMenuOpenChange],
+  );
+
   return (
     <div
       className={`relative rounded-[18px] dark:border-b
@@ -163,7 +171,7 @@ const DetailCard = ({
         </div>
       </div>
 
-      <div className="mt-3 flex items-start just ify-between gap-3 z-index-999">
+      <div className="mt-3 flex items-start justify-between gap-3 z-index-999">
         <OwnerListingStateControl
           itemId={item.id}
           itemType={itemType}
@@ -173,10 +181,7 @@ const DetailCard = ({
           initialManualRentalEndsAt={item.manualRentalEndsAt}
           isOwner={isOwnerCard}
           onSaved={onStatusChanged}
-          onMenuOpenChange={(isOpen) => {
-            setIsStateMenuOpen(isOpen);
-            onMenuOpenChange?.(isOpen);
-          }}
+          onMenuOpenChange={handleMenuOpenChange}
         />
         {averageRatingText ? (
           <span

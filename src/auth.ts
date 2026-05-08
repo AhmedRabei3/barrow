@@ -91,6 +91,10 @@ export const authOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
+  pages: {
+    signIn: "/",
+    error: "/auth/error",
+  },
   events: {
     async createUser({ user }) {
       if (!user.id) {

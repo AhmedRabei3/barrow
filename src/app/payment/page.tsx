@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { request } from "@/app/utils/axios";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
+import StatusCard from "@/app/components/ui/StatusCard";
 
 type PaymentState = "loading" | "success" | "cancelled" | "error";
 const ACTIVATION_PENDING_KEY = "barrow:activation-celebration-pending";
@@ -113,30 +114,31 @@ export default function PaymentPage() {
     return () => window.clearTimeout(timeout);
   }, [router, state]);
 
-  return (
-    <main className="mx-auto flex min-h-[60vh] max-w-xl items-center justify-center px-4 py-12">
-      <section className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-          {state === "success"
-            ? isArabic
-              ? "تم الدفع بنجاح"
-              : "Payment Successful"
-            : state === "cancelled"
-              ? isArabic
-                ? "تم إلغاء العملية"
-                : "Payment Cancelled"
-              : state === "error"
-                ? isArabic
-                  ? "تعذر إكمال العملية"
-                  : "Payment Failed"
-                : isArabic
-                  ? "جارٍ تأكيد الدفع"
-                  : "Confirming Payment"}
-        </h1>
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-          {message}
-        </p>
-      </section>
-    </main>
-  );
+  const title =
+    state === "success"
+      ? isArabic
+        ? "تم الدفع بنجاح"
+        : "Payment Successful"
+      : state === "cancelled"
+        ? isArabic
+          ? "تم إلغاء العملية"
+          : "Payment Cancelled"
+        : state === "error"
+          ? isArabic
+            ? "تعذر إكمال العملية"
+            : "Payment Failed"
+          : isArabic
+            ? "جارٍ تأكيد الدفع"
+            : "Confirming Payment";
+
+  const tone =
+    state === "success"
+      ? "success"
+      : state === "cancelled"
+        ? "warning"
+        : state === "error"
+          ? "error"
+          : "neutral";
+
+  return <StatusCard title={title} message={message} tone={tone} />;
 }

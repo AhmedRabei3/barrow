@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 
 import "./profile.css";
 import { useProfile } from "@/app/hooks/useProfile";
@@ -11,21 +12,23 @@ import ProfileSkeleton from "@/app/components/ProfileSkeleton";
 import {
   Suspense,
   lazy,
+  memo,
+  type ChangeEvent,
   type ComponentType,
+  type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import ConfirmModal from "@/app/components/modals/ConfirmModal";
 import toast from "react-hot-toast";
 import { handleConfirmDelete } from "./profileHelper";
 import { buildEditDataByType } from "./setItemToEdit";
 import GoBackBtn from "@/app/components/GoBackBtn";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
-import ProfileAccountEditor from "./ProfileAccountEditor";
-import IdentityVerificationEditor from "./IdentityVerificationEditor";
-import ProfileInterestOrderEditor from "./ProfileInterestOrderEditor";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import { DynamicIcon } from "@/app/components/addCategory/IconSetter";
 import Link from "next/link";
@@ -38,7 +41,56 @@ import {
   waitForDeleteAnimation,
 } from "@/app/utils/deleteFeedback";
 import { OPEN_SMART_CHAT_ON_HOME_KEY } from "@/app/components/ActivationWelcomeOverlay";
-import InvitedFriendsSection from "./InvitedFriendsSection";
+
+type DeferredProfileEditorProps = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    isIdentityVerified?: boolean | null;
+    identityVerificationRequest?: unknown;
+  };
+  onSaved: () => Promise<void>;
+};
+
+// Defer secondary profile sections/editors so initial profile rendering stays fast.
+const ProfileAccountEditor = dynamic<DeferredProfileEditorProps>(
+  () =>
+    import("./ProfileAccountEditor.tsx").then(
+      (module) =>
+        module.default as unknown as ComponentType<DeferredProfileEditorProps>,
+    ),
+  {
+    loading: () => <div className="min-h-70 rounded-2xl bg-slate-100/70" />,
+  },
+);
+
+const IdentityVerificationEditor = dynamic<DeferredProfileEditorProps>(
+  () =>
+    import("./IdentityVerificationEditor.tsx").then(
+      (module) =>
+        module.default as unknown as ComponentType<DeferredProfileEditorProps>,
+    ),
+  {
+    loading: () => <div className="min-h-90 rounded-2xl bg-slate-100/70" />,
+  },
+);
+
+const ProfileInterestOrderEditor = dynamic(
+  () =>
+    import("./ProfileInterestOrderEditor.tsx").then((module) => module.default),
+  {
+    loading: () => <div className="min-h-30 rounded-2xl bg-slate-100/70" />,
+  },
+);
+
+const InvitedFriendsSection = dynamic(
+  () => import("./InvitedFriendsSection.tsx").then((module) => module.default),
+  {
+    loading: () => <div className="min-h-45 rounded-2xl bg-slate-100/70" />,
+  },
+);
 
 const SmartChatBot = lazy(async () => {
   const importedModule = await import("@/app/components/SmartChatBot.lazy.js");
@@ -52,6 +104,7 @@ const SmartChatBot = lazy(async () => {
 
 const SMART_CHAT_EDIT_PAYLOAD_KEY = "smart-chat-edit-payload";
 const SMART_CHAT_ACTION_ADD_ITEM = "ACTION_ADD_ITEM";
+const REFERRAL_CHAT_LISTING_ID = "referral-direct-chat-v1";
 
 const formatEnglishNumber = (value: number, fractionDigits = 0) =>
   new Intl.NumberFormat("en-US", {
@@ -59,6 +112,151 @@ const formatEnglishNumber = (value: number, fractionDigits = 0) =>
     maximumFractionDigits: fractionDigits,
     numberingSystem: "latn",
   }).format(value);
+
+type ProfileSidebarSection =
+  | "OVERVIEW"
+  | "LISTINGS"
+  | "FAV"
+  | "REQUESTS"
+  | "WITHDRAWALS";
+type DesktopNavButtonProps = {
+  iconName: string;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  badge?: number;
+};
+
+const DesktopNavButton = memo(function DesktopNavButton({
+  iconName,
+  label,
+  isActive,
+  onClick,
+  badge,
+}: DesktopNavButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center ${badge !== undefined ? "justify-between" : "gap-3"} rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
+        isActive
+          ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
+          : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
+      }`}
+    >
+      <span className="flex items-center gap-3">
+        <DynamicIcon iconName={iconName} size={18} />
+        <span className="font-medium">{label}</span>
+      </span>
+      {badge !== undefined ? (
+        <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold text-white">
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+});
+
+type SidebarActionButtonProps = {
+  iconName: string;
+  label: string;
+  onClick: () => void;
+  isDanger?: boolean;
+};
+
+const SidebarActionButton = memo(function SidebarActionButton({
+  iconName,
+  label,
+  onClick,
+  isDanger = false,
+}: SidebarActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+        isDanger
+          ? "text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10"
+          : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
+      }`}
+    >
+      <DynamicIcon iconName={iconName} size={18} className="text-slate-100" />
+      <span className="font-medium">{label}</span>
+    </button>
+  );
+});
+
+type MobileNavButtonProps = {
+  iconName: string;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
+};
+
+const MobileNavButton = memo(function MobileNavButton({
+  iconName,
+  label,
+  isActive = false,
+  onClick,
+}: MobileNavButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-colors ${
+        isActive
+          ? "bg-primary text-white"
+          : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+      }`}
+    >
+      <DynamicIcon iconName={iconName} size={18} />
+      <span>{label}</span>
+    </button>
+  );
+});
+
+type ProfileModalShellProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  isArabic: boolean;
+  children: ReactNode;
+  containerClassName: string;
+  showCloseButton?: boolean;
+};
+
+function ProfileModalShell({
+  isOpen,
+  onClose,
+  isArabic,
+  children,
+  containerClassName,
+  showCloseButton = true,
+}: ProfileModalShellProps) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="profile-modal-backdrop absolute inset-0"
+        onClick={onClose}
+      />
+      <div className={containerClassName}>
+        {showCloseButton ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="profile-modal-close absolute top-3 left-3 z-20 rounded-full px-3 py-1.5 text-xs"
+          >
+            {isArabic ? "إغلاق" : "Close"}
+          </button>
+        ) : null}
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const Profile = () => {
   const router = useRouter();
@@ -78,9 +276,8 @@ const Profile = () => {
   const [removingItemIds, setRemovingItemIds] = useState<string[]>([]);
   const [hiddenItemIds, setHiddenItemIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("ALL");
-  const [activeSidebarSection, setActiveSidebarSection] = useState<
-    "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS"
-  >("OVERVIEW");
+  const [activeSidebarSection, setActiveSidebarSection] =
+    useState<ProfileSidebarSection>("OVERVIEW");
   const [shamCashWithdrawAmount, setShamCashWithdrawAmount] = useState("");
   const overviewSectionRef = useRef<HTMLDivElement | null>(null);
   const listingsSectionRef = useRef<HTMLDivElement | null>(null);
@@ -118,7 +315,7 @@ const Profile = () => {
     return `${window.location.origin}/?ref=${user.id}`;
   }, [user?.id]);
 
-  const handleCreateListing = () => {
+  const handleCreateListing = useCallback(() => {
     if (typeof window === "undefined") return;
 
     window.localStorage.setItem(
@@ -137,9 +334,9 @@ const Profile = () => {
     }
 
     router.push("/");
-  };
+  }, [pathname, router]);
 
-  const handleCopyReferralLink = async () => {
+  const handleCopyReferralLink = useCallback(async () => {
     if (!referralLink) {
       toast.error(
         isArabic ? "رابط الدعوة غير متاح" : "Referral link unavailable",
@@ -153,11 +350,98 @@ const Profile = () => {
     } catch {
       toast.error(isArabic ? "تعذر نسخ الرابط" : "Failed to copy link");
     }
-  };
+  }, [isArabic, referralLink]);
 
-  const handleSidebarSelect = (tab: ProfileTabKey) => {
+  const handleChatWithReferrer = useCallback(() => {
+    const referrerId = user?.referredBy?.id;
+    const referrerName = user?.referredBy?.name;
+    if (!referrerId) {
+      return;
+    }
+
+    const chatTitle = isArabic
+      ? `دردشة إحالة مع ${referrerName || "الداعي"}`
+      : `Referral chat with ${referrerName || "Referrer"}`;
+
+    router.push(
+      `/messages?ownerId=${encodeURIComponent(referrerId)}&ownerName=${encodeURIComponent(referrerName || "")}&listingId=${encodeURIComponent(REFERRAL_CHAT_LISTING_ID)}&itemType=REFERRAL&title=${encodeURIComponent(chatTitle)}`,
+    );
+  }, [isArabic, router, user?.referredBy?.id, user?.referredBy?.name]);
+
+  const handleSidebarSelect = useCallback((tab: ProfileTabKey) => {
     setActiveTab(tab);
-  };
+  }, []);
+
+  const handleRetryProfile = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const handleSignOut = useCallback(() => {
+    void signOut({ callbackUrl: "/" });
+  }, []);
+
+  const closeProfileAssistant = useCallback(() => {
+    setProfileAssistantOpen(false);
+  }, []);
+
+  const closeEditProfileModal = useCallback(() => {
+    setEditProfileModalOpen(false);
+  }, []);
+
+  const closeIdentityVerificationModal = useCallback(() => {
+    setIdentityVerificationModalOpen(false);
+  }, []);
+
+  const openEditProfileModal = useCallback(() => {
+    setEditProfileModalOpen(true);
+  }, []);
+
+  const openIdentityVerificationModal = useCallback(() => {
+    setIdentityVerificationModalOpen(true);
+  }, []);
+
+  const handleViewAllListings = useCallback(() => {
+    handleSidebarSelect("ALL");
+  }, [handleSidebarSelect]);
+
+  const openActivationModal = useCallback(() => {
+    activationModal.onOpen();
+  }, [activationModal]);
+
+  const closeShamCashWithdrawModal = useCallback(() => {
+    setShamCashWithdrawModalOpen(false);
+  }, []);
+
+  const handleTabbedViewChange = useCallback((tab: ProfileTabKey) => {
+    setActiveTab(tab);
+    if (tab === "FAV") {
+      setActiveSidebarSection("FAV");
+      return;
+    }
+    if (tab === "REQUESTS") {
+      setActiveSidebarSection("REQUESTS");
+      return;
+    }
+    if (tab === "WITHDRAWALS") {
+      setActiveSidebarSection("WITHDRAWALS");
+      return;
+    }
+    setActiveSidebarSection("LISTINGS");
+  }, []);
+
+  const handleProfileSave = useCallback(async () => {
+    await refetch();
+    closeEditProfileModal();
+  }, [refetch, closeEditProfileModal]);
+
+  const handleIdentityVerificationSave = useCallback(async () => {
+    await refetch();
+    closeIdentityVerificationModal();
+  }, [refetch, closeIdentityVerificationModal]);
+
+  const handleCancelDelete = useCallback(() => {
+    setItemIdToDelete(null);
+  }, []);
 
   useEffect(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
@@ -212,9 +496,7 @@ const Profile = () => {
     });
   };
 
-  const handleSidebarAction = (
-    section: "OVERVIEW" | "LISTINGS" | "FAV" | "REQUESTS" | "WITHDRAWALS",
-  ) => {
+  const handleSidebarAction = (section: ProfileSidebarSection) => {
     setActiveSidebarSection(section);
 
     if (section === "OVERVIEW") {
@@ -427,6 +709,208 @@ const Profile = () => {
     };
   }, [refetch]);
 
+  const desktopNavItems: Array<{
+    section: ProfileSidebarSection;
+    iconName: string;
+    label: string;
+    badge?: number;
+    onClick: () => void;
+  }> = [
+    {
+      section: "OVERVIEW",
+      iconName: "MdDashboard",
+      label: isArabic ? "نظرة عامة" : "Overview",
+      onClick: () => handleSidebarAction("OVERVIEW"),
+    },
+    {
+      section: "LISTINGS",
+      iconName: "MdInventory2",
+      label: isArabic ? "إعلاناتي" : "My Listings",
+      onClick: () => handleSidebarAction("LISTINGS"),
+    },
+    {
+      section: "FAV",
+      iconName: "AiFillHeart",
+      label: isArabic ? "المفضلة" : "Favorites",
+      onClick: () => handleSidebarAction("FAV"),
+    },
+    {
+      section: "WITHDRAWALS",
+      iconName: "MdOutlineAccountBalanceWallet",
+      label: isArabic ? "الأرباح والسحوبات" : "Earnings",
+      onClick: () => handleSidebarAction("WITHDRAWALS"),
+    },
+    {
+      section: "REQUESTS",
+      iconName: "MdOutlineShoppingCart",
+      label: isArabic ? "طلبات الشراء والإيجار" : "Purchase requests",
+      badge: purchaseRequests.length,
+      onClick: () => handleSidebarAction("REQUESTS"),
+    },
+  ];
+
+  const sidebarActions: Array<{
+    iconName: string;
+    label: string;
+    onClick: () => void;
+    isDanger?: boolean;
+  }> = [
+    {
+      iconName: "MdSettings",
+      label: isArabic ? "إعدادات الحساب" : "Account Settings",
+      onClick: openEditProfileModal,
+    },
+    {
+      iconName: "MdVerifiedUser",
+      label: isArabic ? "توثيق الحساب" : "Verify account",
+      onClick: openIdentityVerificationModal,
+    },
+    {
+      iconName: "MdLogout",
+      label: isArabic ? "تسجيل الخروج" : "Sign Out",
+      onClick: handleSignOut,
+      isDanger: true,
+    },
+  ];
+
+  const mobileNavItems: Array<{
+    iconName: string;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+  }> = [
+    {
+      iconName: "MdDashboard",
+      label: isArabic ? "نظرة عامة" : "Overview",
+      isActive: activeSidebarSection === "OVERVIEW",
+      onClick: () => handleSidebarAction("OVERVIEW"),
+    },
+    {
+      iconName: "MdInventory2",
+      label: isArabic ? "إعلاناتي" : "Listings",
+      isActive: activeSidebarSection === "LISTINGS",
+      onClick: () => handleSidebarAction("LISTINGS"),
+    },
+    {
+      iconName: "MdOutlineShoppingCart",
+      label: isArabic ? "الطلبات" : "Requests",
+      isActive: activeSidebarSection === "REQUESTS",
+      onClick: () => handleSidebarAction("REQUESTS"),
+    },
+    {
+      iconName: "FaUserEdit",
+      label: isArabic ? "الحساب" : "Account",
+      isActive: false,
+      onClick: openEditProfileModal,
+    },
+    {
+      iconName: "MdVerifiedUser",
+      label: isArabic ? "توثيق" : "Verify",
+      isActive: false,
+      onClick: openIdentityVerificationModal,
+    },
+  ];
+
+  const renderRecentItem = useCallback(
+    (entry: (typeof recentItems)[number]) => {
+      const item = entry.item;
+      const title =
+        [item.brand, item.model].filter(Boolean).join(" ") ||
+        (isArabic ? "إعلان بدون عنوان" : "Untitled listing");
+      const imageUrl = entry.itemImages?.[0]?.url || null;
+      const statusLabel =
+        item.status === "PENDING_REVIEW"
+          ? isArabic
+            ? "قيد المراجعة"
+            : "Pending"
+          : item.moderationAction === "REJECT"
+            ? isArabic
+              ? "مرفوض"
+              : "Rejected"
+            : isArabic
+              ? "نشط"
+              : "Active";
+      const statusClasses =
+        item.status === "PENDING_REVIEW"
+          ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"
+          : item.moderationAction === "REJECT"
+            ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+            : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
+      const itemLocation = (item.location ?? null) as {
+        city?: string;
+        country?: string;
+      } | null;
+      const detailHref = item.id
+        ? buildListingDetailsPath({
+            id: item.id,
+            title: item.title,
+            name: item.name,
+            brand: item.brand,
+            model: item.model,
+            city: itemLocation?.city,
+            country: itemLocation?.country,
+          })
+        : "#";
+
+      return (
+        <Link
+          key={item.id}
+          href={detailHref}
+          className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 transition-colors hover:border-primary/30 dark:border-slate-800"
+        >
+          <div className="h-14 w-14 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl}
+                alt={title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-slate-400">
+                <DynamicIcon iconName="MdImage" size={22} />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+              {title}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {formatEnglishNumber(Number(item.price ?? 0), 0)} $
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusClasses}`}
+          >
+            {statusLabel}
+          </span>
+        </Link>
+      );
+    },
+    [isArabic],
+  );
+
+  const renderMobileNavItem = useCallback(
+    (entry: (typeof mobileNavItems)[number]) => (
+      <MobileNavButton
+        key={entry.iconName}
+        iconName={entry.iconName}
+        label={entry.label}
+        isActive={entry.isActive}
+        onClick={entry.onClick}
+      />
+    ),
+    [],
+  );
+
+  const handleShamCashWithdrawAmountChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setShamCashWithdrawAmount(event.target.value);
+    },
+    [],
+  );
+
   // Move loading and error checks AFTER all hooks
   if (loading && !user) {
     return <ProfileSkeleton />;
@@ -460,7 +944,7 @@ const Profile = () => {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <button
               type="button"
-              onClick={() => void refetch()}
+              onClick={handleRetryProfile}
               className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {isArabic ? "إعادة المحاولة" : "Try Again"}
@@ -468,7 +952,7 @@ const Profile = () => {
             {isUnauthorized ? (
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={handleSignOut}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               >
                 {isArabic ? "تسجيل الدخول من جديد" : "Sign In Again"}
@@ -490,7 +974,7 @@ const Profile = () => {
           <span>{error}</span>
           <button
             type="button"
-            onClick={() => void refetch()}
+            onClick={handleRetryProfile}
             className="rounded-lg border border-current px-3 py-1 font-semibold transition-opacity hover:opacity-80"
           >
             {isArabic ? "إعادة المحاولة" : "Retry"}
@@ -502,127 +986,30 @@ const Profile = () => {
         <aside className="order-2 flex w-full flex-col gap-5 lg:order-1 lg:w-64 lg:shrink-0 lg:gap-6">
           <div className="hidden rounded-xl border border-slate-300 bg-linear-to-br from-blue-700 via-blue-600 to-blue-500 p-4 shadow-md dark:border-slate-700 dark:from-slate-900 dark:via-blue-900 dark:to-slate-800 lg:block">
             <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => handleSidebarAction("OVERVIEW")}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
-                  activeSidebarSection === "OVERVIEW"
-                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
-                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
-                }`}
-              >
-                <DynamicIcon iconName="MdDashboard" size={18} />
-                <span className="font-semibold">
-                  {isArabic ? "نظرة عامة" : "Overview"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSidebarAction("LISTINGS")}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
-                  activeSidebarSection === "LISTINGS"
-                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
-                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
-                }`}
-              >
-                <DynamicIcon iconName="MdInventory2" size={18} />
-                <span className="font-medium text-white">
-                  {isArabic ? "إعلاناتي" : "My Listings"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSidebarAction("FAV")}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
-                  activeSidebarSection === "FAV"
-                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
-                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
-                }`}
-              >
-                <DynamicIcon iconName="AiFillHeart" size={18} />
-                <span className="font-medium">
-                  {isArabic ? "المفضلة" : "Favorites"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSidebarAction("WITHDRAWALS")}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
-                  activeSidebarSection === "WITHDRAWALS"
-                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
-                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
-                }`}
-              >
-                <DynamicIcon
-                  iconName="MdOutlineAccountBalanceWallet"
-                  size={18}
+              {desktopNavItems.map((entry) => (
+                <DesktopNavButton
+                  key={entry.section}
+                  iconName={entry.iconName}
+                  label={entry.label}
+                  badge={entry.badge}
+                  isActive={activeSidebarSection === entry.section}
+                  onClick={entry.onClick}
                 />
-                <span className="font-medium text-white">
-                  {isArabic ? "الأرباح والسحوبات" : "Earnings"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSidebarAction("REQUESTS")}
-                className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-300 ${
-                  activeSidebarSection === "REQUESTS"
-                    ? "bg-white/90 text-blue-800 shadow-sm dark:bg-blue-900/80 dark:text-white"
-                    : "text-white hover:bg-blue-100/80 hover:text-blue-900 dark:text-blue-100 dark:hover:bg-blue-800/70 dark:hover:text-white"
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <DynamicIcon iconName="MdOutlineShoppingCart" size={18} />
-                  <span className="font-medium text-white">
-                    {isArabic ? "طلبات الشراء والإيجار" : "Purchase requests"}
-                  </span>
-                </span>
-                <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold text-white">
-                  {purchaseRequests.length}
-                </span>
-              </button>
+              ))}
             </div>
 
             <div className="my-3 border-t border-slate-100 dark:border-slate-800" />
 
             <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setEditProfileModalOpen(true)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-              >
-                <DynamicIcon
-                  iconName="MdSettings"
-                  size={18}
-                  className="text-slate-100"
+              {sidebarActions.map((entry) => (
+                <SidebarActionButton
+                  key={entry.iconName}
+                  iconName={entry.iconName}
+                  label={entry.label}
+                  onClick={entry.onClick}
+                  isDanger={entry.isDanger}
                 />
-                <span className="font-medium text-white">
-                  {isArabic ? "إعدادات الحساب" : "Account Settings"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIdentityVerificationModalOpen(true)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-              >
-                <DynamicIcon
-                  iconName="MdVerifiedUser"
-                  size={18}
-                  className="text-slate-100"
-                />
-                <span className="font-medium text-white">
-                  {isArabic ? "توثيق الحساب" : "Verify account"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-rose-500 transition-colors hover:bg-rose-50 dark:hover:bg-rose-900/10"
-              >
-                <DynamicIcon iconName="MdLogout" size={18} />
-                <span className="font-medium">
-                  {isArabic ? "تسجيل الخروج" : "Sign Out"}
-                </span>
-              </button>
+              ))}
             </div>
           </div>
 
@@ -645,7 +1032,7 @@ const Profile = () => {
               {!user?.isActive && (
                 <button
                   type="button"
-                  onClick={() => activationModal.onOpen()}
+                  onClick={openActivationModal}
                   className="w-full rounded-lg bg-blue-600 
                 py-2 text-sm font-bold text-primary 
                 shadow-sm transition-colors hover:bg-blue-700 text-white"
@@ -670,7 +1057,7 @@ const Profile = () => {
             totalFavorites={favorites.length}
             onShamCashWithdraw={handleOpenShamCashWithdrawModal}
             isWithdrawingShamCash={withdrawingShamCash}
-            onEditProfile={() => setEditProfileModalOpen(true)}
+            onEditProfile={openEditProfileModal}
             onCreateListing={handleCreateListing}
           />
 
@@ -682,7 +1069,7 @@ const Profile = () => {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => handleSidebarSelect("ALL")}
+                  onClick={handleViewAllListings}
                   className="text-sm font-bold text-primary hover:underline"
                 >
                   {isArabic ? "عرض الكل" : "View All"}
@@ -691,82 +1078,7 @@ const Profile = () => {
 
               <div className="space-y-4">
                 {recentItems.length ? (
-                  recentItems.map((entry) => {
-                    const item = entry.item;
-                    const title =
-                      [item.brand, item.model].filter(Boolean).join(" ") ||
-                      (isArabic ? "إعلان بدون عنوان" : "Untitled listing");
-                    const imageUrl = entry.itemImages?.[0]?.url || null;
-                    const statusLabel =
-                      item.status === "PENDING_REVIEW"
-                        ? isArabic
-                          ? "قيد المراجعة"
-                          : "Pending"
-                        : item.moderationAction === "REJECT"
-                          ? isArabic
-                            ? "مرفوض"
-                            : "Rejected"
-                          : isArabic
-                            ? "نشط"
-                            : "Active";
-                    const statusClasses =
-                      item.status === "PENDING_REVIEW"
-                        ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"
-                        : item.moderationAction === "REJECT"
-                          ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
-                          : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
-                    const itemLocation = (item.location ?? null) as {
-                      city?: string;
-                      country?: string;
-                    } | null;
-                    const detailHref = item.id
-                      ? buildListingDetailsPath({
-                          id: item.id,
-                          title: item.title,
-                          name: item.name,
-                          brand: item.brand,
-                          model: item.model,
-                          city: itemLocation?.city,
-                          country: itemLocation?.country,
-                        })
-                      : "#";
-
-                    return (
-                      <Link
-                        key={item.id}
-                        href={detailHref}
-                        className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 transition-colors hover:border-primary/30 dark:border-slate-800"
-                      >
-                        <div className="h-14 w-14 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
-                          {imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={imageUrl}
-                              alt={title}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-slate-400">
-                              <DynamicIcon iconName="MdImage" size={22} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                            {title}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatEnglishNumber(Number(item.price ?? 0), 0)} $
-                          </p>
-                        </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusClasses}`}
-                        >
-                          {statusLabel}
-                        </span>
-                      </Link>
-                    );
-                  })
+                  recentItems.map(renderRecentItem)
                 ) : (
                   <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                     {isArabic ? "لا توجد إعلانات بعد." : "No listings yet."}
@@ -849,6 +1161,51 @@ const Profile = () => {
             </section>
           </div>
 
+          {user?.referredBy?.id && (
+            <section className="rounded-none border-y border-slate-200 bg-white px-4 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:border sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {isArabic ? "الشخص الذي دعاك" : "Your Referrer"}
+                </h3>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                    user.referredBy.isActive
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}
+                >
+                  {user.referredBy.isActive
+                    ? isArabic
+                      ? "مفعّل"
+                      : "Active"
+                    : isArabic
+                      ? "غير مفعّل"
+                      : "Inactive"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-3.5 py-3 dark:border-slate-700">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {user.referredBy.name}
+                  </p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    {user.referredBy.email}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleChatWithReferrer}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-slate-700 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-800/40"
+                >
+                  <DynamicIcon iconName="MdChat" size={14} />
+                  <span>{isArabic ? "دردشة" : "Chat"}</span>
+                </button>
+              </div>
+            </section>
+          )}
+
           <ProfileInterestOrderEditor />
 
           {/* قسم الأصدقاء المدعوون */}
@@ -860,22 +1217,7 @@ const Profile = () => {
               favorites={favorites}
               purchaseRequests={purchaseRequests}
               activeTab={activeTab}
-              onTabChange={(tab) => {
-                setActiveTab(tab);
-                if (tab === "FAV") {
-                  setActiveSidebarSection("FAV");
-                  return;
-                }
-                if (tab === "REQUESTS") {
-                  setActiveSidebarSection("REQUESTS");
-                  return;
-                }
-                if (tab === "WITHDRAWALS") {
-                  setActiveSidebarSection("WITHDRAWALS");
-                  return;
-                }
-                setActiveSidebarSection("LISTINGS");
-              }}
+              onTabChange={handleTabbedViewChange}
               setItemIdToEdit={setItemIdToEdit}
               setItemIdToDelete={setItemIdToDelete}
               removingItemIds={removingItemIds}
@@ -888,58 +1230,7 @@ const Profile = () => {
         </div>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
           <div className="grid grid-cols-5 gap-2">
-            <button
-              type="button"
-              onClick={() => handleSidebarAction("OVERVIEW")}
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
-                activeSidebarSection === "OVERVIEW"
-                  ? "bg-primary text-white"
-                  : "text-slate-500 dark:text-slate-400"
-              }`}
-            >
-              <DynamicIcon iconName="MdDashboard" size={18} />
-              <span>{isArabic ? "نظرة عامة" : "Overview"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSidebarAction("LISTINGS")}
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
-                activeSidebarSection === "LISTINGS"
-                  ? "bg-primary text-white"
-                  : "text-slate-500 dark:text-slate-400"
-              }`}
-            >
-              <DynamicIcon iconName="MdInventory2" size={18} />
-              <span>{isArabic ? "إعلاناتي" : "Listings"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSidebarAction("REQUESTS")}
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${
-                activeSidebarSection === "REQUESTS"
-                  ? "bg-primary text-white"
-                  : "text-slate-500 dark:text-slate-400"
-              }`}
-            >
-              <DynamicIcon iconName="MdOutlineShoppingCart" size={18} />
-              <span>{isArabic ? "الطلبات" : "Requests"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditProfileModalOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400"
-            >
-              <DynamicIcon iconName="FaUserEdit" size={18} />
-              <span>{isArabic ? "الحساب" : "Account"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIdentityVerificationModalOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400"
-            >
-              <DynamicIcon iconName="MdVerifiedUser" size={18} />
-              <span>{isArabic ? "توثيق" : "Verify"}</span>
-            </button>
+            {mobileNavItems.map(renderMobileNavItem)}
           </div>
         </nav>
         <GoBackBtn />
@@ -949,7 +1240,7 @@ const Profile = () => {
             <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-104 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/95 shadow-2xl dark:border-slate-700/80 dark:bg-slate-900/95 sm:max-h-[calc(100dvh-2rem)]">
               <button
                 type="button"
-                onClick={() => setProfileAssistantOpen(false)}
+                onClick={closeProfileAssistant}
                 className="absolute left-3 top-3 z-10 rounded-lg bg-slate-900/10 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-900/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
               >
                 {isArabic ? "إغلاق" : "Close"}
@@ -966,131 +1257,92 @@ const Profile = () => {
                   </div>
                 }
               >
-                <SmartChatBot onClose={() => setProfileAssistantOpen(false)} />
+                <SmartChatBot onClose={closeProfileAssistant} />
               </Suspense>
             </div>
           </div>
         )}
 
-        {editProfileModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="profile-modal-backdrop absolute inset-0"
-              onClick={() => setEditProfileModalOpen(false)}
-            />
-            <div className="relative z-10 w-11/12 max-w-2xl max-h-[85vh] overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => setEditProfileModalOpen(false)}
-                className="profile-modal-close absolute top-3 left-3 z-20 rounded-full px-3 py-1.5 text-xs"
-              >
-                {isArabic ? "إغلاق" : "Close"}
-              </button>
-              <ProfileAccountEditor
-                user={user}
-                onSaved={async () => {
-                  await refetch();
-                  setEditProfileModalOpen(false);
-                }}
-              />
-            </div>
+        <ProfileModalShell
+          isOpen={editProfileModalOpen}
+          onClose={closeEditProfileModal}
+          isArabic={isArabic}
+          containerClassName="relative z-10 w-11/12 max-h-[85vh] max-w-2xl overflow-y-auto"
+        >
+          <ProfileAccountEditor user={user} onSaved={handleProfileSave} />
+        </ProfileModalShell>
+
+        <ProfileModalShell
+          isOpen={identityVerificationModalOpen}
+          onClose={closeIdentityVerificationModal}
+          isArabic={isArabic}
+          containerClassName="relative z-10 w-11/12 max-h-[88vh] max-w-3xl overflow-y-auto"
+        >
+          <IdentityVerificationEditor
+            user={user}
+            onSaved={handleIdentityVerificationSave}
+          />
+        </ProfileModalShell>
+
+        <ProfileModalShell
+          isOpen={shamCashWithdrawModalOpen}
+          onClose={closeShamCashWithdrawModal}
+          isArabic={isArabic}
+          showCloseButton={false}
+          containerClassName="market-panel z-10 w-11/12 max-w-md space-y-3 rounded-[26px] p-5 shadow-xl"
+        >
+          <h3 className="font-semibold text-white">
+            {isArabic ? "سحب شام كاش" : "ShamCash withdrawal"}
+          </h3>
+          <p className="text-xs leading-relaxed text-slate-400">
+            {isArabic
+              ? "أدخل المبلغ فقط وسيصل الطلب إلى الإدارة لإتمامه يدوياً."
+              : "Enter the amount only and the request will be sent to admin for manual completion."}
+          </p>
+          <p className="text-xs font-semibold text-cyan-300">
+            {isArabic
+              ? `الرصيد المتاح للسحب: ${availableToWithdraw.toFixed(2)} USD`
+              : `Available to withdraw: ${availableToWithdraw.toFixed(2)} USD`}
+          </p>
+
+          <input
+            type="number"
+            name="shamCashWithdrawAmount"
+            min={0.01}
+            max={Math.max(0, availableToWithdraw)}
+            step="0.01"
+            value={shamCashWithdrawAmount}
+            onChange={handleShamCashWithdrawAmountChange}
+            placeholder={
+              isArabic ? "المبلغ بالدولار الأمريكي (USD)" : "Amount in USD"
+            }
+            className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
+            disabled={withdrawingShamCash}
+          />
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={closeShamCashWithdrawModal}
+              disabled={withdrawingShamCash}
+              className="market-secondary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
+            >
+              {isArabic ? "إلغاء" : "Cancel"}
+            </button>
+            <button
+              onClick={handleShamCashWithdraw}
+              disabled={withdrawingShamCash}
+              className="market-primary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
+            >
+              {withdrawingShamCash
+                ? isArabic
+                  ? "جارٍ الإرسال..."
+                  : "Submitting..."
+                : isArabic
+                  ? "تأكيد سحب شام كاش"
+                  : "Confirm ShamCash withdrawal"}
+            </button>
           </div>
-        )}
-
-        {identityVerificationModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="profile-modal-backdrop absolute inset-0"
-              onClick={() => setIdentityVerificationModalOpen(false)}
-            />
-            <div className="relative z-10 w-11/12 max-w-3xl max-h-[88vh] overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => setIdentityVerificationModalOpen(false)}
-                className="profile-modal-close absolute top-3 left-3 z-20 rounded-full px-3 py-1.5 text-xs"
-              >
-                {isArabic ? "إغلاق" : "Close"}
-              </button>
-              <IdentityVerificationEditor
-                user={user}
-                onSaved={async () => {
-                  await refetch();
-                  setIdentityVerificationModalOpen(false);
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {shamCashWithdrawModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="profile-modal-backdrop absolute inset-0"
-              onClick={() => {
-                if (!withdrawingShamCash) {
-                  setShamCashWithdrawModalOpen(false);
-                }
-              }}
-            />
-            <div className="market-panel z-10 w-11/12 max-w-md rounded-[26px] p-5 space-y-3 shadow-xl">
-              <h3 className="font-semibold text-white">
-                {isArabic ? "سحب شام كاش" : "ShamCash withdrawal"}
-              </h3>
-              <p className="text-xs leading-relaxed text-slate-400">
-                {isArabic
-                  ? "أدخل المبلغ فقط وسيصل الطلب إلى الإدارة لإتمامه يدوياً."
-                  : "Enter the amount only and the request will be sent to admin for manual completion."}
-              </p>
-              <p className="text-xs font-semibold text-cyan-300">
-                {isArabic
-                  ? `الرصيد المتاح للسحب: ${availableToWithdraw.toFixed(2)} USD`
-                  : `Available to withdraw: ${availableToWithdraw.toFixed(2)} USD`}
-              </p>
-
-              <input
-                type="number"
-                name="shamCashWithdrawAmount"
-                min={0.01}
-                max={Math.max(0, availableToWithdraw)}
-                step="0.01"
-                value={shamCashWithdrawAmount}
-                onChange={(event) =>
-                  setShamCashWithdrawAmount(event.target.value)
-                }
-                placeholder={
-                  isArabic ? "المبلغ بالدولار الأمريكي (USD)" : "Amount in USD"
-                }
-                className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
-                disabled={withdrawingShamCash}
-              />
-
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  onClick={() => {
-                    setShamCashWithdrawModalOpen(false);
-                  }}
-                  disabled={withdrawingShamCash}
-                  className="market-secondary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
-                >
-                  {isArabic ? "إلغاء" : "Cancel"}
-                </button>
-                <button
-                  onClick={handleShamCashWithdraw}
-                  disabled={withdrawingShamCash}
-                  className="market-primary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
-                >
-                  {withdrawingShamCash
-                    ? isArabic
-                      ? "جارٍ الإرسال..."
-                      : "Submitting..."
-                    : isArabic
-                      ? "تأكيد سحب شام كاش"
-                      : "Confirm ShamCash withdrawal"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        </ProfileModalShell>
 
         {/* Confirm delete modal */}
         {itemIdToDelete && (
@@ -1101,7 +1353,7 @@ const Profile = () => {
                 ? "هل تريد حذف هذا العنصر نهائياً؟"
                 : "Do you want to permanently delete this item?"
             }
-            onCancel={() => setItemIdToDelete(null)}
+            onCancel={handleCancelDelete}
             onConfirm={deleteItem}
             loading={deleting}
           />
@@ -1112,3 +1364,4 @@ const Profile = () => {
 };
 
 export default Profile;
+/* eslint-enable react/jsx-no-bind */

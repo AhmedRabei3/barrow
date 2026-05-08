@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { Availability, ItemType } from "@prisma/client";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
@@ -58,6 +58,11 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
     },
   });
   const isAvailable = status === Availability.AVAILABLE;
+  const resetModal = useCallback(() => {
+    setOpen(false);
+    reset();
+  }, [reset]);
+
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const requestKind = sellOrRent === "RENT" ? "RENT" : "BUY";
   const requestTitle =
@@ -247,18 +252,12 @@ const ContactOwnerElement = ({ data, itemType }: ContactOwnerElementProps) => {
       <Modal
         isOpen={open}
         disabled={loading}
-        onClose={() => {
-          setOpen(false);
-          reset();
-        }}
+        onClose={resetModal}
         onSubmit={handleSubmit(submitContact)}
         title={requestTitle}
         actionLabel={isArabic ? "إرسال معلوماتي" : "Send My Info"}
         secondaryActionLabel={isArabic ? "إلغاء" : "Cancel"}
-        secondaryAction={() => {
-          setOpen(false);
-          reset();
-        }}
+        secondaryAction={resetModal}
         body={
           <div className="flex flex-col gap-4">
             <Heading

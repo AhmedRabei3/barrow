@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
@@ -17,6 +17,10 @@ const AdminPanelSkeleton = () => (
   </div>
 );
 
+function renderAdminPanelSkeleton() {
+  return <AdminPanelSkeleton />;
+}
+
 type AdminShamCashPanelProps = {
   focusManualRequestId?: string;
   focusActivationRequestId?: string;
@@ -25,56 +29,56 @@ type AdminShamCashPanelProps = {
 const AddCategoryForm = dynamic(
   () => import("./AddCategoryPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const AddCode = dynamic(
   () => import("./AddCodePanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const AdminAnalyticsDashboard = dynamic(
   () =>
     import("./AdminAnalyticsDashboard.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const ImageModerationPanel = dynamic(
   () => import("./ImageModerationPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const FinancialReportPanel = dynamic(
   () => import("./FinancialReportPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const SupportMessagesPanel = dynamic(
   () => import("./SupportMessagesPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const PaymentSettingsPanel = dynamic(
   () => import("./PaymentSettingsPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const AdminShamCashPanel = dynamic<AdminShamCashPanelProps>(
   () => import("./AdminShamCashPanel.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 const PurchaseRequestsPage = dynamic(
   () => import("./purchase-request/page.tsx").then((module) => module.default),
   {
-    loading: () => <AdminPanelSkeleton />,
+    loading: renderAdminPanelSkeleton,
   },
 );
 
@@ -195,7 +199,7 @@ const AdminDashBoard = () => {
     }
   }, [isOwner, page]);
 
-  const grantPaymentSettingsAccess = () => {
+  const grantPaymentSettingsAccess = useCallback(() => {
     setIsPaymentSettingsAuthorized(true);
     try {
       window.sessionStorage.setItem(PAYMENT_SETTINGS_ACCESS_KEY, "1");
@@ -204,9 +208,9 @@ const AdminDashBoard = () => {
     }
     setPage("payment-settings");
     setIsSidebarOpen(false);
-  };
+  }, []);
 
-  const handlePaymentSettingsClick = () => {
+  const handlePaymentSettingsClick = useCallback(() => {
     if (!isOwner) {
       return;
     }
@@ -218,7 +222,7 @@ const AdminDashBoard = () => {
     }
 
     paymentPasswordModal.onOpen();
-  };
+  }, [isOwner, isPaymentSettingsAuthorized, paymentPasswordModal]);
 
   const focusedManualRequestId = String(
     searchParams.get("manualRequestId") || "",

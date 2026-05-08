@@ -288,6 +288,15 @@ const LoginModal = () => {
     registerModal.onOpen();
   }, [loginModal, registerModal]);
 
+  const handleResendVerificationEmail = useCallback(
+    (email: string) => resendVerificationEmailAction(email, isArabic),
+    [isArabic],
+  );
+
+  const handleClearActivationMessage = useCallback(() => {
+    setActivationMessage(null);
+  }, []);
+
   const bodyContent = (
     <div className="flex flex-col gap-2">
       <Heading
@@ -339,7 +348,7 @@ const LoginModal = () => {
         <EmailVerificationResendPanel
           isArabic={isArabic}
           expectedEmail={pendingVerificationEmail}
-          onResend={(email) => resendVerificationEmailAction(email, isArabic)}
+          onResend={handleResendVerificationEmail}
         />
       ) : null}
 
@@ -402,7 +411,7 @@ const LoginModal = () => {
             </h2>
             <button
               className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-md"
-              onClick={() => setActivationMessage(null)}
+              onClick={handleClearActivationMessage}
             >
               {isArabic ? "إغلاق" : "Close"}
             </button>

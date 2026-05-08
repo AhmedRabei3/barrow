@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
@@ -9,12 +9,15 @@ interface Props {
 
 const SetReadBtn = ({ notificationId, onMarkAsRead }: Props) => {
   const { isArabic } = useAppPreferences();
+  const handleMarkAsRead = useCallback(() => {
+    onMarkAsRead(notificationId);
+  }, [notificationId, onMarkAsRead]);
 
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
       whileHover={{ opacity: 0.85 }}
-      onClick={() => onMarkAsRead(notificationId)}
+      onClick={handleMarkAsRead}
       className="text-xs 
       hover:underline
       "

@@ -35,15 +35,29 @@ const SearchWizard = ({ onFinish }: SearchWizardProps) => {
     onFinish();
   };
 
+  const handlePrevStep = useCallback(() => {
+    setStep((s) => s - 1);
+  }, []);
+
+  const handleNextStep = useCallback(() => {
+    setStep((s) => s + 1);
+  }, []);
+
+  const handleStepTwoUpdate = useCallback(() => {
+    // No-op function for StepTwo
+  }, []);
+
   return (
     <div className="space-y-6" dir={isArabic ? "rtl" : "ltr"}>
       {step === 0 && <StepOne filters={localFilters} onChange={update} />}
 
-      {step === 1 && <StepTwo filters={localFilters} update={() => {}} />}
+      {step === 1 && (
+        <StepTwo filters={localFilters} update={handleStepTwoUpdate} />
+      )}
 
       <div className="flex justify-between">
         {step > 0 ? (
-          <button className="btn" onClick={() => setStep((s) => s - 1)}>
+          <button className="btn" onClick={handlePrevStep}>
             {SEARCH_MODAL_TEXT.back[locale]}
           </button>
         ) : (
@@ -55,7 +69,7 @@ const SearchWizard = ({ onFinish }: SearchWizardProps) => {
             {SEARCH_MODAL_TEXT.search[locale]}
           </button>
         ) : (
-          <button className="btn-primary" onClick={() => setStep((s) => s + 1)}>
+          <button className="btn-primary" onClick={handleNextStep}>
             {SEARCH_MODAL_TEXT.next[locale]}
           </button>
         )}

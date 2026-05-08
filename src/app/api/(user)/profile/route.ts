@@ -40,72 +40,94 @@ export async function GET(req: NextRequest) {
   try {
     const session = await authHelper();
     const now = new Date();
-    const [user, properties, newCars, oldCars, otherItems] = await withTimeout(
-      Promise.all([
-        prisma.user.findUnique({
-          where: { id: session.id },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            profileImage: true,
-            createdAt: true,
-            balance: true,
-            isActive: true,
-            activeUntil: true,
-            pendingReferralEarnings: true,
-            isIdentityVerified: true,
-            isAdmin: true,
-            isOwner: true,
-            isDeleted: true,
-            referrals: {
-              select: {
-                newUser: true,
+    const [user, referredByLink, properties, newCars, oldCars, otherItems] =
+      await withTimeout(
+        Promise.all([
+          prisma.user.findUnique({
+            where: { id: session.id },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              profileImage: true,
+              createdAt: true,
+              balance: true,
+              isActive: true,
+              activeUntil: true,
+              pendingReferralEarnings: true,
+              isIdentityVerified: true,
+              isAdmin: true,
+              isOwner: true,
+              isDeleted: true,
+              referrals: {
+                select: {
+                  newUser: true,
+                },
+              },
+              favorites: {
+                select: {
+                  itemId: true,
+                  itemType: true,
+                },
+              },
+              identityVerificationRequest: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  nationalId: true,
+                  frontImageUrl: true,
+                  backImageUrl: true,
+                  status: true,
+                  adminNote: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  reviewedAt: true,
+                },
               },
             },
-            favorites: {
-              select: {
-                itemId: true,
-                itemType: true,
+          }),
+          prisma.referral.findFirst({
+            where: {
+              newUser: session.id,
+              user: {
+                is: {
+                  isDeleted: false,
+                },
               },
             },
-            identityVerificationRequest: {
-              select: {
-                id: true,
-                fullName: true,
-                nationalId: true,
-                frontImageUrl: true,
-                backImageUrl: true,
-                status: true,
-                adminNote: true,
-                createdAt: true,
-                updatedAt: true,
-                reviewedAt: true,
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profileImage: true,
+                  isActive: true,
+                },
               },
             },
-          },
-        }),
-        prisma.property.findMany({
-          where: { ownerId: session.id, isDeleted: false },
-          include: ITEM_RELATION_SELECT,
-        }),
-        prisma.newCar.findMany({
-          where: { ownerId: session.id, isDeleted: false },
-          include: ITEM_RELATION_SELECT,
-        }),
-        prisma.oldCar.findMany({
-          where: { ownerId: session.id, isDeleted: false },
-          include: ITEM_RELATION_SELECT,
-        }),
-        prisma.otherItem.findMany({
-          where: { ownerId: session.id, isDeleted: false },
-          include: ITEM_RELATION_SELECT,
-        }),
-      ]),
-      8000,
-      "Profile lookup timed out",
-    );
+          }),
+          prisma.property.findMany({
+            where: { ownerId: session.id, isDeleted: false },
+            include: ITEM_RELATION_SELECT,
+          }),
+          prisma.newCar.findMany({
+            where: { ownerId: session.id, isDeleted: false },
+            include: ITEM_RELATION_SELECT,
+          }),
+          prisma.oldCar.findMany({
+            where: { ownerId: session.id, isDeleted: false },
+            include: ITEM_RELATION_SELECT,
+          }),
+          prisma.otherItem.findMany({
+            where: { ownerId: session.id, isDeleted: false },
+            include: ITEM_RELATION_SELECT,
+          }),
+        ]),
+        8000,
+        "Profile lookup timed out",
+      );
 
     if (!user) throw Errors.UNAUTHORIZED();
 
@@ -267,6 +289,15 @@ export async function GET(req: NextRequest) {
     const safeUser = {
       ...user,
       password: undefined,
+      referredBy: referredByLink?.user
+        ? {
+            id: referredByLink.user.id,
+            name: referredByLink.user.name,
+            email: referredByLink.user.email,
+            profileImage: referredByLink.user.profileImage,
+            isActive: referredByLink.user.isActive,
+          }
+        : null,
       items: itemsExtra,
       purchaseRequests,
       referralStats: {

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import StatusCard from "@/app/components/ui/StatusCard";
 
 type VerifyState = "loading" | "success" | "error";
 
@@ -44,56 +45,48 @@ export default function VerifyEmailPage() {
 
   if (!token) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <section className="max-w-md w-full rounded-xl border border-red-200 bg-red-50 p-5 text-center">
-          <h1 className="text-lg font-semibold text-red-700">رابط غير صالح</h1>
-          <p className="mt-2 text-sm text-red-600">رمز التحقق مفقود.</p>
-        </section>
-      </main>
+      <StatusCard
+        title="رابط غير صالح"
+        message="رمز التحقق مفقود."
+        tone="error"
+      />
     );
   }
 
   if (state === "loading") {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <section className="max-w-md w-full rounded-xl border border-yellow-200 bg-yellow-50 p-5 text-center">
-          <h1 className="text-lg font-semibold text-yellow-700">
-            جارٍ التحقق...
-          </h1>
-          <p className="mt-2 text-sm text-yellow-700">يرجى الانتظار لحظة.</p>
-        </section>
-      </main>
+      <StatusCard
+        title="جارٍ التحقق..."
+        message="يرجى الانتظار لحظة."
+        tone="warning"
+      />
     );
   }
 
   if (state === "success") {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <section className="max-w-md w-full rounded-xl border border-green-200 bg-green-50 p-5 text-center">
-          <h1 className="text-lg font-semibold text-green-700">
-            تم التفعيل بنجاح!
-          </h1>
-          <p className="mt-2 text-sm text-green-700">{message}</p>
-          <p className="mt-1 text-xs text-green-600">
-            سيتم توجيهك لتسجيل الدخول...
-          </p>
-        </section>
-      </main>
+      <StatusCard
+        title="تم التفعيل بنجاح!"
+        message={message}
+        hint="سيتم توجيهك لتسجيل الدخول..."
+        tone="success"
+      />
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
-      <section className="max-w-md w-full rounded-xl border border-red-200 bg-red-50 p-5 text-center">
-        <h1 className="text-lg font-semibold text-red-700">فشل التحقق</h1>
-        <p className="mt-2 text-sm text-red-600">{message}</p>
+    <StatusCard
+      title="فشل التحقق"
+      message={message}
+      tone="error"
+      actions={
         <button
           onClick={() => router.replace("/?login=true")}
-          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+          className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white transition-colors hover:bg-rose-700"
         >
           الذهاب لتسجيل الدخول
         </button>
-      </section>
-    </main>
+      }
+    />
   );
 }

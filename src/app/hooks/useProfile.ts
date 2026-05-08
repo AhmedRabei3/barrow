@@ -39,6 +39,13 @@ export type ProfilePurchaseRequest = {
 
 export type ProfileData = {
   user: User & {
+    referredBy?: {
+      id: string;
+      name: string;
+      email: string;
+      profileImage?: string | null;
+      isActive?: boolean;
+    } | null;
     referralStats?: {
       invitedCount: number;
       activeInvitedCount: number;
@@ -65,6 +72,7 @@ export type ProfileData = {
 type ApiProfileResponse =
   | ProfileData
   | (User & {
+      referredBy?: ProfileData["user"]["referredBy"];
       referralStats?: {
         invitedCount: number;
         activeInvitedCount: number;

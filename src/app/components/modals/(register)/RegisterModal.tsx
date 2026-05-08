@@ -241,6 +241,11 @@ const RegisterModal = () => {
     loginModal.onOpen();
   }, [loginModal, registerModal]);
 
+  const handleResendVerificationEmail = useCallback(
+    (email: string) => resendVerificationEmailAction(email, isArabic),
+    [isArabic],
+  );
+
   const onSubmit = async (data: FieldValues) => {
     const accepted = await ensurePolicyAccepted();
     if (!accepted) {
@@ -394,7 +399,7 @@ const RegisterModal = () => {
           <EmailVerificationResendPanel
             isArabic={isArabic}
             expectedEmail={pendingVerificationEmail}
-            onResend={(email) => resendVerificationEmailAction(email, isArabic)}
+            onResend={handleResendVerificationEmail}
           />
         ) : null}
 

@@ -80,6 +80,10 @@ const UserMenu = () => {
 
   const closeMenu = useCallback(() => setOpen(false), []);
 
+  const closeSupportModal = useCallback(() => {
+    setSupportModalOpen(false);
+  }, []);
+
   const openLogin = useCallback(() => {
     closeMenu();
     loginModal.onOpen();
@@ -198,13 +202,13 @@ const UserMenu = () => {
     };
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     closeMenu();
     await signOut({ redirect: false });
     router.push("/");
     update();
     router.refresh();
-  };
+  }, [closeMenu, router, update]);
 
   const applyQuickFilters = () => {
     searchHelper.handleSearch(drawerQuery.trim());
@@ -253,7 +257,7 @@ const UserMenu = () => {
   const shouldShowRenewAlert = isInGracePeriod;
   const showMenuIndicator = shouldShowRenewAlert;
 
-  const handleSubscriptionAction = () => {
+  const handleSubscriptionAction = useCallback(() => {
     closeMenu();
 
     if (isSubscriptionActive) {
@@ -267,7 +271,13 @@ const UserMenu = () => {
     }
 
     activationModal.onOpen();
-  };
+  }, [
+    activationModal,
+    closeMenu,
+    inviteModal,
+    isInGracePeriod,
+    isSubscriptionActive,
+  ]);
 
   const subscriptionLabel = isSubscriptionActive
     ? isArabic
@@ -667,7 +677,7 @@ const UserMenu = () => {
 
       <SupportContactModal
         isOpen={isSupportModalOpen}
-        onClose={() => setSupportModalOpen(false)}
+        onClose={closeSupportModal}
         onOpenCountChange={setOpenTicketsCount}
       />
     </div>

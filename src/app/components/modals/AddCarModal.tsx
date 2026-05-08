@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 
 import { useEffect, useState } from "react";
 import useAddCarModal from "@/app/hooks/useAddCarModal";
@@ -300,3 +301,4 @@ const AddCarModal = () => {
 };
 
 export default memo(AddCarModal);
+/* eslint-enable react/jsx-no-bind */

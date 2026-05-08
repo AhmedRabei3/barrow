@@ -2,7 +2,14 @@
 
 import "./footer.css";
 import Link from "next/link";
-import { lazy, memo, Suspense, type ComponentType, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  type ComponentType,
+  useCallback,
+  useState,
+} from "react";
 import { useSession } from "next-auth/react";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
@@ -122,6 +129,10 @@ const SiteFooter = () => {
   const register = useRegisterModal();
   const [isSupportModalOpen, setSupportModalOpen] = useState(false);
 
+  const closeSupportModal = useCallback(() => {
+    setSupportModalOpen(false);
+  }, []);
+
   const steps = localizedSteps.map((item) =>
     isArabic
       ? { title: item.arTitle, body: item.arBody }
@@ -239,7 +250,7 @@ const SiteFooter = () => {
         <Suspense fallback={null}>
           <SupportContactModal
             isOpen={isSupportModalOpen}
-            onClose={() => setSupportModalOpen(false)}
+            onClose={closeSupportModal}
           />
         </Suspense>
       ) : null}

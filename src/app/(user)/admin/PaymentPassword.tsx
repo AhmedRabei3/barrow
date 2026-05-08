@@ -137,6 +137,14 @@ const PaymentPassword = ({ onAuthorized }: PaymentPasswordProps) => {
     }
   }, [t]);
 
+  const toggleShowPassword = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
+  const toggleShowConfirmPassword = useCallback(() => {
+    setShowConfirmPassword((prev) => !prev);
+  }, []);
+
   const contentBody = (
     <div className="flex flex-col gap-2">
       {resetTokenStatus === "verifying" && (
@@ -167,7 +175,7 @@ const PaymentPassword = ({ onAuthorized }: PaymentPasswordProps) => {
         register={register}
         errors={errors}
         iconName={showPassword ? "eye-off" : "eye"}
-        onIconClick={() => setShowPassword((prev) => !prev)}
+        onIconClick={toggleShowPassword}
         required
       />
       {(hasPassword === false || isResetFlow) && (
@@ -178,7 +186,7 @@ const PaymentPassword = ({ onAuthorized }: PaymentPasswordProps) => {
           register={register}
           errors={errors}
           iconName={showConfirmPassword ? "eye-off" : "eye"}
-          onIconClick={() => setShowConfirmPassword((prev) => !prev)}
+          onIconClick={toggleShowConfirmPassword}
           required
         />
       )}

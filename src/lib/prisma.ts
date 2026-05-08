@@ -4,9 +4,16 @@ import { logger } from "./logger";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-const isSupabasePostgresUrl = (value: string) =>
-  /supabase\.com(?::\d+)?\//i.test(value) ||
-  /pooler\.supabase\.com(?::\d+)?\//i.test(value);
+const isVercelServerlessRuntime =
+  process.env.VERCEL === "1" || typeof process.env.VERCEL_ENV === "string";
+
+const isSupabasePostgresUrl = (url: URL) =>
+  /supabase\.com$/i.test(url.hostname);
+
+const isSupabasePoolerUrl = (url: URL) =>
+  /pooler\.supabase\.com$/i.test(url.hostname) ||
+  url.port === "6543" ||
+  url.searchParams.get("pgbouncer") === "true";
 
 const normalizePostgresConnectionUrl = (value: string | undefined) => {
   if (!value) {
@@ -25,13 +32,27 @@ const normalizePostgresConnectionUrl = (value: string | undefined) => {
       return value;
     }
 
-    if (isSupabasePostgresUrl(value)) {
+    if (isSupabasePostgresUrl(url)) {
       if (!url.searchParams.has("sslmode")) {
         url.searchParams.set("sslmode", "require");
       }
 
       if (!url.searchParams.has("connect_timeout")) {
         url.searchParams.set("connect_timeout", "15");
+      }
+
+      if (isVercelServerlessRuntime && isSupabasePoolerUrl(url)) {
+        if (!url.searchParams.has("pgbouncer")) {
+          url.searchParams.set("pgbouncer", "true");
+        }
+
+        if (!url.searchParams.has("connection_limit")) {
+          url.searchParams.set("connection_limit", "1");
+        }
+
+        if (!url.searchParams.has("pool_timeout")) {
+          url.searchParams.set("pool_timeout", "20");
+        }
       }
     }
 

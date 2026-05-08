@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
@@ -9,11 +9,14 @@ interface Props {
 
 const BellBtn = ({ setOpen, unreadCount }: Props) => {
   const { isArabic } = useAppPreferences();
+  const handleToggle = useCallback(() => {
+    setOpen((v) => !v);
+  }, [setOpen]);
 
   return (
     <button
       type="button"
-      onClick={() => setOpen((v) => !v)}
+      onClick={handleToggle}
       className="relative mx-2.5 flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-800 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
       aria-label={isArabic ? "الإشعارات" : "Notifications"}
     >

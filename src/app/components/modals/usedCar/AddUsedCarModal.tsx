@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import h from "@/app/hooks";
 import Modal from "../Modal";
 import { FieldValues, SubmitHandler } from "react-hook-form";
@@ -79,47 +80,56 @@ const AddUsedCarModal = () => {
     }
   }, [addCar.isOpen, addCar.mode, addCar.initialData, reset]);
 
-  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
-    try {
-      if (addCar.mode === "create") {
-        // للإضافة: نتحقق من الصور
-        if (!selectedImages || selectedImages.length === 0) {
-          toast.error(
-            isArabic ? "يرجى اختيار الصور أولاً" : "Please select images first",
-          );
-          return;
+  const onSubmit = useCallback<SubmitHandler<FieldValues>>(
+    async (data) => {
+      try {
+        if (addCar.mode === "create") {
+          // للإضافة: نتحقق من الصور
+          if (!selectedImages || selectedImages.length === 0) {
+            toast.error(
+              isArabic
+                ? "يرجى اختيار الصور أولاً"
+                : "Please select images first",
+            );
+            return;
+          }
+          submitMethod({
+            selectedImages,
+            data,
+            setIsLoading,
+            url: "/api/cars/used_car",
+            onClose: addCar.onClose,
+            reset,
+            router,
+          });
+        } else if (addCar.mode === "edit" && addCar.initialData?.id) {
+          // للتعديل: قد لا تكون هناك صور جديدة
+          await submitMethod({
+            selectedImages,
+            data,
+            setIsLoading,
+            url: `/api/cars/used_car/${addCar.initialData?.id}`,
+            onClose: addCar.onClose,
+            reset,
+            method: "PATCH",
+            router,
+          });
         }
-        submitMethod({
-          selectedImages,
-          data,
-          setIsLoading,
-          url: "/api/cars/used_car",
-          onClose: addCar.onClose,
-          reset,
-          router,
-        });
-      } else if (addCar.mode === "edit" && addCar.initialData?.id) {
-        // للتعديل: قد لا تكون هناك صور جديدة
-        await submitMethod({
-          selectedImages,
-          data,
-          setIsLoading,
-          url: `/api/cars/used_car/${addCar.initialData?.id}`,
-          onClose: addCar.onClose,
-          reset,
-          method: "PATCH",
-          router,
-        });
+      } catch (error) {
+        console.error("Submit error:", error);
+        toast.error(
+          isArabic
+            ? "حدث خطأ في إرسال البيانات"
+            : "An error occurred while submitting data",
+        );
       }
-    } catch (error) {
-      console.error("Submit error:", error);
-      toast.error(
-        isArabic
-          ? "حدث خطأ في إرسال البيانات"
-          : "An error occurred while submitting data",
-      );
-    }
-  };
+    },
+    [addCar, isArabic, reset, router, selectedImages],
+  );
+
+  const handleFormSubmit = useCallback(() => {
+    void handleSubmit(onSubmit)();
+  }, [handleSubmit, onSubmit]);
 
   const handleClose = () => {
     reset();
@@ -161,7 +171,7 @@ const AddUsedCarModal = () => {
           categories={categories}
           setValue={setValue}
           setSelectedImages={setSelectedImages}
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleFormSubmit}
           isEditMode={addCar.mode === "edit" ? true : false}
           mode={addCar.mode === "edit" ? "edit" : "create"}
         />
@@ -171,3 +181,4 @@ const AddUsedCarModal = () => {
 };
 
 export default memo(AddUsedCarModal);
+/* eslint-enable react/jsx-no-bind */

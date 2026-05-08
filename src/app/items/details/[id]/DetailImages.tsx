@@ -60,7 +60,7 @@ const Lightbox = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-999 flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -187,6 +187,10 @@ const DetailImages = ({ images }: DetailImages) => {
     setLightboxIndex(idx >= 0 ? idx : 0);
   };
 
+  const handleCloseLightbox = useCallback(() => {
+    setLightboxIndex(null);
+  }, []);
+
   return (
     <>
       <div className="space-y-4">
@@ -286,7 +290,7 @@ const DetailImages = ({ images }: DetailImages) => {
         <Lightbox
           images={images}
           initialIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
+          onClose={handleCloseLightbox}
         />
       )}
     </>

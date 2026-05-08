@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 
 import { useCallback, useState } from "react";
 import { useEffect } from "react";
@@ -89,50 +90,61 @@ const ActivationModal = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
-    try {
-      setIsLoading(true);
-      const result = await request.put("/api/activate", data);
+  const onSubmit = useCallback<SubmitHandler<FieldValues>>(
+    async (data) => {
+      try {
+        setIsLoading(true);
+        const result = await request.put("/api/activate", data);
 
-      if (result.data.success) {
-        toast.success(
-          isArabic ? "تم تفعيل الحساب بنجاح" : "Account activated successfully",
-        );
+        if (result.data.success) {
+          toast.success(
+            isArabic
+              ? "تم تفعيل الحساب بنجاح"
+              : "Account activated successfully",
+          );
 
-        // 🎉 الكونفتي
-        confetti({
-          particleCount: 140,
-          spread: 80,
-          origin: { y: 0.6 },
-        });
+          // 🎉 الكونفتي
+          confetti({
+            particleCount: 140,
+            spread: 80,
+            origin: { y: 0.6 },
+          });
 
-        // 🔈 صوت النجاح
-        new Audio(SUCCESS_SOUND).play();
+          // 🔈 صوت النجاح
+          new Audio(SUCCESS_SOUND).play();
 
-        // 🔁 تحديث الجلسة
-        await update();
+          // 🔁 تحديث الجلسة
+          await update();
 
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+          }
+
+          // 🔔 إبلاغ العداد ليعيد الحساب ويهتز
+          dispatchEvent(new Event("activation-updated"));
+
+          activationModal.onClose();
+        } else {
+          const rawMessage =
+            result.data.message ||
+            (isArabic ? "فشل التفعيل" : "Activation failed");
+          toast.error(localizeErrorMessage(rawMessage, isArabic));
         }
-
-        // 🔔 إبلاغ العداد ليعيد الحساب ويهتز
-        dispatchEvent(new Event("activation-updated"));
-
-        activationModal.onClose();
-      } else {
-        const rawMessage =
-          result.data.message ||
-          (isArabic ? "فشل التفعيل" : "Activation failed");
-        toast.error(localizeErrorMessage(rawMessage, isArabic));
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          isArabic ? "حدث خطأ غير متوقع" : "Unexpected error occurred",
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error(isArabic ? "حدث خطأ غير متوقع" : "Unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [activationModal, isArabic, update],
+  );
+
+  const handleModalSubmit = useCallback(() => {
+    void handleSubmit(onSubmit)();
+  }, [handleSubmit, onSubmit]);
 
   const requestActivationCodeViaSupport = async () => {
     try {
@@ -169,6 +181,79 @@ const ActivationModal = () => {
     activationModal.onClose();
     loginModal.onOpen();
   }, [loginModal, activationModal]);
+
+  const closeShamCashModal = useCallback(() => {
+    setShowShamCashModal(false);
+  }, []);
+
+  const handleShamCashSubmit = useCallback(
+    async (txNumber: string) => {
+      try {
+        setIsShamCashSubmitting(true);
+
+        const response = await request.post("/api/pay/shamcash-verify", {
+          txNumber,
+        });
+
+        if (response.data?.activated) {
+          toast.success(
+            response.data?.message ||
+              (isArabic
+                ? "تم تفعيل الحساب بنجاح عبر شام كاش"
+                : "Account activated successfully via ShamCash"),
+          );
+
+          confetti({
+            particleCount: 140,
+            spread: 80,
+            origin: { y: 0.6 },
+          });
+
+          new Audio(SUCCESS_SOUND).play();
+          await update();
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+          }
+          dispatchEvent(new Event("activation-updated"));
+          setShowShamCashModal(false);
+          return;
+        }
+
+        if (response.data?.pending || response.data?.adminReview) {
+          toast.success(
+            response.data?.message ||
+              (isArabic
+                ? "تم استلام طلبك وهو الآن قيد المعالجة"
+                : "Your request was received and is now processing"),
+          );
+          await update();
+          dispatchEvent(new Event("activation-updated"));
+          setShowShamCashModal(false);
+          return;
+        }
+
+        toast(
+          response.data?.message ||
+            (isArabic
+              ? "تم إرسال الطلب بنجاح"
+              : "Request submitted successfully"),
+        );
+        setShowShamCashModal(false);
+      } catch (error) {
+        console.error(error);
+        const rawMessage =
+          error instanceof Error
+            ? error.message
+            : isArabic
+              ? "تعذر التحقق من عملية شام كاش"
+              : "Failed to verify ShamCash payment";
+        toast.error(localizeErrorMessage(rawMessage, isArabic));
+      } finally {
+        setIsShamCashSubmitting(false);
+      }
+    },
+    [isArabic, update],
+  );
 
   const bodyContent = (
     <div className="flex flex-col gap-3">
@@ -236,86 +321,23 @@ const ActivationModal = () => {
         title={isArabic ? "تفعيل الحساب" : "Activate Account"}
         actionLabel={isArabic ? "تفعيل" : "Activate"}
         onClose={activationModal.onClose}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleModalSubmit}
         body={bodyContent}
         footer={footerContent}
       />
       {/* مودال شام كاش */}
       <ShamCashModal
         isOpen={showShamCashModal}
-        onClose={() => setShowShamCashModal(false)}
+        onClose={closeShamCashModal}
         qrUrl={shamCashQrUrl}
         walletCode={shamCashWalletCode}
         isSubmitting={isShamCashSubmitting}
         amount={subscriptionAmount}
-        onSubmitTransaction={async (txNumber) => {
-          try {
-            setIsShamCashSubmitting(true);
-
-            const response = await request.post("/api/pay/shamcash-verify", {
-              txNumber,
-            });
-
-            if (response.data?.activated) {
-              toast.success(
-                response.data?.message ||
-                  (isArabic
-                    ? "تم تفعيل الحساب بنجاح عبر شام كاش"
-                    : "Account activated successfully via ShamCash"),
-              );
-
-              confetti({
-                particleCount: 140,
-                spread: 80,
-                origin: { y: 0.6 },
-              });
-
-              new Audio(SUCCESS_SOUND).play();
-              await update();
-              if (typeof window !== "undefined") {
-                window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
-              }
-              dispatchEvent(new Event("activation-updated"));
-              setShowShamCashModal(false);
-              return;
-            }
-
-            if (response.data?.pending || response.data?.adminReview) {
-              toast.success(
-                response.data?.message ||
-                  (isArabic
-                    ? "تم استلام طلبك وهو الآن قيد المعالجة"
-                    : "Your request was received and is now processing"),
-              );
-              await update();
-              dispatchEvent(new Event("activation-updated"));
-              setShowShamCashModal(false);
-              return;
-            }
-
-            toast(
-              response.data?.message ||
-                (isArabic
-                  ? "تم إرسال الطلب بنجاح"
-                  : "Request submitted successfully"),
-            );
-            setShowShamCashModal(false);
-          } catch (error) {
-            console.error(error);
-            const rawMessage =
-              error instanceof Error
-                ? error.message
-                : isArabic
-                  ? "تعذر التحقق من عملية شام كاش"
-                  : "Failed to verify ShamCash payment";
-            toast.error(localizeErrorMessage(rawMessage, isArabic));
-          } finally {
-            setIsShamCashSubmitting(false);
-          }
-        }}
+        onSubmitTransaction={handleShamCashSubmit}
       />
     </>
   );
 };
 
 export default ActivationModal;
+/* eslint-enable react/jsx-no-bind */

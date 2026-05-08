@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, memo, useState } from "react";
+import { Dispatch, memo, useCallback, useState } from "react";
 import { BsFillGearFill } from "react-icons/bs";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import { $Enums } from "@prisma/client";
@@ -17,19 +17,19 @@ interface ToolBoxProps {
 function ToolBox({ setItemIdToEdit, setItemIdToDelete, itemId }: ToolBoxProps) {
   const [checked, setChecked] = useState(false);
 
-  const handleGearClick = () => {
+  const handleGearClick = useCallback(() => {
     setChecked((prev) => !prev);
-  };
+  }, []);
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = useCallback(() => {
     setChecked(false);
     setItemIdToDelete(itemId);
-  };
+  }, [itemId, setItemIdToDelete]);
 
-  const handleEditClick = () => {
+  const handleEditClick = useCallback(() => {
     setChecked(false);
     setItemIdToEdit(itemId);
-  };
+  }, [itemId, setItemIdToEdit]);
 
   return (
     <div dir="ltr" className="absolute top-2 left-2 p-0.5 z-30 w-fit">

@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useState,
+  useEffect,
+} from "react";
 import { AiOutlineCloseCircle } from "react-icons/ai";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 
@@ -28,30 +34,70 @@ const ImageUpload = ({
     };
   }, [selectedImages]);
 
-  const handleFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleFiles = useCallback(
+    (files: FileList | null) => {
+      if (!files || files.length === 0) return;
 
-    const incomingFiles = Array.from(files);
+      const incomingFiles = Array.from(files);
 
-    setSelectedImages((prev) => {
-      const existingKeys = new Set(
-        prev.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
-      );
+      setSelectedImages((prev) => {
+        const existingKeys = new Set(
+          prev.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+        );
 
-      const uniqueIncoming = incomingFiles.filter((file) => {
-        const key = `${file.name}-${file.size}-${file.lastModified}`;
-        if (existingKeys.has(key)) return false;
-        existingKeys.add(key);
-        return true;
+        const uniqueIncoming = incomingFiles.filter((file) => {
+          const key = `${file.name}-${file.size}-${file.lastModified}`;
+          if (existingKeys.has(key)) return false;
+          existingKeys.add(key);
+          return true;
+        });
+
+        return [...prev, ...uniqueIncoming];
       });
+    },
+    [setSelectedImages],
+  );
 
-      return [...prev, ...uniqueIncoming];
-    });
-  };
+  const handleRemove = useCallback(
+    (index: number) => {
+      setSelectedImages((prev: File[]) => prev.filter((_, i) => i !== index));
+    },
+    [setSelectedImages],
+  );
 
-  const handleRemove = (index: number) => {
-    setSelectedImages((prev: File[]) => prev.filter((_, i) => i !== index));
-  };
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      handleFiles(event.dataTransfer.files);
+    },
+    [handleFiles],
+  );
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+    },
+    [],
+  );
+
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      handleFiles(event.target.files);
+    },
+    [handleFiles],
+  );
+
+  const handleRemoveClick = useCallback(
+    (event: React.MouseEvent<SVGElement>) => {
+      const indexValue = event.currentTarget.dataset.index;
+      if (!indexValue) {
+        return;
+      }
+
+      handleRemove(Number(indexValue));
+    },
+    [handleRemove],
+  );
 
   return (
     <div
@@ -61,11 +107,8 @@ const ImageUpload = ({
        border-sky-700 flex flex-col 
        items-center h-full
       "
-      onDrop={(e) => {
-        e.preventDefault();
-        handleFiles(e.dataTransfer.files);
-      }}
-      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
     >
       <label
         htmlFor="imageUpload"
@@ -78,7 +121,7 @@ const ImageUpload = ({
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={handleInputChange}
         className="hidden"
       />
 
@@ -91,7 +134,8 @@ const ImageUpload = ({
               className="flex relative text-white hover:scale-105 transition-all duration-300"
             >
               <AiOutlineCloseCircle
-                onClick={() => handleRemove(idx)}
+                data-index={String(idx)}
+                onClick={handleRemoveClick}
                 className="absolute top-1 left-1 cursor-pointer  hover:text-red-700 text-xl"
               />
               <Image

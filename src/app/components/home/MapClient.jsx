@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { useRouter } from "next/navigation";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { buildListingDetailsPath } from "@/lib/listingSeo";
+import Image from "next/image";
 
 const FitBounds = ({ items }) => {
   const map = useMap();
@@ -76,10 +77,12 @@ const MapClient = ({ setShowMap, items }) => {
                   )
                 }
               >
-                <img
+                <Image
                   src={item.image}
                   alt={item.name}
-                  className="w-24 h-16 object-cover rounded mb-1"
+                  width={96}
+                  height={64}
+                  className="object-cover rounded mb-1"
                 />
                 <div className="text-sm font-semibold">{item.name}</div>
               </div>

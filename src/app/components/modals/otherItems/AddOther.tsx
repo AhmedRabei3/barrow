@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-bind */
 
 import { useEffect, useState } from "react";
 import h from "@/app/hooks";
@@ -103,3 +104,4 @@ const AddOtherModal = () => {
 };
 
 export default AddOtherModal;
+/* eslint-enable react/jsx-no-bind */

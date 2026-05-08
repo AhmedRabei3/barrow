@@ -1,9 +1,21 @@
 "use client";
 import { useResetToken } from "./useResetToken";
 import { useResetPassword } from "./useResetPassword";
+import dynamic from "next/dynamic";
 
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
-import PasswordHintsPanel from "@/app/components/inputs/PasswordHintsPanel";
+
+const PasswordHintsPanel = dynamic(
+  () =>
+    import("@/app/components/inputs/PasswordHintsPanel.tsx").then(
+      (module) => module.default,
+    ),
+  {
+    loading: () => (
+      <div className="mb-3 h-19 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60" />
+    ),
+  },
+);
 
 export default function ResetPasswordPage() {
   const token = useResetToken();

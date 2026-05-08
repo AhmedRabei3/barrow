@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 
 interface PointsNavigationProps {
   itemImages: { url: string | null }[];
@@ -11,17 +11,26 @@ const PointsNavigation = ({
   currentIndex,
   handleDotClick,
 }: PointsNavigationProps) => {
+  const handleDotSelect = useCallback(
+    (index: number) => {
+      handleDotClick(index);
+    },
+    [handleDotClick],
+  );
+
   return (
     <>
       {itemImages.length > 1 && (
-        <div className="absolute bottom-2 
+        <div
+          className="absolute bottom-2 
         left-1/2 z-20 flex -translate-x-1/2 
-        gap-1 rounded-full border border-white/10 bg-slate-950/60 px-1.5 py-0.5 backdrop-blur-sm">
+        gap-1 rounded-full border border-white/10 bg-slate-950/60 px-1.5 py-0.5 backdrop-blur-sm"
+        >
           {itemImages.map((_, index) => (
             <button
               key={index}
               type="button"
-              onClick={() => handleDotClick(index)}
+              onClick={() => handleDotSelect(index)}
               aria-label={`Go to image ${index + 1}`}
               className="flex 
               items-center justify-center 
@@ -44,4 +53,4 @@ const PointsNavigation = ({
   );
 };
 
-export default PointsNavigation;
+export default memo(PointsNavigation);

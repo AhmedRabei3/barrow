@@ -5,7 +5,7 @@ import ActivateSupportBtn from "./ActvateSupportBtn";
 import ShamCashBtn from "./ShamCashBtn";
 import useActivationModal from "@/app/hooks/useActivationModal";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useCallback } from "react";
 
 type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
 
@@ -38,33 +38,36 @@ const PaymentsBtn = ({
 }: PaymentsBtnProps) => {
   const ActivationModal = useActivationModal();
 
-  const startPaidSubscription = async (method: PaymentMethod) => {
-    try {
-      if (method === "SHAMCASH") {
-        ActivationModal.onClose();
-        setTimeout(() => setShowShamCashModal(true), 200); // ضمان إغلاق المودال الأول قبل فتح الثاني
-        return;
-      }
+  const startPaidSubscription = useCallback(
+    async (method: PaymentMethod) => {
+      try {
+        if (method === "SHAMCASH") {
+          ActivationModal.onClose();
+          setTimeout(() => setShowShamCashModal(true), 200); // ضمان إغلاق المودال الأول قبل فتح الثاني
+          return;
+        }
 
-      if (method === "CARD") {
-        throw new Error(
-          isArabic
-            ? "الدفع بالبطاقة غير متاح حالياً. استخدم شام كاش أو اطلب كود تفعيل."
-            : "Card checkout is not available right now. Use ShamCash or request an activation code.",
-        );
+        if (method === "CARD") {
+          throw new Error(
+            isArabic
+              ? "الدفع بالبطاقة غير متاح حالياً. استخدم شام كاش أو اطلب كود تفعيل."
+              : "Card checkout is not available right now. Use ShamCash or request an activation code.",
+          );
+        }
+      } catch (error) {
+        console.error(error);
+        const rawMessage =
+          error instanceof Error
+            ? error.message
+            : isArabic
+              ? "فشل بدء عملية الدفع"
+              : "Failed to start payment";
+        toast.error(localizeErrorMessage(rawMessage, isArabic));
+        setRedirectingMethod(null);
       }
-    } catch (error) {
-      console.error(error);
-      const rawMessage =
-        error instanceof Error
-          ? error.message
-          : isArabic
-            ? "فشل بدء عملية الدفع"
-            : "Failed to start payment";
-      toast.error(localizeErrorMessage(rawMessage, isArabic));
-      setRedirectingMethod(null);
-    }
-  };
+    },
+    [ActivationModal, isArabic, setShowShamCashModal, setRedirectingMethod],
+  );
   return (
     <div className="flex flex-col gap-2">
       <div className="rounded-2xl border border-cyan-300/60 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-600/50 dark:bg-cyan-950/30 dark:text-cyan-100">
