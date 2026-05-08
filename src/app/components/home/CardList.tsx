@@ -17,8 +17,8 @@ const CardList = ({ items }: CardListProps) => {
         item,
         key: getCardKey(item),
         delay: Math.min(index * 0.02, 0.2),
-        // Keep high priority for only one above-the-fold image to avoid network contention.
-        priority: index === 0,
+        // Eagerly load first 4 above-the-fold cards to improve LCP.
+        priority: index < 4,
       })),
     [items],
   );

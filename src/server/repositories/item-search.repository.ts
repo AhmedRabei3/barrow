@@ -123,6 +123,7 @@ export const itemSearchRepository = {
       ...(typeof options?.take === "number" ? { take: options.take } : {}),
     };
 
+    // Parallel read-only queries: total time = max(count, findMany) not sum.
     const [count, rows] = await Promise.all([
       prisma.listingSearchIndex.count({ where }),
       prisma.listingSearchIndex.findMany({
@@ -149,6 +150,8 @@ export const itemSearchRepository = {
       .map((item) => item.id);
     const featuredCutoff = getFeaturedCutoffDate();
 
+    // Parallel read-only queries: total time = max(q1..q5) not sum.
+    // groupBy is also not guaranteed to be compatible with batch $transaction.
     const [images, reviewsAgg, featuredPins, newCars, oldCars] =
       await Promise.all([
         prisma.itemImage.findMany({

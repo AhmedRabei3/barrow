@@ -15,19 +15,23 @@ const ImageCard = ({
   model,
   priority = false,
 }: ImageCardProps) => {
+  const imageUrl = itemImages[currentIndex]?.url ?? "";
+  const isCloudinaryImage = imageUrl.includes("res.cloudinary.com/");
+
   return (
     <div>
       {itemImages[currentIndex]?.url ? (
         <Image
-          key={itemImages[currentIndex].url}
-          src={itemImages[currentIndex].url}
+          key={imageUrl}
+          src={imageUrl}
           alt={`${brand ?? ""} ${model ?? ""}`.trim() || "listing image"}
           fill
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           sizes="(max-width: 767px) 100vw, (max-width: 1023px) 33vw, (max-width: 1679px) 20vw, 16.7vw"
-          quality={60}
+          quality={isCloudinaryImage ? undefined : 60}
+          unoptimized={isCloudinaryImage}
           placeholder="empty"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
           decoding="async"

@@ -201,7 +201,11 @@ async function searchItemsUncached(
 
   // ── Non-geo: 2 parallel queries (count + page) ──────────────────────────
   if (!hasGeoSort) {
-    const [totalCount, pagedItems] = await itemSearchRepository.findAndCountByIndex(where, { skip, take: limit });
+    const [totalCount, pagedItems] =
+      await itemSearchRepository.findAndCountByIndex(where, {
+        skip,
+        take: limit,
+      });
 
     if (totalCount === 0) {
       return { success: true, page, limit, totalCount, items: [] };
@@ -244,6 +248,12 @@ const getCachedNonGeoSearch = unstable_cache(
   { revalidate: 300, tags: ["item-search"] },
 );
 
+/**
+ * Cached search — for API routes. Uses Next.js Data Cache (unstable_cache).
+ * Do NOT call this from Server Components / page.tsx because Next.js's
+ * internal cache layer uses AbortSignal.timeout() which throws unhandled
+ * TimeoutErrors when the DB is slow.
+ */
 export async function searchItems(
   query: ItemSearchQueryDto,
 ): Promise<ItemSearchResponseDto> {
@@ -257,3 +267,10 @@ export async function searchItems(
 
   return searchItemsUncached(normalized);
 }
+
+/**
+ * Uncached search — use this from Server Components (page.tsx / ISR) to avoid
+ * Next.js Data Cache's internal AbortSignal.timeout() unhandled TimeoutErrors.
+ * The ISR revalidate=300 on the page itself acts as the cache layer.
+ */
+export { searchItemsUncached };

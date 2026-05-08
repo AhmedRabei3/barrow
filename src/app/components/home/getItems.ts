@@ -34,7 +34,7 @@ type FetchItemsResponse =
   | ItemSearchResponseDto
   | { success?: false; message?: string };
 
-const MAX_ITEMS_LIMIT = 50;
+const MAX_ITEMS_LIMIT = 20;
 
 export type FormattedItem = {
   item: {
@@ -182,7 +182,7 @@ export const fetchItems = async ({
     const url = `/api/items?${params.toString()}`;
 
     const timeoutController = new AbortController();
-    const timeoutId = window.setTimeout(() => timeoutController.abort(), 8000);
+    const timeoutId = window.setTimeout(() => timeoutController.abort(), 6500);
 
     const requestSignal = signal
       ? AbortSignal.any([signal, timeoutController.signal])

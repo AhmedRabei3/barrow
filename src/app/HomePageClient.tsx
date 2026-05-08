@@ -29,6 +29,7 @@ import {
 } from "@/lib/primaryCategories";
 import { INVENTORY_INVALIDATED_EVENT } from "@/app/utils/deleteFeedback";
 import dynamic from "next/dynamic";
+import type { ItemSearchItemDto } from "@/features/items/types";
 
 const SiteFooter = dynamic(() =>
   import("./components/footer/SiteFooter.tsx").then((m) => m.default),
@@ -43,12 +44,25 @@ const MobileCategoryPicker = dynamic(
   { ssr: false },
 );
 
-const HomePageClient = () => {
+const HomePageClient = ({
+  initialItems = [],
+}: {
+  initialItems?: ItemSearchItemDto[];
+}) => {
   const { filters } = useSearchFilters();
   const [currentPage, setCurrentPage] = useState(1);
   const { data: session, status, update } = useSession();
   const { isArabic } = useAppPreferences();
-  const limit = 24;
+  const limit = 20;
+
+  // Format server-fetched initial items once (stable reference)
+  const initialFormattedItems = useMemo(
+    () =>
+      initialItems.length > 0 ? formatRawItems(initialItems as RawItem[]) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // intentionally stable — server data never changes after hydration
+  );
+
   const orderedTabs = useMemo(
     () => getOrderedPrimaryCategoryTabs(session?.user?.preferredInterestOrder),
     [session?.user?.preferredInterestOrder],
@@ -326,9 +340,20 @@ const HomePageClient = () => {
       />
 
       <HomeBody
-        items={items}
-        featuredItems={featuredItems}
-        loading={loading}
+        items={
+          shouldFetchItems
+            ? items
+            : items.length > 0
+              ? items
+              : initialFormattedItems
+        }
+        featuredItems={
+          featuredItems ??
+          (initialFormattedItems.length > 0
+            ? initialFormattedItems.filter((i) => i.item.isFeatured).slice(0, 8)
+            : undefined)
+        }
+        loading={shouldFetchItems ? loading : false}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
       />

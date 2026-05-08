@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import HomePageClient from "./HomePageClient";
 import { buildMetadata, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { searchItemsUncached } from "@/server/services/item-search.service";
+import type { ItemSearchItemDto } from "@/features/items/types";
+
+// ISR: re-render at most once every 5 minutes
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const acceptLanguage = (await headers()).get("accept-language") ?? "";
@@ -64,7 +69,28 @@ const homeWebPageJsonLd = {
   },
 };
 
-export default function Page() {
+export default async function Page() {
+  // Fetch initial items server-side (runs at build time + every 5 min via ISR).
+  // This eliminates the client-side loading skeleton on first visit.
+  let initialItems: ItemSearchItemDto[] = [];
+  try {
+    // Use searchItemsUncached (not searchItems) so we skip Next.js's internal
+    // unstable_cache Data Cache layer, which uses AbortSignal.timeout() internally
+    // and throws unhandled TimeoutErrors when Supabase is slow.
+    // The ISR revalidate=300 on this page itself is the caching mechanism.
+    const result = await searchItemsUncached({
+      q: "",
+      type: null,
+      page: 1,
+      limit: 20,
+      userLat: null,
+      userLng: null,
+    });
+    initialItems = result.items;
+  } catch {
+    // Non-fatal: client will fetch on mount if empty
+  }
+
   return (
     <>
       <script
@@ -73,7 +99,7 @@ export default function Page() {
           __html: JSON.stringify([collectionPageJsonLd, homeWebPageJsonLd]),
         }}
       />
-      <HomePageClient />
+      <HomePageClient initialItems={initialItems} />
     </>
   );
 }

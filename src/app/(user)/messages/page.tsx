@@ -877,13 +877,22 @@ export default function MessagesPage() {
       return;
     }
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === selectedConversationId
-          ? { ...conversation, unreadCount: 0 }
-          : conversation,
-      ),
-    );
+    setConversations((prev) => {
+      const targetIndex = prev.findIndex(
+        (conversation) => conversation.id === selectedConversationId,
+      );
+
+      if (targetIndex === -1 || prev[targetIndex]?.unreadCount === 0) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next[targetIndex] = {
+        ...next[targetIndex],
+        unreadCount: 0,
+      };
+      return next;
+    });
 
     const unreadIncomingIds = messages
       .filter(
@@ -901,18 +910,26 @@ export default function MessagesPage() {
       unreadIncomingIds.length > 0 || Boolean(activeConversation?.unreadCount);
 
     if (unreadIncomingIds.length > 0) {
-      setMessages((prev) =>
-        prev.map((message) =>
-          unreadIncomingIds.includes(message.id)
-            ? {
-                ...message,
-                status: "seen",
-                isRead: true,
-                seenAt: new Date().toISOString(),
-              }
-            : message,
-        ),
-      );
+      setMessages((prev) => {
+        let changed = false;
+        const seenAt = new Date().toISOString();
+
+        const next = prev.map<ChatMessage>((message) => {
+          if (!unreadIncomingIds.includes(message.id)) {
+            return message;
+          }
+
+          changed = true;
+          return {
+            ...message,
+            status: "seen" as MessageStatus,
+            isRead: true,
+            seenAt,
+          };
+        });
+
+        return changed ? next : prev;
+      });
     }
 
     if (shouldMarkRead) {

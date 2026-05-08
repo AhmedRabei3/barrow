@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const response = await withTimeout(
       searchItems(query),
-      12000,
+      8000,
       "Item search timed out",
     );
 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           userLat: null,
           userLng: null,
         }),
-        12000,
+        8000,
         "Item search timed out",
       );
 
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
           ...query,
           limit: reducedLimit,
         }),
-        12000,
+        8000,
         "Item search timed out",
       );
 
