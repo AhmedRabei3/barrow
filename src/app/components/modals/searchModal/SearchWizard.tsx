@@ -29,6 +29,10 @@ const SearchWizard = ({ onFinish }: SearchWizardProps) => {
     [],
   );
 
+  const updateFilters = useCallback((nextFilters: Partial<Filters>) => {
+    setLocalFilters((prev) => ({ ...prev, ...nextFilters }));
+  }, []);
+
   /** ✅ عند الانتهاء فقط نكتب في Zustand */
   const finish = () => {
     setFilters(localFilters);
@@ -43,16 +47,16 @@ const SearchWizard = ({ onFinish }: SearchWizardProps) => {
     setStep((s) => s + 1);
   }, []);
 
-  const handleStepTwoUpdate = useCallback(() => {
-    // No-op function for StepTwo
-  }, []);
-
   return (
     <div className="space-y-6" dir={isArabic ? "rtl" : "ltr"}>
       {step === 0 && <StepOne filters={localFilters} onChange={update} />}
 
       {step === 1 && (
-        <StepTwo filters={localFilters} update={handleStepTwoUpdate} />
+        <StepTwo
+          filters={localFilters}
+          update={update}
+          updateFilters={updateFilters}
+        />
       )}
 
       <div className="flex justify-between">

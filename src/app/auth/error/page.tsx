@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";

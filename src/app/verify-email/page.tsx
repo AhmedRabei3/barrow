@@ -1,4 +1,7 @@
 "use client";
+
+export const dynamic = "force-static";
+
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import StatusCard from "@/app/components/ui/StatusCard";

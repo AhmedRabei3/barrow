@@ -15,6 +15,7 @@ import {
   notifyAdminsOfModerationQueue,
   pendingReviewData,
 } from "../../utils/moderation";
+import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 
 /**
  * @description API route to create a new used car
@@ -23,6 +24,7 @@ import {
  */
 
 export async function POST(req: NextRequest) {
+  const isArabic = resolveIsArabicFromRequest(req);
   const owner = await requireActiveUser();
 
   try {
@@ -66,6 +68,9 @@ export async function POST(req: NextRequest) {
       location,
       images: uploadedImages,
       itemType: "USED_CAR",
+      ownerId: owner.id,
+      itemTitle: `${parsed.data.brand} ${parsed.data.model}`,
+      isArabic,
       createItem: (tx) => {
         const { categoryId, ...carData } = parsed.data;
 

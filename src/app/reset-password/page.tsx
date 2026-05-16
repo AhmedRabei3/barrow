@@ -1,11 +1,14 @@
 "use client";
+
+export const dynamic = "force-static";
+
 import { useResetToken } from "./useResetToken";
 import { useResetPassword } from "./useResetPassword";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 
-const PasswordHintsPanel = dynamic(
+const PasswordHintsPanel = nextDynamic(
   () =>
     import("@/app/components/inputs/PasswordHintsPanel.tsx").then(
       (module) => module.default,

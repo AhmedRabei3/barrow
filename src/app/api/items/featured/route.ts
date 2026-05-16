@@ -8,6 +8,7 @@ import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 const locationSelect = {
   latitude: true,
@@ -244,7 +245,7 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+          "Cache-Control": CACHE_HEADERS.publicMedium,
         },
       },
     );

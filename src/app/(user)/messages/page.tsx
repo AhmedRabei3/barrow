@@ -1513,7 +1513,7 @@ export default function MessagesPage() {
         }`}
       >
         {/* Chat header */}
-        <header className="fixed top-0 inset-x-0 lg:sticky lg:top-0 z-40 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
+        <header className="z-20 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
           {/* Left/Start: back + avatar + info */}
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile back arrow */}
@@ -1625,7 +1625,7 @@ export default function MessagesPage() {
 
         {/* In-conversation search bar */}
         {showMsgSearch && selectedConversationId && (
-          <div className="mt-16 lg:mt-0 px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
+          <div className="px-4 py-2 bg-white/90 dark:bg-[#0d1c2d]/90 border-b border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1">
               <MdSearch size={16} className="text-slate-400 shrink-0" />
               <input
@@ -1658,7 +1658,7 @@ export default function MessagesPage() {
         {/* ── Chat canvas (dot-pattern background) ── */}
         <div
           ref={messagesContainerRef}
-          className="pt-16 lg:pt-0 flex-1 overflow-y-auto px-4 lg:px-10 py-6 bg-[#f6faff] dark:bg-[#051424] bg-[radial-gradient(rgba(0,101,145,0.065)_0.5px,transparent_0.5px)] dark:bg-[radial-gradient(rgba(137,206,255,0.05)_0.5px,transparent_0.5px)] bg-size-[24px_24px] [scrollbar-width:thin]"
+          className="flex-1 overflow-y-auto px-4 lg:px-10 py-6 bg-[#f6faff] dark:bg-[#051424] bg-[radial-gradient(rgba(0,101,145,0.065)_0.5px,transparent_0.5px)] dark:bg-[radial-gradient(rgba(137,206,255,0.05)_0.5px,transparent_0.5px)] bg-size-[24px_24px] [scrollbar-width:thin]"
         >
           {!selectedConversationId ? (
             <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-400 dark:text-slate-600">
@@ -1811,8 +1811,8 @@ export default function MessagesPage() {
         )}
 
         {/* ── Input footer ── */}
-        <footer className="shrink-0 w-full flex items-center justify-center gap-2 px-4 lg:px-8 py-4 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
-          <div className="flex overflow-hidden items-center gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
+        <footer className="shrink-0 w-full flex items-center gap-2 px-4 lg:px-6 py-3 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
+          <div className="flex-1 min-w-0 flex overflow-hidden items-center gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
             <div className="w-full overflow-hidden">
               <input
                 type="text"

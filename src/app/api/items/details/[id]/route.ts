@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { Errors } from "@/app/api/lib/errors/errors";
 import { getListingDetailsById } from "@/server/services/listing-details.service";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 /**
  * @description جلب العنصر مع الصور والموقع والمراجعات
@@ -36,7 +37,12 @@ export async function GET(
         success: true,
         item,
       },
-      { status: 200 },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": CACHE_HEADERS.publicStandard,
+        },
+      },
     );
   } catch (error) {
     console.error("❌ Error fetching item details:", error);

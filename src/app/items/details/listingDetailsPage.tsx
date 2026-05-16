@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import ItemDetails from "./[id]/ItemDetails";
+import ViewedListingTracker from "./ViewedListingTracker";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   getListingDetailsById,
   type ListingDetailsDto,
@@ -9,7 +11,18 @@ import {
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-export const getListingOrNull = async (id: string) => getListingDetailsById(id);
+const getCachedListingDetails = unstable_cache(
+  async (id: string) => getListingDetailsById(id),
+  ["listing-details-by-id"],
+  {
+    revalidate: 300,
+    tags: ["listing-details"],
+  },
+);
+
+export const getListingOrNull = cache(async (id: string) =>
+  getCachedListingDetails(id),
+);
 
 export const buildListingMetadata = (
   id: string,
@@ -78,9 +91,6 @@ export const buildListingMetadata = (
 export const renderListingDetailsPage = async (
   item: ListingDetailsDto | null,
 ) => {
-  const acceptLanguage = (await headers()).get("accept-language") ?? "";
-  const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
-
   const listingTitle = item?.title || "Listing";
 
   const listingSchema = item
@@ -213,13 +223,12 @@ export const renderListingDetailsPage = async (
       <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         {item ? (
           <div className="rounded-[30px] border border-slate-200/70 bg-linear-to-br from-white/96 via-white to-slate-50/95 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm dark:border-slate-700/70 dark:from-slate-900/95 dark:via-slate-900 dark:to-slate-950/95">
+            <ViewedListingTracker listingId={item.data?.id} />
             <ItemDetails item={item} />
           </div>
         ) : (
           <div className="market-panel rounded-[28px] px-6 py-12 text-center text-slate-200">
-            <h2 className="text-xl font-bold">
-              {isArabic ? "غير موجود" : "Not Found"}
-            </h2>
+            <h2 className="text-xl font-bold">Not Found | غير موجود</h2>
           </div>
         )}
       </div>

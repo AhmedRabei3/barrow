@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import CardList from "@/app/components/home/CardList";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 import {
@@ -22,6 +23,9 @@ interface PageProps {
 }
 
 const PAGE_LIMIT = 24;
+
+export const revalidate = 300;
+export const dynamic = "force-static";
 
 const formatCategoryItems = (items: ItemSearchItemDto[]) =>
   items.map((item) => ({
@@ -60,52 +64,54 @@ const formatCategoryItems = (items: ItemSearchItemDto[]) =>
     averageRating: item.averageRating ?? 0,
   }));
 
-const getCategoryLandingData = async (typeSegment: string, categoryId: string) => {
-  const itemType = getItemTypeFromSegment(typeSegment);
-  if (!itemType) {
-    return null;
-  }
+const getCategoryLandingData = cache(
+  async (typeSegment: string, categoryId: string) => {
+    const itemType = getItemTypeFromSegment(typeSegment);
+    if (!itemType) {
+      return null;
+    }
 
-  const category = await prisma.category.findFirst({
-    where: {
-      id: categoryId,
-      type: itemType,
-      isDeleted: false,
-    },
-    select: {
-      id: true,
-      name: true,
-      nameAr: true,
-      nameEn: true,
-      type: true,
-    },
-  });
+    const category = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        type: itemType,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        nameAr: true,
+        nameEn: true,
+        type: true,
+      },
+    });
 
-  if (!category) {
-    return null;
-  }
+    if (!category) {
+      return null;
+    }
 
-  const itemsResponse = await searchItems({
-    q: "",
-    type: category.type,
-    catName: category.name,
-    userLat: null,
-    userLng: null,
-    page: 1,
-    limit: PAGE_LIMIT,
-  });
-
-  return {
-    category,
-    items: itemsResponse.items,
-    totalCount: itemsResponse.totalCount,
-    canonicalPath: buildCategoryLandingPath({
+    const itemsResponse = await searchItems({
+      q: "",
       type: category.type,
-      categoryId: category.id,
-      categoryName: category.name,
-    }),
-  };
-};
+      catName: category.name,
+      userLat: null,
+      userLng: null,
+      page: 1,
+      limit: PAGE_LIMIT,
+    });
+
+    return {
+      category,
+      items: itemsResponse.items,
+      totalCount: itemsResponse.totalCount,
+      canonicalPath: buildCategoryLandingPath({
+        type: category.type,
+        categoryId: category.id,
+        categoryName: category.name,
+      }),
+    };
+  },
+);
 
 export async function generateMetadata({
   params,
@@ -222,7 +228,9 @@ export default async function CategoryLandingPage({ params }: PageProps) {
         <span className="mx-2">/</span>
         <span>{typeLabel.en}</span>
         <span className="mx-2">/</span>
-        <span className="text-slate-900 dark:text-white">{data.category.name}</span>
+        <span className="text-slate-900 dark:text-white">
+          {data.category.name}
+        </span>
       </nav>
       <header className="mb-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300">
@@ -232,7 +240,9 @@ export default async function CategoryLandingPage({ params }: PageProps) {
           {data.category.name}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-          Explore {data.totalCount} active listings in {data.category.name}. This landing page is optimized for browsing current offers, comparing photos and pricing, and reaching the most relevant inventory faster.
+          Explore {data.totalCount} active listings in {data.category.name}.
+          This landing page is optimized for browsing current offers, comparing
+          photos and pricing, and reaching the most relevant inventory faster.
         </p>
       </header>
       {cards.length > 0 ? (

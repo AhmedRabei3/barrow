@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { $Enums } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 const BASE_WHERE = { isDeleted: false, status: "AVAILABLE" as const };
 
@@ -81,7 +82,7 @@ export async function GET() {
     if (warmCache) {
       return NextResponse.json(warmCache, {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": CACHE_HEADERS.publicStandard,
           "x-cache": "memory-hit",
         },
       });
@@ -90,7 +91,7 @@ export async function GET() {
     const counts = await getCachedTypeCounts();
     return NextResponse.json(counts, {
       headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": CACHE_HEADERS.publicStandard,
       },
     });
   } catch {
@@ -98,7 +99,7 @@ export async function GET() {
     if (staleCache) {
       return NextResponse.json(staleCache, {
         headers: {
-          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=600",
+          "Cache-Control": CACHE_HEADERS.publicShort,
           "x-cache": "stale-fallback",
         },
       });

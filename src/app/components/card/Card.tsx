@@ -15,6 +15,11 @@ import { $Enums } from "@prisma/client";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { buildListingDetailsPath } from "@/lib/listingSeo";
 import { getUiLocale } from "@/lib/locale-format";
+import {
+  isListingViewed,
+  markListingAsViewed,
+  subscribeViewedListings,
+} from "@/app/utils/viewedListings";
 
 type CardItem = {
   item: {
@@ -68,6 +73,8 @@ const Card: FC<CardProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [, setIsPaused] = useState(false);
   const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
+  const [isViewed, setIsViewed] = useState(false);
+  const itemId = grandItem?.item?.id ?? null;
 
   useEffect(() => {
     if (currentIndex >= itemImages.length) {
@@ -78,6 +85,26 @@ const Card: FC<CardProps> = ({
   const handleDotClick = useCallback((index: number) => {
     setCurrentIndex(index);
   }, []);
+
+  useEffect(() => {
+    if (!itemId) {
+      setIsViewed(false);
+      return;
+    }
+
+    const syncViewedState = () => {
+      setIsViewed(isListingViewed(itemId));
+    };
+
+    syncViewedState();
+    return subscribeViewedListings(syncViewedState);
+  }, [itemId]);
+
+  const handleOpenDetails = useCallback(() => {
+    if (!itemId) return;
+    markListingAsViewed(itemId);
+    setIsViewed(true);
+  }, [itemId]);
 
   if (!grandItem || !item) return <p>No item to preview</p>;
 
@@ -196,10 +223,19 @@ const Card: FC<CardProps> = ({
         <Link
           href={detailHref}
           prefetch={false}
+          onClick={handleOpenDetails}
           aria-label={`Open details for ${itemLabel}`}
           className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
         />
         <div className="relative w-full aspect-4/3 overflow-hidden rounded-t-[20px] dark:bg-slate-950/60">
+          {isViewed && (
+            <div className="pointer-events-none absolute left-3 top-3 z-20 inline-flex items-center gap-1 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-semibold text-white">
+              <span className="material-symbols-outlined text-[14px]">
+                visibility
+              </span>
+              <span>{isArabic ? "شوهد سابقاً" : "Viewed"}</span>
+            </div>
+          )}
           {/* ❤️ زر الإعجاب */}
           <LikeBtn itemId={item.id} itemType={itemType ?? null} />
           {/* صندوق الأدوات */}

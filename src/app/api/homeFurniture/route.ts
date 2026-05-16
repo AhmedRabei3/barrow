@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
       location: parsedLocData,
       images: uploadedImages,
       itemType: "HOME_FURNITURE",
+      ownerId: owner.id,
+      itemTitle: parsedData.data.name,
+      isArabic,
       createItem: (tx) =>
         tx.homeFurniture.create({
           data: {

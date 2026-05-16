@@ -123,8 +123,7 @@ export const itemSearchRepository = {
       ...(typeof options?.take === "number" ? { take: options.take } : {}),
     };
 
-    // Parallel read-only queries: total time = max(count, findMany) not sum.
-    const [count, rows] = await Promise.all([
+    const [count, rows] = await prisma.$transaction([
       prisma.listingSearchIndex.count({ where }),
       prisma.listingSearchIndex.findMany({
         where,

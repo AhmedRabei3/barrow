@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ItemType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 type ItemCountsPayload = {
   success: true;
@@ -45,7 +46,7 @@ export async function GET() {
   if (freshCached) {
     return NextResponse.json(freshCached, {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+        "Cache-Control": CACHE_HEADERS.publicShort,
       },
     });
   }
@@ -88,7 +89,7 @@ export async function GET() {
 
     return NextResponse.json(payload, {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+        "Cache-Control": CACHE_HEADERS.publicShort,
       },
     });
   } catch (error) {
@@ -96,7 +97,7 @@ export async function GET() {
     if (staleCached) {
       return NextResponse.json(staleCached, {
         headers: {
-          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=300",
+          "Cache-Control": CACHE_HEADERS.publicShort,
           "x-cache": "stale-fallback",
         },
       });

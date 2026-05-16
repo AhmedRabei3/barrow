@@ -11,7 +11,7 @@ export const isDatabaseUnavailableError = (error: unknown) => {
   return (
     error instanceof Prisma.PrismaClientInitializationError ||
     (error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P1001")
+      (error.code === "P1001" || error.code === "P2024"))
   );
 };
 

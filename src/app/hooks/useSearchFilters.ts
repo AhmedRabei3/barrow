@@ -9,6 +9,9 @@ export interface Filters {
   city: string;
   minPrice: string | number;
   maxPrice: string | number;
+  distance: string | number; // المسافة بالكيلومتر
+  userLat: number | null; // خط العرض
+  userLng: number | null; // خط الطول
 }
 
 interface FiltersState {
@@ -26,6 +29,9 @@ export const useSearchFilters = create<FiltersState>((set) => ({
     city: "",
     minPrice: "",
     maxPrice: "",
+    distance: "",
+    userLat: null,
+    userLng: null,
   },
 
   setFilters: (newFilters) =>
@@ -43,6 +49,9 @@ export const useSearchFilters = create<FiltersState>((set) => ({
         city: "",
         minPrice: "",
         maxPrice: "",
+        distance: "",
+        userLat: null,
+        userLng: null,
       },
     }),
 }));

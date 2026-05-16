@@ -5,9 +5,15 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { getUserLastSeen, isUserConnected } from "@/lib/websocketServer";
+import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 20;
 const RECENT_ACTIVITY_ONLINE_WINDOW_MS = 60_000;
+
+const isTransientDbError = (error: unknown) =>
+  error instanceof Prisma.PrismaClientInitializationError ||
+  (error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P1001" || error.code === "P2024"));
 
 export async function GET(req: NextRequest) {
   try {
@@ -87,8 +93,7 @@ export async function GET(req: NextRequest) {
         unreadCount,
         otherParticipantIsOnline:
           Boolean(onlineMap.get(otherParticipantId)) || recentlyActive,
-        otherParticipantLastSeenAt:
-          lastSeenMap.get(otherParticipantId) ?? null,
+        otherParticipantLastSeenAt: lastSeenMap.get(otherParticipantId) ?? null,
       };
     });
 
@@ -103,6 +108,15 @@ export async function GET(req: NextRequest) {
       hasMore: rawConvs.length === PAGE_SIZE,
     });
   } catch (error) {
+    if (isTransientDbError(error)) {
+      return NextResponse.json({
+        conversations: [],
+        nextCursor: null,
+        hasMore: false,
+        degraded: true,
+      });
+    }
+
     logger.error("Failed to list conversations", error);
     return NextResponse.json(
       { message: "Failed to load conversations" },

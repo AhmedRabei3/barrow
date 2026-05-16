@@ -8,6 +8,18 @@ import {
 import { parseItemSearchQuery } from "@/lib/validators/item-search";
 import { searchItems } from "@/server/services/item-search.service";
 import { RequestTimeoutError, withTimeout } from "@/app/api/lib/errors/dbGuard";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
+
+function isTimeoutError(err: unknown): boolean {
+  if (err instanceof RequestTimeoutError) return true;
+  if (err instanceof Error && err.name === "TimeoutError") return true;
+  if (
+    err instanceof DOMException &&
+    (err.code === 23 || err.name === "TimeoutError")
+  )
+    return true;
+  return false;
+}
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
@@ -24,11 +36,10 @@ export async function GET(req: NextRequest) {
       headers:
         query.userLat === null && query.userLng === null
           ? {
-              "Cache-Control":
-                "public, s-maxage=300, stale-while-revalidate=600",
+              "Cache-Control": CACHE_HEADERS.publicStandard,
             }
           : {
-              "Cache-Control": "private, no-store",
+              "Cache-Control": CACHE_HEADERS.privateNoStore,
             },
     });
   } catch (err) {
@@ -46,7 +57,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (
-      err instanceof RequestTimeoutError &&
+      isTimeoutError(err) &&
       query.userLat !== null &&
       query.userLng !== null
     ) {
@@ -62,13 +73,13 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(fallbackResponse, {
         headers: {
-          "Cache-Control": "private, no-store",
+          "Cache-Control": CACHE_HEADERS.privateNoStore,
           "X-Search-Fallback": "non-geo",
         },
       });
     }
 
-    if (err instanceof RequestTimeoutError) {
+    if (isTimeoutError(err)) {
       const reducedLimit = Math.min(
         Math.max(Math.floor(query.limit / 2), 8),
         12,
@@ -84,7 +95,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(fallbackResponse, {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": CACHE_HEADERS.publicShort,
           "X-Search-Fallback": "reduced-limit",
         },
       });

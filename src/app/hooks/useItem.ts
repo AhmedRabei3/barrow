@@ -12,6 +12,7 @@ type CacheQueryKey = {
   city?: string;
   minPrice?: string | number;
   maxPrice?: string | number;
+  distance?: string | number;
   page: number;
   limit: number;
   latitude: number | null;
@@ -137,6 +138,7 @@ const buildFallbackIndexKey = (targetQuery: CacheQueryKey) =>
     city: normalizeComparableText(targetQuery.city),
     minPrice: normalizeComparableValue(targetQuery.minPrice),
     maxPrice: normalizeComparableValue(targetQuery.maxPrice),
+    distance: normalizeComparableValue(targetQuery.distance),
     limit: targetQuery.limit,
     latitude: targetQuery.latitude,
     longitude: targetQuery.longitude,
@@ -156,6 +158,8 @@ const isCompatibleCacheSource = (
     candidate.limit === target.limit &&
     candidate.latitude === target.latitude &&
     candidate.longitude === target.longitude &&
+    normalizeComparableValue(candidate.distance) ===
+      normalizeComparableValue(target.distance) &&
     normalizeComparableText(candidate.q) ===
       normalizeComparableText(target.q) &&
     normalizeComparableText(candidate.action) ===
@@ -294,6 +298,9 @@ const useItems = ({
       city: filters.city,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
+      distance: filters.distance,
+      latitude: filters.userLat ?? undefined,
+      longitude: filters.userLng ?? undefined,
     }),
     [
       filters.type,
@@ -303,6 +310,9 @@ const useItems = ({
       filters.city,
       filters.minPrice,
       filters.maxPrice,
+      filters.distance,
+      filters.userLat,
+      filters.userLng,
     ],
   );
   const requestKey = useMemo(
@@ -311,19 +321,24 @@ const useItems = ({
         ...requestFilters,
         page,
         limit,
-        latitude: null,
-        longitude: null,
       }),
     [requestFilters, page, limit],
   );
-  const requestQuery = useMemo<CacheQueryKey>(
-    () => ({
-      ...requestFilters,
-      page,
-      limit,
-      latitude: null,
-      longitude: null,
-    }),
+     const requestQuery = useMemo<CacheQueryKey>(
+       () => ({
+         type: requestFilters.type,
+         catName: requestFilters.catName,
+         q: requestFilters.q,
+         action: requestFilters.action,
+         city: requestFilters.city,
+         minPrice: requestFilters.minPrice,
+         maxPrice: requestFilters.maxPrice,
+         distance: requestFilters.distance,
+         latitude: requestFilters.latitude ?? null,
+         longitude: requestFilters.longitude ?? null,
+         page,
+         limit,
+       }),
     [requestFilters, page, limit],
   );
 

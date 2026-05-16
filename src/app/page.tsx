@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import HomePageClient from "./HomePageClient";
 import { buildMetadata, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { searchItemsUncached } from "@/server/services/item-search.service";
@@ -7,18 +6,13 @@ import type { ItemSearchItemDto } from "@/features/items/types";
 
 // ISR: re-render at most once every 5 minutes
 export const revalidate = 300;
+export const dynamic = "force-static";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const acceptLanguage = (await headers()).get("accept-language") ?? "";
-  const isArabic = acceptLanguage.toLowerCase().startsWith("ar");
-
+export function generateMetadata(): Metadata {
   return buildMetadata({
-    title: isArabic
-      ? `${SITE_NAME} | الرئيسية لبيع وشراء العقارات والسيارات والإيجار`
-      : `${SITE_NAME} | Home Marketplace for Property, Cars, and Rentals`,
-    description: isArabic
-      ? "اكتشف آلاف الإعلانات الموثوقة للعقارات والسيارات والأثاث والأجهزة الطبية، مع بحث ذكي وتواصل مباشر وخيارات بيع وشراء وإيجار بأسعار تنافسية على Mashhoor."
-      : "Discover trusted listings for properties, cars, furniture, and medical devices with smart search, direct contact, and seamless rent, buy, and sell on Mashhoor.",
+    title: `${SITE_NAME} | Home Marketplace for Property, Cars, and Rentals | الرئيسية لبيع وشراء العقارات والسيارات والإيجار`,
+    description:
+      "Discover trusted listings for properties, cars, furniture, and medical devices with smart search, direct contact, and seamless rent, buy, and sell on Mashhoor. اكتشف آلاف الإعلانات الموثوقة للعقارات والسيارات والأثاث والأجهزة الطبية، مع بحث ذكي وتواصل مباشر وخيارات بيع وشراء وإيجار بأسعار تنافسية على Mashhoor.",
     path: "/",
     keywords: [
       "marketplace home",

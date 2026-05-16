@@ -5,6 +5,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { Prisma } from "@prisma/client";
+
+const isTransientDbError = (error: unknown) =>
+  error instanceof Prisma.PrismaClientInitializationError ||
+  (error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P1001" || error.code === "P2024"));
 
 export async function GET() {
   try {
@@ -25,6 +31,10 @@ export async function GET() {
 
     return NextResponse.json({ unreadCount });
   } catch (error) {
+    if (isTransientDbError(error)) {
+      return NextResponse.json({ unreadCount: 0, degraded: true });
+    }
+
     logger.error("Failed to load unread count", error);
     return NextResponse.json(
       { message: "Failed to load unread count" },

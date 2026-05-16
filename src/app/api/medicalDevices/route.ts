@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
       location: parsedLocData,
       images: uploadedImages,
       itemType: "MEDICAL_DEVICE",
+      ownerId: owner.id,
+      itemTitle: parsedData.data.name,
+      isArabic,
       createItem: (tx) =>
         tx.medicalDevice.create({
           data: {

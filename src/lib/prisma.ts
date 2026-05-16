@@ -4,9 +4,6 @@ import { logger } from "./logger";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-const isVercelServerlessRuntime =
-  process.env.VERCEL === "1" || typeof process.env.VERCEL_ENV === "string";
-
 const isSupabasePostgresUrl = (url: URL) =>
   /supabase\.com$/i.test(url.hostname);
 
@@ -41,13 +38,14 @@ const normalizePostgresConnectionUrl = (value: string | undefined) => {
         url.searchParams.set("connect_timeout", "15");
       }
 
-      if (isVercelServerlessRuntime && isSupabasePoolerUrl(url)) {
+      if (isSupabasePoolerUrl(url)) {
         if (!url.searchParams.has("pgbouncer")) {
           url.searchParams.set("pgbouncer", "true");
         }
 
         if (!url.searchParams.has("connection_limit")) {
-          url.searchParams.set("connection_limit", "1");
+          // Keep pool size conservative to avoid P2024 pool starvation.
+          url.searchParams.set("connection_limit", "3");
         }
 
         if (!url.searchParams.has("pool_timeout")) {

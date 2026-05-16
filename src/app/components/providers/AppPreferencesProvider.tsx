@@ -99,8 +99,9 @@ const AppPreferencesProvider = ({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (typeof window.fetch !== "function") return;
 
-    const originalFetch = window.fetch.bind(window);
+    const originalFetch = window.fetch;
 
     window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const localeHeaders = new Headers(
@@ -127,7 +128,7 @@ const AppPreferencesProvider = ({
         localeHeaders.set("Accept-Language", locale);
       }
 
-      return originalFetch(input, {
+      return originalFetch.call(window, input, {
         ...init,
         headers: localeHeaders,
       });

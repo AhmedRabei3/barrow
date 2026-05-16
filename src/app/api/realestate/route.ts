@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
       location: locParsed,
       images: uploadedImages,
       itemType: "PROPERTY",
+      ownerId: owner.id,
+      itemTitle: parsed.data.title ?? "Property",
+      isArabic,
       createItem: (tx) =>
         tx.property.create({
           data: {

@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { headers, cookies } from "next/headers";
 import { Geist, Geist_Mono, Noto_Kufi_Arabic } from "next/font/google";
 import ClientOnly from "./components/ClientOnly";
 import GlobalOverlays from "./components/GlobalOverlays";
@@ -116,28 +115,17 @@ export const metadata: Metadata = {
   },
 };
 
-/* eslint-disable @next/next/no-page-custom-font */
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const acceptLanguage = (await headers()).get("accept-language") ?? "";
-  const cookieStore = await cookies();
-  const savedLocaleCookie = cookieStore.get("barrow-locale")?.value;
-  const initialLocale =
-    savedLocaleCookie === "ar" || savedLocaleCookie === "en"
-      ? savedLocaleCookie
-      : acceptLanguage.toLowerCase().startsWith("ar")
-        ? "ar"
-        : "en";
+  // Keep root layout static for better HTML caching and faster TTFB.
+  // Locale is resolved client-side by AppPreferencesProvider after hydration.
+  const initialLocale = "en";
 
   return (
-    <html
-      lang={initialLocale}
-      dir={initialLocale === "ar" ? "rtl" : "ltr"}
-      suppressHydrationWarning
-    >
+    <html lang={initialLocale} dir="ltr" suppressHydrationWarning>
       <head>
         {/* Critical resource hints for performance */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
@@ -154,26 +142,6 @@ export default async function RootLayout({
           as="image"
           href="/images/logo.png"
           fetchPriority="high"
-        />
-        <link
-          rel="preload"
-          as="font"
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=optional"
-          crossOrigin="anonymous"
-        />
-
-        {/* Async CSS loading to reduce render-blocking */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              document.addEventListener('DOMContentLoaded', () => {
-                const linkTags = document.querySelectorAll('link[data-async="true"]');
-                linkTags.forEach(link => {
-                  link.media = 'all';
-                });
-              });
-            `,
-          }}
         />
       </head>
       <body
@@ -201,4 +169,3 @@ export default async function RootLayout({
     </html>
   );
 }
-/* eslint-enable @next/next/no-page-custom-font */

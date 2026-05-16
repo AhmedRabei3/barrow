@@ -3,6 +3,7 @@ import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
 } from "@/app/i18n/errorMessages";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 // Simple in-memory cache: key = "lat,lon" → { data, expiresAt }
 const geocodeCache = new Map<string, { data: unknown; expiresAt: number }>();
@@ -48,7 +49,12 @@ export async function GET(req: NextRequest) {
     const cacheKey = `${parseFloat(lat).toFixed(4)},${parseFloat(lon).toFixed(4)}`;
     const cached = getFromCache(cacheKey);
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": CACHE_HEADERS.publicLong,
+          "x-cache": "memory-hit",
+        },
+      });
     }
 
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
@@ -91,7 +97,11 @@ export async function GET(req: NextRequest) {
     };
 
     setCache(cacheKey, responsePayload);
-    return NextResponse.json(responsePayload);
+    return NextResponse.json(responsePayload, {
+      headers: {
+        "Cache-Control": CACHE_HEADERS.publicLong,
+      },
+    });
   } catch (e) {
     const isArabic = resolveIsArabicFromRequest(req);
     const isTimeout =

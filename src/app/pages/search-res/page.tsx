@@ -1,5 +1,7 @@
 // Navif=gation: /search-results
 
+export const dynamic = "force-static";
+
 import Image from "next/image";
 import React from "react";
 

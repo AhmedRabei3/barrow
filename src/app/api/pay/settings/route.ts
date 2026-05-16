@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 
 export async function GET() {
   const fallback = {
@@ -22,19 +23,30 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({
-      ok: true,
-      subscriptionMonthlyPrice: Number(
-        settings?.subscriptionMonthlyPrice ?? 30,
-      ),
-      featuredAdMonthlyPrice: Number(settings?.featuredAdMonthlyPrice ?? 10),
-      shamCashQrCodeUrl: settings?.url || "",
-      shamCashWalletCode: settings?.ownerProfitWalletCode || "",
-      url: settings?.url || "",
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        subscriptionMonthlyPrice: Number(
+          settings?.subscriptionMonthlyPrice ?? 30,
+        ),
+        featuredAdMonthlyPrice: Number(settings?.featuredAdMonthlyPrice ?? 10),
+        shamCashQrCodeUrl: settings?.url || "",
+        shamCashWalletCode: settings?.ownerProfitWalletCode || "",
+        url: settings?.url || "",
+      },
+      {
+        headers: {
+          "Cache-Control": CACHE_HEADERS.publicStandard,
+        },
+      },
+    );
   } catch (error) {
     console.error("Failed to load public payment settings:", error);
 
-    return NextResponse.json(fallback);
+    return NextResponse.json(fallback, {
+      headers: {
+        "Cache-Control": CACHE_HEADERS.publicShort,
+      },
+    });
   }
 }

@@ -9,6 +9,7 @@ export type ItemSearchQueryDto = {
   action?: string;
   minPrice?: number;
   maxPrice?: number;
+  distance?: number; // المسافة بالكيلومتر
   userLat: number | null;
   userLng: number | null;
   page: number;

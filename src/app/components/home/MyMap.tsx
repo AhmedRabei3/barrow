@@ -16,13 +16,21 @@ type MappedItem = {
   image: string;
   latitude: number;
   longitude: number;
+  city?: string;
+  country?: string;
+  address?: string;
+  price?: number;
+  isFeatured?: boolean;
 };
 
 type RawItem = {
   item: {
     id: string;
+    name?: string;
     brand: string;
     model: string;
+    price?: number;
+    isFeatured?: boolean;
   };
   itemImages: Array<{ url?: string }>;
   itemLocation: Array<
@@ -77,10 +85,16 @@ const MapWrapper = ({ showMap, setShowMap, items }: MapProps) => {
         )
         .map((i) => ({
           id: i.item.id ?? "",
-          name: `${i.item.brand || i.item.model || t("عنصر", "Item")}`,
+          name:
+            i.item.name || i.item.brand || i.item.model || t("عنصر", "Item"),
           image: i.itemImages[0]?.url || "/placeholder.jpg",
           latitude: i.itemLocation[0]?.latitude ?? 0,
           longitude: i.itemLocation[0]?.longitude ?? 0,
+          city: i.itemLocation[0]?.city,
+          country: i.itemLocation[0]?.country,
+          address: i.itemLocation[0]?.address,
+          price: i.item.price,
+          isFeatured: Boolean(i.item.isFeatured),
         })),
     [items, t],
   );

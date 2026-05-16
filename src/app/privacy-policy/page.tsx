@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import Link from "next/link";
 import { privacyPolicyContent } from "@/app/legal/privacyPolicyContent";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";

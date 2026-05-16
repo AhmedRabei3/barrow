@@ -74,7 +74,9 @@ const HomePageClient = ({
     Boolean(filters.city) ||
     Boolean(filters.action) ||
     Boolean(filters.minPrice) ||
-    Boolean(filters.maxPrice);
+    Boolean(filters.maxPrice) ||
+    Boolean(filters.distance) ||
+    (filters.userLat !== null && filters.userLng !== null);
   const shouldFetchItems = hasExplicitFilters || Boolean(filters.type);
 
   /* ── Mobile category picker state ──────────────────────────────── */

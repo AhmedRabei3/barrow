@@ -6,6 +6,9 @@ import {
   renderListingDetailsPage,
 } from "../listingDetailsPage";
 
+export const revalidate = 300;
+export const dynamic = "force-static";
+
 interface PageProps {
   params: Promise<{
     id: string;

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { CloudinaryUploadResult, deleteFromCloudinary } from "./cloudinary";
 import { upsertListingIndex } from "@/server/services/listing-index.service";
+import { notifyNearbyUsersAsync } from "@/server/services/nearby-notify.service";
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -24,6 +25,12 @@ type CreateItemWithLocationParams<T> = {
     | "MEDICAL_DEVICE"
     | "OTHER";
   createItem: (tx: TxClient) => Promise<T>;
+  /** Owner user ID — when provided, nearby users will be notified. */
+  ownerId?: string;
+  /** Display title for the nearby notification. */
+  itemTitle?: string;
+  /** Language resolved from the request session cookie — passed to nearby notifications. */
+  isArabic?: boolean;
 };
 
 export async function createItemWithLocation<T extends { id: string }>({
@@ -31,6 +38,9 @@ export async function createItemWithLocation<T extends { id: string }>({
   images,
   itemType,
   createItem,
+  ownerId,
+  itemTitle,
+  isArabic,
 }: CreateItemWithLocationParams<T>) {
   try {
     const item = await prisma.$transaction(async (tx: TxClient) => {
@@ -71,6 +81,17 @@ export async function createItemWithLocation<T extends { id: string }>({
       item.id,
       itemType as import("@prisma/client").$Enums.ItemType,
     );
+    // Notify nearby users if owner and title are provided
+    if (ownerId && itemTitle) {
+      notifyNearbyUsersAsync({
+        ownerId,
+        lat: location.latitude,
+        lng: location.longitude,
+        itemType,
+        title: itemTitle,
+        isArabic,
+      });
+    }
     return item;
   } catch (error) {
     console.error("Transaction failed:", error);
