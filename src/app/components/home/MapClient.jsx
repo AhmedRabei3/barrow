@@ -8,6 +8,7 @@ import {
   Popup,
   TileLayer,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import L from "leaflet";
@@ -19,6 +20,7 @@ import { buildListingDetailsPath } from "@/lib/listingSeo";
 import Image from "next/image";
 import DistanceFilter from "../filters/DistanceFilter";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
+import { useSession } from "next-auth/react";
 
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -115,12 +117,38 @@ const createClusterIcon = (cluster) => {
   });
 };
 
+const SYRIA_CENTER = [34.8021, 38.9968];
+
+const pickerMarkerIcon = L.divIcon({
+  className: "picker-marker",
+  html: '<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#2563eb;border:4px solid #fff;box-shadow:0 4px 16px rgba(37,99,235,0.5)"></div>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
+const ClickableLayer = ({ onPlace }) => {
+  useMapEvents({
+    click(e) {
+      onPlace(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
+
 const MapClient = ({ setShowMap, items }) => {
   const { isArabic } = useAppPreferences();
-  const { filters } = useSearchFilters();
-  const t = (ar, en) => (isArabic ? ar : en);
+  const { filters, setFilters } = useSearchFilters();
+  const { data: session, status: sessionStatus } = useSession();
+  const t = useCallback((ar, en) => (isArabic ? ar : en), [isArabic]);
   const locale = isArabic ? "ar" : "en";
   const [mapInstance, setMapInstance] = useState(null);
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertFeedback, setAlertFeedback] = useState(null);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [tempPickerPos, setTempPickerPos] = useState(null);
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [locationError, setLocationError] = useState(null);
   const userPosition = useMemo(
     () =>
       filters.userLat !== null && filters.userLng !== null
@@ -168,22 +196,41 @@ const MapClient = ({ setShowMap, items }) => {
         `${visibleItems.length} عنصر ضمن ${distanceKm} كم`,
         `${visibleItems.length} items within ${distanceKm} km`,
       )
-    : t(`${items.length} عنصر على الخريطة`, `${items.length} items on the map`);
+    : "";
 
-  const helperLabel = !userPosition
-    ? t(
-        "اختر مسافة لتفعيل موقعك ثم تقريب الخريطة حولك",
-        "Choose a distance to enable your location and focus the map around you",
-      )
-    : hasDistanceFilter
-      ? t(
-          "الخريطة الآن مركزة على نطاق البحث والعناصر الأقرب إليك",
-          "The map is now focused on your search radius and the nearest items",
-        )
-      : t(
-          "يمكنك اختيار مسافة لتضييق النتائج وإظهار محيطك مباشرة",
-          "Pick a distance to narrow results and frame your nearby area",
-        );
+  const buttonText = useMemo(
+    () =>
+      isArabic
+        ? {
+            closeMap: "إغلاق الخريطة",
+            hideFilters: "إخفاء الفلاتر",
+            showFilters: "إظهار الفلاتر",
+            closeFilters: "إغلاق الفلاتر",
+            notifyNewMatches: "أعلمني عند توفر جديد",
+            enabling: "جاري التفعيل...",
+            recenterArea: "إعادة التمركز على منطقتك",
+            editLocation: "تعديل الموقع",
+            useCurrentLocation: "استخدام موقعي الحالي",
+            locating: "جاري تحديد موقعك...",
+            saveLocation: "حفظ الموقع",
+            cancel: "إلغاء",
+          }
+        : {
+            closeMap: "Close map",
+            hideFilters: "Hide filters",
+            showFilters: "Show filters",
+            closeFilters: "Close filters",
+            notifyNewMatches: "Notify me about new matches",
+            enabling: "Enabling...",
+            recenterArea: "Recenter on your area",
+            editLocation: "Edit location",
+            useCurrentLocation: "Use my current location",
+            locating: "Locating you...",
+            saveLocation: "Save location",
+            cancel: "Cancel",
+          },
+    [isArabic],
+  );
 
   const handleMapReady = useCallback((event) => {
     setMapInstance(event.target);
@@ -224,56 +271,460 @@ const MapClient = ({ setShowMap, items }) => {
     }
   }, [distanceKm, hasDistanceFilter, mapInstance, userPosition, visibleItems]);
 
+  const handleEnableAvailabilityAlert = useCallback(async () => {
+    if (sessionStatus === "loading") {
+      return;
+    }
+
+    if (!session?.user?.id) {
+      setAlertFeedback({
+        type: "warning",
+        text: t(
+          "يرجى تسجيل الدخول أولاً لتفعيل التنبيه",
+          "Please sign in first to enable this alert",
+        ),
+      });
+      return;
+    }
+
+    if (!userPosition || !hasDistanceFilter) {
+      setAlertFeedback({
+        type: "warning",
+        text: t(
+          "حدّد موقعًا ومسافة أولاً، ثم فعّل التنبيه",
+          "Pick a location and distance first, then enable the alert",
+        ),
+      });
+      return;
+    }
+
+    setAlertSaving(true);
+    setAlertFeedback(null);
+
+    try {
+      const res = await fetch("/api/listing-alerts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          lat: userPosition[0],
+          lng: userPosition[1],
+          radiusKm: distanceKm,
+          itemType: filters.type ?? null,
+          action: filters.action ?? null,
+          catName: filters.catName,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message ||
+            t("تعذر تفعيل التنبيه حالياً", "Failed to enable alert right now"),
+        );
+      }
+
+      setAlertFeedback({
+        type: "success",
+        text:
+          data?.message ||
+          t("تم تفعيل التنبيه بنجاح", "Alert has been enabled successfully"),
+      });
+    } catch (error) {
+      setAlertFeedback({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : t("حدث خطأ غير متوقع", "Unexpected error occurred"),
+      });
+    } finally {
+      setAlertSaving(false);
+    }
+  }, [
+    distanceKm,
+    filters.action,
+    filters.catName,
+    filters.type,
+    hasDistanceFilter,
+    session?.user?.id,
+    sessionStatus,
+    t,
+    userPosition,
+  ]);
+
+  // Initialise picker state when the panel opens / closes
+  useEffect(() => {
+    if (isFilterPanelOpen) {
+      setTempPickerPos(userPosition ? [...userPosition] : null);
+      setIsEditingLocation(!userPosition);
+    } else {
+      setIsEditingLocation(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFilterPanelOpen]);
+
+  const handleSavePickerLocation = useCallback(() => {
+    if (!tempPickerPos) return;
+    setFilters({ userLat: tempPickerPos[0], userLng: tempPickerPos[1] });
+    setIsEditingLocation(false);
+  }, [setFilters, tempPickerPos]);
+
+  const handleOpenLocationEditor = useCallback(() => {
+    setTempPickerPos(userPosition ? [...userPosition] : null);
+    setIsEditingLocation(true);
+  }, [userPosition]);
+
+  const handleCancelLocationEdit = useCallback(() => {
+    setIsEditingLocation(false);
+    setTempPickerPos(userPosition ? [...userPosition] : null);
+  }, [userPosition]);
+
+  const handleUseCurrentLocation = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationError(
+        t(
+          "الموقع الجغرافي غير مدعوم في هذا المتصفح",
+          "Geolocation is not supported in this browser",
+        ),
+      );
+      return;
+    }
+
+    setLocatingUser(true);
+    setLocationError(null);
+
+    if ("permissions" in navigator && navigator.permissions?.query) {
+      try {
+        const permission = await navigator.permissions.query({
+          name: "geolocation",
+        });
+        if (permission.state === "denied") {
+          setLocatingUser(false);
+          setLocationError(
+            t(
+              "إذن الموقع مرفوض. فعّل الإذن لهذا الموقع من إعدادات المتصفح ثم أعد المحاولة.",
+              "Location permission is denied. Enable it for this site in browser settings and try again.",
+            ),
+          );
+          return;
+        }
+      } catch {
+        // Continue directly with getCurrentPosition when query fails.
+      }
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const nextPos = [coords.latitude, coords.longitude];
+        setFilters({ userLat: nextPos[0], userLng: nextPos[1] });
+        setTempPickerPos(nextPos);
+        setIsEditingLocation(false);
+        setLocatingUser(false);
+      },
+      (err) => {
+        let message = t("فشل الحصول على الموقع", "Failed to get your location");
+
+        if (err.code === err.PERMISSION_DENIED) {
+          message = t(
+            "تم رفض إذن الموقع. اسمح للموقع من إعدادات المتصفح ثم أعد المحاولة.",
+            "Location permission was denied. Allow this site in browser settings and try again.",
+          );
+        } else if (err.code === err.TIMEOUT) {
+          message = t(
+            "انتهت مهلة تحديد الموقع. حاول مرة أخرى في مكان بإشارة أفضل.",
+            "Location request timed out. Try again in an area with better signal.",
+          );
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          message = t(
+            "الموقع غير متاح حالياً. تأكد من تشغيل GPS/Location Services في الهاتف.",
+            "Location is currently unavailable. Make sure GPS/Location Services are enabled on the phone.",
+          );
+        }
+
+        setLocationError(message);
+        setLocatingUser(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000,
+      },
+    );
+  }, [setFilters, t]);
+
+  const showLocationPicker = !userPosition || isEditingLocation;
+
+  const closeFilterPanel = useCallback(() => {
+    setIsFilterPanelOpen(false);
+  }, []);
+
+  const toggleFilterPanel = useCallback(() => {
+    setIsFilterPanelOpen((current) => !current);
+  }, []);
+
+  const panelSideClass = isArabic ? "left-3 md:left-6" : "right-3 md:right-6";
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/20 backdrop-blur-sm">
-      <div className="absolute inset-x-3 top-3 z-1000 rounded-3xl border border-white/70 bg-white/92 p-3 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/92 md:inset-x-6 md:top-6 md:p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                {summaryLabel}
-              </span>
-              {hasDistanceFilter && (
-                <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                  {t("نطاق محدد", "Focused radius")}
-                </span>
-              )}
-            </div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white md:text-lg">
-              {t("استكشف العناصر على الخريطة", "Explore listings on the map")}
-            </h2>
-            <p className="max-w-2xl text-xs text-slate-600 dark:text-slate-300 md:text-sm">
-              {helperLabel}
-            </p>
-          </div>
+      {/* ── Compact floating top bar ── */}
+      <div className="absolute inset-x-3 top-3 z-1000 flex items-center justify-between gap-2 md:inset-x-6 md:top-6">
+        <button
+          onClick={() => setShowMap(false)}
+          aria-label={buttonText.closeMap}
+          className="inline-flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-2.5 text-sm font-semibold text-white shadow-xl backdrop-blur transition-colors hover:bg-slate-900 dark:bg-slate-800/90 dark:hover:bg-slate-800"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-base">close</span>
+          {buttonText.closeMap}
+        </button>
 
-          <button
-            onClick={() => setShowMap(false)}
-            aria-label={t("إغلاق الخريطة", "Close map")}
-            className="inline-flex items-center justify-center self-start rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
-            type="button"
-          >
-            {t("إغلاق الخريطة", "Close map")}
-          </button>
-        </div>
-
-        <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-3 dark:border-slate-700 dark:bg-slate-950/40">
-          <DistanceFilter />
-        </div>
-
-        <div className="mt-2 flex justify-end">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur dark:bg-slate-800/90 dark:text-slate-200">
+            {summaryLabel}
+          </span>
           <button
             type="button"
-            onClick={recenterToActiveArea}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-400 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
+            onClick={toggleFilterPanel}
+            aria-label={
+              isFilterPanelOpen
+                ? buttonText.hideFilters
+                : buttonText.showFilters
+            }
+            className="inline-flex items-center justify-center rounded-full bg-white/90 p-2.5 text-slate-700 shadow-lg backdrop-blur transition-colors hover:bg-white dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <span className="material-symbols-outlined text-sm">
-              my_location
+            <span className="material-symbols-outlined text-[20px]">
+              {isFilterPanelOpen ? "dock_to_right" : "tune"}
             </span>
-            <span>{t("إعادة التمركز", "Recenter")}</span>
           </button>
         </div>
       </div>
+
+      {/* ── Side filter drawer ── */}
+      <aside
+        className={`absolute ${panelSideClass} top-20 bottom-6 z-1000 w-[min(92vw,22rem)] rounded-3xl border border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-transform duration-300 dark:border-slate-700 dark:bg-slate-900/95 ${
+          isFilterPanelOpen
+            ? "translate-x-0"
+            : isArabic
+              ? "translate-x-[-115%]"
+              : "translate-x-[115%]"
+        }`}
+      >
+        <div className="flex h-full flex-col overflow-hidden">
+          {/* Drawer header */}
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              {t("فلاتر الخريطة", "Map filters")}
+            </h3>
+            <button
+              type="button"
+              onClick={closeFilterPanel}
+              className="inline-flex items-center justify-center rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label={buttonText.closeFilters}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                close
+              </span>
+            </button>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Summary + action buttons */}
+            <div className="space-y-2.5 px-4 pb-3 pt-4">
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                  {summaryLabel}
+                </span>
+                {hasDistanceFilter && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    {t("نطاق محدد", "Focused radius")}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleEnableAvailabilityAlert}
+                disabled={alertSaving}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  notifications_active
+                </span>
+                <span>
+                  {alertSaving
+                    ? buttonText.enabling
+                    : buttonText.notifyNewMatches}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={recenterToActiveArea}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800/70"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  my_location
+                </span>
+                <span>{buttonText.recenterArea}</span>
+              </button>
+
+              {alertFeedback && (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-xs font-medium ${
+                    alertFeedback.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                      : alertFeedback.type === "warning"
+                        ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-red-200 bg-red-50 text-red-700 dark:border-red-700/50 dark:bg-red-900/20 dark:text-red-300"
+                  }`}
+                >
+                  {alertFeedback.text}
+                </div>
+              )}
+            </div>
+
+            {/* Location section */}
+            <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("موقعك", "Your location")}
+                </h4>
+                {userPosition && !isEditingLocation && (
+                  <button
+                    type="button"
+                    onClick={handleOpenLocationEditor}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {buttonText.editLocation}
+                  </button>
+                )}
+              </div>
+
+              {/* Current location display */}
+              {userPosition && !isEditingLocation && (
+                <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-700/50 dark:bg-emerald-900/20">
+                  <span className="material-symbols-outlined shrink-0 text-[20px] text-emerald-600 dark:text-emerald-400">
+                    location_on
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                      {t("موقعك محدد", "Location set")}
+                    </p>
+                    <p className="font-mono text-[11px] text-emerald-600/80 dark:text-emerald-400/70">
+                      {userPosition[0].toFixed(5)}°&nbsp;&nbsp;
+                      {userPosition[1].toFixed(5)}°
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locatingUser}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  my_location
+                </span>
+                <span>
+                  {locatingUser
+                    ? buttonText.locating
+                    : buttonText.useCurrentLocation}
+                </span>
+              </button>
+
+              {locationError && (
+                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+                  {locationError}
+                </p>
+              )}
+
+              {/* Inline mini map picker */}
+              {isFilterPanelOpen && showLocationPicker && (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {tempPickerPos
+                      ? t(
+                          "يمكنك سحب العلامة أو النقر في مكان آخر لتعديل الموقع",
+                          "Drag the pin or tap elsewhere to adjust",
+                        )
+                      : t(
+                          "انقر على الخريطة لتحديد موقعك",
+                          "Tap the map to set your location",
+                        )}
+                  </p>
+
+                  <div
+                    className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"
+                    style={{ height: "200px" }}
+                  >
+                    <MapContainer
+                      center={tempPickerPos ?? SYRIA_CENTER}
+                      zoom={tempPickerPos ? 11 : 6}
+                      style={{ height: "200px", width: "100%" }}
+                      zoomControl={false}
+                      scrollWheelZoom
+                      attributionControl={false}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <ZoomControl position="bottomright" />
+                      <ClickableLayer
+                        onPlace={(lat, lng) => setTempPickerPos([lat, lng])}
+                      />
+                      {tempPickerPos && (
+                        <Marker
+                          position={tempPickerPos}
+                          icon={pickerMarkerIcon}
+                          draggable
+                          eventHandlers={{
+                            dragend(e) {
+                              const { lat, lng } = e.target.getLatLng();
+                              setTempPickerPos([lat, lng]);
+                            },
+                          }}
+                        />
+                      )}
+                    </MapContainer>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSavePickerLocation}
+                      disabled={!tempPickerPos}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        check
+                      </span>
+                      {buttonText.saveLocation}
+                    </button>
+                    {isEditingLocation && userPosition && (
+                      <button
+                        type="button"
+                        onClick={handleCancelLocationEdit}
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        {buttonText.cancel}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Distance filter */}
+            <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+              <DistanceFilter onSuccessfulApply={closeFilterPanel} />
+            </div>
+          </div>
+        </div>
+      </aside>
 
       <MapContainer
         center={userPosition ?? [0, 0]}

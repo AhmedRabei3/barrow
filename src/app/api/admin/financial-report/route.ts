@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
@@ -8,20 +9,13 @@ import {
 import { calculatePlatformProfitSummary } from "@/lib/platformProfitSummary";
 
 const PAYOUT_LOG_TYPES = [
-  "PAYPAL_WITHDRAWAL",
   "SHAMCASH_API_WITHDRAWAL",
   "SHAMCASH_PLAYWRIGHT_WITHDRAWAL",
   "SHAMCASH_MANUAL_WITHDRAWAL",
   "MANUAL_WITHDRAWAL_SETTLED",
 ] as const;
 
-const REPORT_CHANNELS = [
-  "ALL",
-  "PAYPAL",
-  "SHAMCASH",
-  "MANUAL",
-  "OTHER",
-] as const;
+const REPORT_CHANNELS = ["ALL", "SHAMCASH", "MANUAL", "OTHER"] as const;
 
 type ReportChannel = (typeof REPORT_CHANNELS)[number];
 
@@ -32,7 +26,6 @@ type ChannelBreakdownRow = {
 };
 
 type SubscriptionMethodKey =
-  | "PAYPAL"
   | "SHAMCASH"
   | "CARD"
   | "BANK_TRANSFER"
@@ -110,13 +103,11 @@ const buildMonthKeysBetween = (start: Date, end: Date): string[] => {
 };
 
 const resolvePaymentChannel = (method: string): ReportChannel => {
-  if (method === "PAYPAL") return "PAYPAL";
   if (method === "SHAMCASH") return "SHAMCASH";
   return "OTHER";
 };
 
 const resolvePayoutChannel = (type: string): ReportChannel => {
-  if (type === "PAYPAL_WITHDRAWAL") return "PAYPAL";
   if (
     type === "SHAMCASH_API_WITHDRAWAL" ||
     type === "SHAMCASH_PLAYWRIGHT_WITHDRAWAL" ||
@@ -133,14 +124,12 @@ const isWithinRange = (createdAtIso: string, start: Date, end: Date) => {
 };
 
 const REPORTABLE_CHANNELS: Array<Exclude<ReportChannel, "ALL">> = [
-  "PAYPAL",
   "SHAMCASH",
   "MANUAL",
   "OTHER",
 ];
 
 const REPORTABLE_SUBSCRIPTION_METHODS: SubscriptionMethodKey[] = [
-  "PAYPAL",
   "SHAMCASH",
   "CARD",
   "BANK_TRANSFER",
@@ -163,7 +152,6 @@ const buildBreakdown = (
   }));
 
 const normalizeSubscriptionMethod = (method: string): SubscriptionMethodKey => {
-  if (method === "PAYPAL") return "PAYPAL";
   if (method === "SHAMCASH") return "SHAMCASH";
   if (method === "CARD") return "CARD";
   if (method === "BANK_TRANSFER") return "BANK_TRANSFER";
@@ -192,9 +180,18 @@ const buildSubscriptionMethodBreakdown = (
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
+  const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_REPORTS",
+      t(
+        "لا تملك صلاحية الوصول إلى التقارير المالية",
+        "You do not have access to financial reports",
+      ),
+    );
 
     const now = new Date();
     const defaultDateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -250,7 +247,6 @@ export async function GET(req: NextRequest) {
       shamCashActivationsInRange,
       payoutsInRange,
       allReceivedByMethodAgg,
-      paidOutPaypalAgg,
       paidOutShamCashAgg,
       usersAgg,
       totalSubscribers,
@@ -339,10 +335,6 @@ export async function GET(req: NextRequest) {
       prisma.payment.groupBy({
         by: ["method"],
         where: { status: "COMPLETED" },
-        _sum: { amount: true },
-      }),
-      prisma.chargingLog.aggregate({
-        where: { type: "PAYPAL_WITHDRAWAL" },
         _sum: { amount: true },
       }),
       prisma.chargingLog.aggregate({
@@ -552,16 +544,10 @@ export async function GET(req: NextRequest) {
       0,
     );
 
-    const receivedViaPaypal = filteredReceivedRows
-      .filter((row) => row.channel === "PAYPAL")
-      .reduce((sum, row) => sum + row.amount, 0);
     const receivedViaShamCash = filteredReceivedRows
       .filter((row) => row.channel === "SHAMCASH")
       .reduce((sum, row) => sum + row.amount, 0);
 
-    const paidOutViaPaypal = filteredPayoutRows
-      .filter((row) => row.channel === "PAYPAL")
-      .reduce((sum, row) => sum + row.amount, 0);
     const paidOutViaShamCash = filteredPayoutRows
       .filter((row) => row.channel === "SHAMCASH")
       .reduce((sum, row) => sum + row.amount, 0);
@@ -773,14 +759,10 @@ export async function GET(req: NextRequest) {
       ]),
     );
 
-    const allReceivedViaPaypal = Number(allReceivedByMethod.get("PAYPAL") ?? 0);
     const allReceivedViaShamCash = Number(
       allReceivedByMethod.get("SHAMCASH") ?? 0,
     );
 
-    const allPaidOutViaPaypal = Math.abs(
-      Number(paidOutPaypalAgg._sum.amount ?? 0),
-    );
     const allPaidOutViaShamCash = Math.abs(
       Number(paidOutShamCashAgg._sum.amount ?? 0),
     );
@@ -804,9 +786,7 @@ export async function GET(req: NextRequest) {
           weekReceivedAmount,
           weekPaidOutAmount,
           weekNetProfitAmount: Number(weekProfitAgg._sum.amount ?? 0),
-          receivedViaPaypal,
           receivedViaShamCash,
-          paidOutViaPaypal,
           paidOutViaShamCash,
           paidOutManualSettlements,
           readyUserBalances,
@@ -822,7 +802,6 @@ export async function GET(req: NextRequest) {
           pendingManualWithdrawalCount,
         },
         walletEstimates: {
-          paypal: allReceivedViaPaypal - allPaidOutViaPaypal,
           shamCash: allReceivedViaShamCash - allPaidOutViaShamCash,
         },
         breakdowns: {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import { prisma } from "@/lib/prisma";
 import { verifyShamCashOutgoingTransferInHistory } from "@/lib/shamcashHistoryVerify";
 import {
@@ -8,6 +9,10 @@ import {
 } from "@/app/i18n/errorMessages";
 import { ShamCashManualWithdrawalStatus } from "@prisma/client";
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
+import {
+  extractClientIp,
+  recordAdminAudit,
+} from "@/server/services/admin-audit.service";
 
 const VALID_STATUSES = [
   "ALL",
@@ -51,9 +56,18 @@ const toUserStatus = (status: ShamCashManualWithdrawalStatus) => {
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
+  const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_OPERATIONS",
+      t(
+        "لا تملك صلاحية إدارة عمليات السحب",
+        "You do not have permission to manage payout operations",
+      ),
+    );
 
     const statusParam = String(req.nextUrl.searchParams.get("status") || "ALL")
       .trim()
@@ -155,6 +169,33 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_OPERATIONS",
+      t(
+        "لا تملك صلاحية إدارة عمليات السحب",
+        "You do not have permission to manage payout operations",
+      ),
+    );
+    const clientIp = extractClientIp(req);
+    const userAgent = req.headers.get("user-agent");
+    const safeAudit = async (input: {
+      action: string;
+      entityId: string;
+      targetUserId?: string;
+      metadata?: Record<string, unknown>;
+    }) => {
+      await recordAdminAudit({
+        actorAdminId: admin.id,
+        action: input.action,
+        entityType: "SHAMCASH_MANUAL_WITHDRAWAL",
+        entityId: input.entityId,
+        targetUserId: input.targetUserId,
+        ipAddress: clientIp,
+        userAgent,
+        metadata: input.metadata,
+      }).catch(() => null);
+    };
 
     const body = (await req.json()) as {
       action?: string;
@@ -392,6 +433,16 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        await safeAudit({
+          action: "SCW_VERIFY_AND_COMPLETE_FAILED",
+          entityId: requestId,
+          targetUserId: existing.userId,
+          metadata: {
+            amount: Number(existing.amount ?? 0),
+            expectedTransactionId: providedTransactionId || null,
+          },
+        });
+
         return NextResponse.json(
           {
             success: false,
@@ -408,6 +459,18 @@ export async function POST(req: NextRequest) {
         verified: true,
         transactionId: verifyResult.transactionId || providedTransactionId,
         verificationRawText: verifyResult.rawText,
+      });
+
+      await safeAudit({
+        action: "SCW_VERIFY_AND_COMPLETE",
+        entityId: requestId,
+        targetUserId: existing.userId,
+        metadata: {
+          amount: Number(existing.amount ?? 0),
+          finalTransactionId:
+            verifyResult.transactionId || providedTransactionId || null,
+          status: completed.status,
+        },
       });
 
       return NextResponse.json(
@@ -437,6 +500,18 @@ export async function POST(req: NextRequest) {
         verified: false,
         transactionId: providedTransactionId,
         verificationRawText: adminNote || "Manual admin confirmation",
+      });
+
+      await safeAudit({
+        action: "SCW_COMPLETE_MANUAL",
+        entityId: requestId,
+        targetUserId: existing.userId,
+        metadata: {
+          amount: Number(existing.amount ?? 0),
+          transactionId: providedTransactionId || null,
+          hasAdminNote: Boolean(adminNote),
+          status: completed.status,
+        },
       });
 
       return NextResponse.json(
@@ -493,6 +568,17 @@ export async function POST(req: NextRequest) {
         });
 
         return updated;
+      });
+
+      await safeAudit({
+        action: "SCW_REJECT",
+        entityId: requestId,
+        targetUserId: existing.userId,
+        metadata: {
+          amount: Number(existing.amount ?? 0),
+          hasFailureReason: Boolean(failureReason),
+          status: rejected.status,
+        },
       });
 
       return NextResponse.json(

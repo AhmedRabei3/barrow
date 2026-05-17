@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { requireAdminUser } from "../../utils/authHelper";
+import { assertAdminCapability } from "../../utils/adminCapabilities";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
@@ -14,9 +15,18 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
+  const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "USER_MANAGEMENT",
+      t(
+        "لا تملك صلاحية عرض لوحة الإدارة",
+        "You do not have permission to view the admin dashboard",
+      ),
+    );
 
     const query = parseAdminDashboardQuery(req.nextUrl.searchParams);
     const response = await getAdminDashboard(query);
@@ -24,7 +34,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(response, {
       status: 200,
       headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
         Pragma: "no-cache",
         Expires: "0",
       },

@@ -1,17 +1,13 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import MapButton from "./MapButton";
 import CardList from "./CardList";
+import MapWrapper from "./MyMap";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import Tryagain from "../category/Tryagain";
-
-const MapWrapper = dynamic(() => import("./MyMap.tsx").then((m) => m.default), {
-  ssr: false,
-});
 
 interface HomeBodyProps {
   items: FormattedItem[];
@@ -104,7 +100,7 @@ const HomeBody = ({
   ) {
     return <Tryagain isArabic={isArabic} refetch={onRefresh} />;
   }
-  
+
   /** 🔹 المكون الرئيسي */
   return (
     <Container>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authHelper } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
+import { requireAdminUser } from "@/app/api/utils/authHelper";
 import { Errors } from "@/app/api/lib/errors/errors";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { getItem } from "@/app/api/items/functions/helpers";
@@ -16,8 +17,8 @@ export async function GET(
   { params }: { params: Promise<{ requestId: string }> },
 ) {
   try {
-    const admin = await authHelper();
-    if (!admin.isAdmin) throw Errors.UNAUTHORIZED();
+    const admin = await requireAdminUser();
+    assertAdminCapability(admin, "USER_MANAGEMENT", "Access denied");
     const { requestId } = await params;
 
     const purchaseReq = await prisma.purchaseRequest.findUnique({

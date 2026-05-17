@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
@@ -10,7 +11,16 @@ import { getReferralDiscountValue } from "@/lib/referralBenefits";
 
 export async function POST(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
-  await requireAdminUser();
+  const t = (ar: string, en: string) => (isArabic ? ar : en);
+  const admin = await requireAdminUser();
+  assertAdminCapability(
+    admin,
+    "FINANCE_OPERATIONS",
+    t(
+      "لا تملك صلاحية الموافقة على طلبات الدفع",
+      "You do not have permission to approve payment requests",
+    ),
+  );
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 

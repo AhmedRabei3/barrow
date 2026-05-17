@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { TransactionType } from "@prisma/client";
 import { CloudinaryUploadResult, deleteFromCloudinary } from "./cloudinary";
 import { upsertListingIndex } from "@/server/services/listing-index.service";
 import { notifyNearbyUsersAsync } from "@/server/services/nearby-notify.service";
+import { notifyListingAlertSubscribersAsync } from "@/server/services/listing-alerts-notify.service";
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -81,6 +83,12 @@ export async function createItemWithLocation<T extends { id: string }>({
       item.id,
       itemType as import("@prisma/client").$Enums.ItemType,
     );
+
+    const itemWithMeta = item as T & {
+      categoryId?: string | null;
+      sellOrRent?: TransactionType | null;
+    };
+
     // Notify nearby users if owner and title are provided
     if (ownerId && itemTitle) {
       notifyNearbyUsersAsync({
@@ -89,6 +97,18 @@ export async function createItemWithLocation<T extends { id: string }>({
         lng: location.longitude,
         itemType,
         title: itemTitle,
+        isArabic,
+      });
+
+      notifyListingAlertSubscribersAsync({
+        ownerId,
+        itemId: item.id,
+        lat: location.latitude,
+        lng: location.longitude,
+        itemType,
+        title: itemTitle,
+        categoryId: itemWithMeta.categoryId ?? null,
+        sellOrRent: itemWithMeta.sellOrRent ?? null,
         isArabic,
       });
     }

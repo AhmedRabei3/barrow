@@ -3,11 +3,15 @@
 import toast from "react-hot-toast";
 import ActivateSupportBtn from "./ActvateSupportBtn";
 import ShamCashBtn from "./ShamCashBtn";
+import SyriatelCashBtn from "./SyriatelCashBtn";
 import useActivationModal from "@/app/hooks/useActivationModal";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import { Dispatch, SetStateAction, useCallback } from "react";
 
-type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
+type RedirectPaymentMethod = Exclude<
+  PaymentMethod,
+  "SHAMCASH" | "SYRIATEL_CASH"
+>;
 
 interface PaymentsBtnProps {
   isLoading: boolean;
@@ -16,13 +20,15 @@ interface PaymentsBtnProps {
   subscriptionAmount: number;
   isArabic: boolean;
   isShamCashSubmitting: boolean;
+  isSyriatelCashSubmitting: boolean;
   setRequestingSupportCode: React.Dispatch<React.SetStateAction<boolean>>;
   requestActivationCodeViaSupport: () => Promise<void>;
   setRedirectingMethod: Dispatch<SetStateAction<RedirectPaymentMethod | null>>;
   setShowShamCashModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowSyriatelCashModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-type PaymentMethod = "PAYPAL" | "CARD" | "SHAMCASH";
+type PaymentMethod = "CARD" | "SHAMCASH" | "SYRIATEL_CASH";
 
 const PaymentsBtn = ({
   isLoading,
@@ -31,10 +37,12 @@ const PaymentsBtn = ({
   subscriptionAmount,
   isArabic,
   isShamCashSubmitting,
+  isSyriatelCashSubmitting,
   setRequestingSupportCode,
   requestActivationCodeViaSupport,
   setRedirectingMethod,
   setShowShamCashModal,
+  setShowSyriatelCashModal,
 }: PaymentsBtnProps) => {
   const ActivationModal = useActivationModal();
 
@@ -44,6 +52,12 @@ const PaymentsBtn = ({
         if (method === "SHAMCASH") {
           ActivationModal.onClose();
           setTimeout(() => setShowShamCashModal(true), 200); // ضمان إغلاق المودال الأول قبل فتح الثاني
+          return;
+        }
+
+        if (method === "SYRIATEL_CASH") {
+          ActivationModal.onClose();
+          setTimeout(() => setShowSyriatelCashModal(true), 200);
           return;
         }
 
@@ -66,16 +80,31 @@ const PaymentsBtn = ({
         setRedirectingMethod(null);
       }
     },
-    [ActivationModal, isArabic, setShowShamCashModal, setRedirectingMethod],
+    [
+      ActivationModal,
+      isArabic,
+      setShowShamCashModal,
+      setShowSyriatelCashModal,
+      setRedirectingMethod,
+    ],
   );
   return (
     <div className="flex flex-col gap-2">
       <div className="rounded-2xl border border-cyan-300/60 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-600/50 dark:bg-cyan-950/30 dark:text-cyan-100">
         {isArabic
-          ? "التفعيل الإلكتروني متاح حالياً عبر شام كاش أو من خلال كود تفعيل رسمي."
-          : "Online activation is currently available via ShamCash or an official activation code."}
+          ? "التفعيل الإلكتروني متاح حالياً عبر شام كاش أو سيريتل كاش أو من خلال كود تفعيل رسمي."
+          : "Online activation is currently available via ShamCash, Syriatel Cash, or an official activation code."}
       </div>
       {/* لا حقاً يتم إضافة الدفع عبر البطاقات الائتمانية */}
+      <SyriatelCashBtn
+        isLoading={isLoading}
+        redirectingMethod={redirectingMethod}
+        requestingSupportCode={requestingSupportCode}
+        subscriptionAmount={subscriptionAmount}
+        isArabic={isArabic}
+        isSyriatelCashSubmitting={isSyriatelCashSubmitting}
+        startPaidSubscription={startPaidSubscription}
+      />
       <ShamCashBtn
         isLoading={isLoading}
         redirectingMethod={redirectingMethod}

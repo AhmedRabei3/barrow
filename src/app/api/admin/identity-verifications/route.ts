@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { IdentityVerificationStatus, NotificationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,12 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "KYC_REVIEW",
+      "You do not have permission to review identity verifications",
+    );
 
     const requests = await prisma.identityVerificationRequest.findMany({
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
@@ -52,6 +58,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "KYC_REVIEW",
+      "You do not have permission to review identity verifications",
+    );
     const body = (await req.json()) as {
       requestId?: string;
       decision?: "APPROVE" | "REJECT";

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { NotificationType, SupportSenderRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import { sendMail } from "@/lib/mailer";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 
@@ -11,6 +12,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_OPERATIONS",
+      t(
+        "لا تملك صلاحية إرسال أكواد التفعيل",
+        "You do not have permission to send activation codes",
+      ),
+    );
 
     const { recipientUserId, ticketId, balance } = (await req.json()) as {
       recipientUserId?: string;

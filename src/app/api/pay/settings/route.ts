@@ -9,6 +9,8 @@ export async function GET() {
     featuredAdMonthlyPrice: 10,
     shamCashQrCodeUrl: "",
     shamCashWalletCode: "",
+    syriatelCashQrCodeUrl: "",
+    syriatelCashWalletCode: "",
     url: "",
   };
 
@@ -32,6 +34,8 @@ export async function GET() {
         featuredAdMonthlyPrice: Number(settings?.featuredAdMonthlyPrice ?? 10),
         shamCashQrCodeUrl: settings?.url || "",
         shamCashWalletCode: settings?.ownerProfitWalletCode || "",
+        syriatelCashQrCodeUrl: process.env.SYRIATEL_CASH_QR_CODE_URL || "",
+        syriatelCashWalletCode: process.env.SYRIATEL_CASH_WALLET_CODE || "",
         url: settings?.url || "",
       },
       {

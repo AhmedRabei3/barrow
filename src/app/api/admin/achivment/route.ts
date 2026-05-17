@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminUser } from "../../utils/authHelper";
+import { assertAdminCapability } from "../../utils/adminCapabilities";
 import { handleApiError } from "../../lib/errors/errorHandler";
 import { prisma } from "@/lib/prisma";
 import { NotificationType, SupportSenderRole } from "@prisma/client";
@@ -21,6 +22,14 @@ export async function POST(req: NextRequest) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   const admin = await requireAdminUser();
+  assertAdminCapability(
+    admin,
+    "FINANCE_OPERATIONS",
+    t(
+      "لا تملك صلاحية تنفيذ التسويات المالية",
+      "You do not have permission to execute financial settlements",
+    ),
+  );
   const { userId, amount, ticketId } = (await req.json()) as {
     userId?: string;
     amount?: number;

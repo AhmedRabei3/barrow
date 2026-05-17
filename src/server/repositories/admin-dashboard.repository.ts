@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
 export const PAYOUT_LOG_TYPES = [
-  "PAYPAL_WITHDRAWAL",
   "SHAMCASH_API_WITHDRAWAL",
   "SHAMCASH_PLAYWRIGHT_WITHDRAWAL",
   "SHAMCASH_MANUAL_WITHDRAWAL",
@@ -152,10 +151,6 @@ export const adminDashboardRepository = {
           type: { in: [...PAYOUT_LOG_TYPES] },
           createdAt: { gte: startOfMonth },
         },
-        _sum: { amount: true },
-      }),
-      prisma.chargingLog.aggregate({
-        where: { type: "PAYPAL_WITHDRAWAL" },
         _sum: { amount: true },
       }),
       prisma.chargingLog.aggregate({

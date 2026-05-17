@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 
 export async function POST(req: NextRequest) {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+  assertAdminCapability(
+    admin,
+    "FINANCE_OPERATIONS",
+    "You do not have permission to reject payment requests",
+  );
 
   try {
     const { id, reason } = await req.json();

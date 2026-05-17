@@ -1,6 +1,6 @@
 "use client";
 
-interface PaypalBtnProps {
+interface PaymentButtonProps {
   isLoading: boolean;
   redirectingMethod: string | null;
   requestingSupportCode: boolean;
@@ -18,7 +18,7 @@ const ShamCashBtn = ({
   subscriptionAmount,
   isArabic,
   isShamCashSubmitting,
-}: PaypalBtnProps) => {
+}: PaymentButtonProps) => {
   return (
     <button
       type="button"

@@ -19,7 +19,7 @@ type FinancialReportRow = {
   userEmail: string;
 };
 
-type ReportChannel = "ALL" | "PAYPAL" | "SHAMCASH" | "MANUAL" | "OTHER";
+type ReportChannel = "ALL" | "SHAMCASH" | "MANUAL" | "OTHER";
 
 type AdminWithdrawalRow = {
   id: string;
@@ -38,7 +38,6 @@ type ChannelBreakdownRow = {
 
 type SubscriptionMethodBreakdownRow = {
   method:
-    | "PAYPAL"
     | "SHAMCASH"
     | "CARD"
     | "BANK_TRANSFER"
@@ -98,9 +97,7 @@ type FinancialReportResponse = {
     weekReceivedAmount: number;
     weekPaidOutAmount: number;
     weekNetProfitAmount: number;
-    receivedViaPaypal: number;
     receivedViaShamCash: number;
-    paidOutViaPaypal: number;
     paidOutViaShamCash: number;
     paidOutManualSettlements: number;
     readyUserBalances: number;
@@ -115,7 +112,6 @@ type FinancialReportResponse = {
     pendingManualWithdrawalCount: number;
   };
   walletEstimates: {
-    paypal: number;
     shamCash: number;
   };
   breakdowns: {
@@ -197,7 +193,6 @@ const FinancialReportPanel = () => {
 
   const channelLabel = useCallback(
     (channelValue: string) => {
-      if (channelValue === "PAYPAL") return "PayPal";
       if (channelValue === "SHAMCASH") return "ShamCash";
       if (channelValue === "MANUAL") return t("يدوي", "Manual");
       if (channelValue === "OTHER") return t("أخرى", "Other");
@@ -209,7 +204,6 @@ const FinancialReportPanel = () => {
 
   const subscriptionMethodLabel = useCallback(
     (method: SubscriptionMethodBreakdownRow["method"]) => {
-      if (method === "PAYPAL") return "PayPal";
       if (method === "SHAMCASH") return "ShamCash";
       if (method === "CARD") return t("بطاقة", "Card");
       if (method === "BANK_TRANSFER")
@@ -430,7 +424,6 @@ const FinancialReportPanel = () => {
               className="admin-select mt-1 w-full rounded-xl px-3 py-2 text-sm"
             >
               <option value="ALL">{t("الكل", "All")}</option>
-              <option value="PAYPAL">PayPal</option>
               <option value="SHAMCASH">ShamCash</option>
               <option value="MANUAL">{t("يدوي", "Manual")}</option>
               <option value="OTHER">{t("أخرى", "Other")}</option>
@@ -508,24 +501,12 @@ const FinancialReportPanel = () => {
           value={`$${formatMoney(data?.summary.operatingReserveAmount || 0)}`}
         />
         <KpiCard
-          title={t("رصيد PayPal (تقديري)", "PayPal wallet (estimated)")}
-          value={`$${formatMoney(data?.walletEstimates.paypal || 0)}`}
-        />
-        <KpiCard
           title={t("رصيد ShamCash (تقديري)", "ShamCash wallet (estimated)")}
           value={`$${formatMoney(data?.walletEstimates.shamCash || 0)}`}
         />
         <KpiCard
-          title={t("وارد PayPal", "PayPal inflow")}
-          value={`$${formatMoney(data?.summary.receivedViaPaypal || 0)}`}
-        />
-        <KpiCard
           title={t("وارد ShamCash", "ShamCash inflow")}
           value={`$${formatMoney(data?.summary.receivedViaShamCash || 0)}`}
-        />
-        <KpiCard
-          title={t("صادر PayPal", "PayPal outflow")}
-          value={`$${formatMoney(data?.summary.paidOutViaPaypal || 0)}`}
         />
         <KpiCard
           title={t("صادر ShamCash", "ShamCash outflow")}

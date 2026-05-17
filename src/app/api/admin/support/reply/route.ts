@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
@@ -15,6 +16,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "SUPPORT",
+      t(
+        "لا تملك صلاحية إدارة ردود الدعم",
+        "You do not have permission to manage support replies",
+      ),
+    );
     const input = adminReplyToSupportTicketSchema.parse(await req.json());
 
     await supportTicketService.replyAsAdmin(

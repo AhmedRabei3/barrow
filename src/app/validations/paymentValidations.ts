@@ -4,14 +4,7 @@ export const createPaymentSchema = z.object({
   transactionId: z.string().cuid(),
   amount: z.number().positive(),
   currency: z.string().optional(),
-  method: z.enum([
-    "PAYPAL",
-    "CARD",
-    "CRYPTO",
-    "SHAMCASH",
-    "BALANCE",
-    "BANK_TRANSFER",
-  ]),
+  method: z.enum(["CARD", "CRYPTO", "SHAMCASH", "BALANCE", "BANK_TRANSFER"]),
   status: z
     .enum(["PENDING", "COMPLETED", "FAILED", "REFUNDED"])
     .default("PENDING"),

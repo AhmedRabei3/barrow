@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter } from "next-auth/adapters";
@@ -11,6 +12,21 @@ import authConfig from "./auth.config";
 
 const LOCAL_AUTH_URL_PATTERN =
   /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i;
+
+const resolveDeploymentAuthSecret = () => {
+  const configuredSecret =
+    process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
+
+  if (!configuredSecret) {
+    return "";
+  }
+
+  if (Buffer.byteLength(configuredSecret, "utf8") >= 64) {
+    return configuredSecret;
+  }
+
+  return createHash("sha512").update(configuredSecret).digest("base64url");
+};
 
 const resolveDeploymentAuthUrl = () => {
   const configuredUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
@@ -29,10 +45,16 @@ const resolveDeploymentAuthUrl = () => {
 };
 
 const resolvedAuthUrl = resolveDeploymentAuthUrl();
+const resolvedAuthSecret = resolveDeploymentAuthSecret();
 
 if (resolvedAuthUrl) {
   process.env.AUTH_URL = resolvedAuthUrl;
   process.env.NEXTAUTH_URL = resolvedAuthUrl;
+}
+
+if (resolvedAuthSecret) {
+  process.env.AUTH_SECRET = resolvedAuthSecret;
+  process.env.NEXTAUTH_SECRET = resolvedAuthSecret;
 }
 
 const isDatabaseUnavailableError = (error: unknown) => {
@@ -89,7 +111,7 @@ const writeSessionUserCache = (userId: string, value: SessionUserSnapshot) => {
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
-  secret: process.env.AUTH_SECRET,
+  secret: resolvedAuthSecret || process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/",

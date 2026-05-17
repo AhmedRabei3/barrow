@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "../../utils/authHelper";
+import { assertAdminCapability } from "../../utils/adminCapabilities";
 
 /**
  * @description create new activation code
@@ -10,7 +11,8 @@ import { requireAdminUser } from "../../utils/authHelper";
  */
 
 export async function POST(req: NextRequest) {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+  assertAdminCapability(admin, "FINANCE_OPERATIONS", "Access denied");
   try {
     const { balance, countOfCodes } = await req.json();
     // 🛑 Validation يدوي (سريع وخفيف)
@@ -60,7 +62,8 @@ export async function POST(req: NextRequest) {
  * @method GET
  */
 export async function GET() {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+  assertAdminCapability(admin, "FINANCE_OPERATIONS", "Access denied");
   try {
     const codes = await prisma.activationCode.findMany({
       select: {

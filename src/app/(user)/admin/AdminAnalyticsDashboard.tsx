@@ -87,12 +87,9 @@ const AdminAnalyticsDashboard = () => {
       paidOutAmountToday: 0,
       paidOutAmountMonth: 0,
       netProfitAmount: 0,
-      receivedViaPaypal: 0,
       receivedViaShamCash: 0,
-      paidOutViaPaypal: 0,
       paidOutViaShamCash: 0,
       paidOutManualSettlements: 0,
-      paypalWalletEstimatedBalance: 0,
       shamCashWalletEstimatedBalance: 0,
       statusDistribution: {
         active: 0,
@@ -221,7 +218,6 @@ const AdminAnalyticsDashboard = () => {
 
   const paymentMethodLabel = useCallback(
     (method: string | null, hasActiveSubscription: boolean) => {
-      if (method === "PAYPAL") return "PayPal";
       if (method === "SHAMCASH") return "ShamCash";
       if (method === "CARD") return t("بطاقة", "Card");
       if (method === "BANK_TRANSFER")

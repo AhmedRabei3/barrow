@@ -103,12 +103,9 @@ export type AdminDashboardOverview = {
   paidOutAmountToday: number;
   paidOutAmountMonth: number;
   netProfitAmount: number;
-  receivedViaPaypal: number;
   receivedViaShamCash: number;
-  paidOutViaPaypal: number;
   paidOutViaShamCash: number;
   paidOutManualSettlements: number;
-  paypalWalletEstimatedBalance: number;
   shamCashWalletEstimatedBalance: number;
 };
 

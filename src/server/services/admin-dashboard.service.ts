@@ -455,7 +455,6 @@ export async function getAdminDashboard(
     paidOutTotalAgg,
     paidOutTodayAgg,
     paidOutMonthAgg,
-    paidOutPaypalAgg,
     paidOutShamCashAgg,
     paidOutManualAgg,
     previousOwnerWithdrawalsAgg,
@@ -491,19 +490,16 @@ export async function getAdminDashboard(
       Number(entry._sum.amount ?? 0),
     ]),
   );
-  const receivedViaPaypal = Number(receivedByMethod.get("PAYPAL") ?? 0);
   const receivedViaShamCash = Number(receivedByMethod.get("SHAMCASH") ?? 0);
   const paidOutAmountTotal = Math.abs(Number(paidOutTotalAgg._sum.amount ?? 0));
   const paidOutAmountToday = Math.abs(Number(paidOutTodayAgg._sum.amount ?? 0));
   const paidOutAmountMonth = Math.abs(Number(paidOutMonthAgg._sum.amount ?? 0));
-  const paidOutViaPaypal = Math.abs(Number(paidOutPaypalAgg._sum.amount ?? 0));
   const paidOutViaShamCash = Math.abs(
     Number(paidOutShamCashAgg._sum.amount ?? 0),
   );
   const paidOutManualSettlements = Math.abs(
     Number(paidOutManualAgg._sum.amount ?? 0),
   );
-  const paypalWalletEstimatedBalance = receivedViaPaypal - paidOutViaPaypal;
   const shamCashWalletEstimatedBalance =
     receivedViaShamCash - paidOutViaShamCash;
 
@@ -681,12 +677,9 @@ export async function getAdminDashboard(
       paidOutAmountToday: toMoney(paidOutAmountToday),
       paidOutAmountMonth: toMoney(paidOutAmountMonth),
       netProfitAmount: profitSummary.netProfit,
-      receivedViaPaypal: toMoney(receivedViaPaypal),
       receivedViaShamCash: toMoney(receivedViaShamCash),
-      paidOutViaPaypal: toMoney(paidOutViaPaypal),
       paidOutViaShamCash: toMoney(paidOutViaShamCash),
       paidOutManualSettlements: toMoney(paidOutManualSettlements),
-      paypalWalletEstimatedBalance: toMoney(paypalWalletEstimatedBalance),
       shamCashWalletEstimatedBalance: toMoney(shamCashWalletEstimatedBalance),
     },
     filters: {

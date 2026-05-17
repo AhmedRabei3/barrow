@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import {
   listShamCashPayoutJobs,
   retryShamCashPayoutJob,
@@ -90,9 +91,18 @@ const resolveAuthStatus = (message: string) => {
 
 export async function GET(req: NextRequest) {
   const isArabic = resolveIsArabicFromRequest(req);
+  const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_OPERATIONS",
+      t(
+        "لا تملك صلاحية إدارة عمليات السحب",
+        "You do not have permission to manage payout operations",
+      ),
+    );
 
     const statusParam = String(req.nextUrl.searchParams.get("status") || "ALL")
       .trim()
@@ -347,7 +357,15 @@ export async function POST(req: NextRequest) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "FINANCE_OPERATIONS",
+      t(
+        "لا تملك صلاحية إدارة عمليات السحب",
+        "You do not have permission to manage payout operations",
+      ),
+    );
 
     const body = (await req.json()) as {
       action?: string;

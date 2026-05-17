@@ -1,6 +1,7 @@
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { Errors } from "@/app/api/lib/errors/errors";
-import { authHelper } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
+import { requireAdminUser } from "@/app/api/utils/authHelper";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,9 +13,9 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 export async function GET(req: NextRequest) {
-  const admin = await authHelper();
+  const admin = await requireAdminUser();
   try {
-    if (!admin.isAdmin) throw Errors.UNAUTHORIZED();
+    assertAdminCapability(admin, "USER_MANAGEMENT", "Access denied");
 
     const purchaseReq = await prisma.purchaseRequest.findMany({
       where: { assignedAdminId: admin.id },

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
+import { request } from "@/app/utils/axios";
 import GoBackBtn from "@/app/components/GoBackBtn";
-import AdminSideBar, { AdminPageKey } from "./AdminSideBar";
+import AdminSideBar, { AdminCapabilityMap, AdminPageKey } from "./AdminSideBar";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
 import PaymentPassword from "./PaymentPassword";
 import usePaymentPasswordModal from "@/app/hooks/usePasswordPaymentModal";
@@ -41,6 +42,12 @@ const AddCode = dynamic(
 const AdminAnalyticsDashboard = dynamic(
   () =>
     import("./AdminAnalyticsDashboard.tsx").then((module) => module.default),
+  {
+    loading: renderAdminPanelSkeleton,
+  },
+);
+const AdminAuditLogsPanel = dynamic(
+  () => import("./AdminAuditLogsPanel.tsx").then((module) => module.default),
   {
     loading: renderAdminPanelSkeleton,
   },
@@ -85,9 +92,20 @@ const PurchaseRequestsPage = dynamic(
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
 const PAYMENT_SETTINGS_ACCESS_KEY = "admin-payment-settings-authorized";
 
+const DEFAULT_ADMIN_CAPABILITIES: AdminCapabilityMap = {
+  USER_MANAGEMENT: false,
+  FINANCE_REPORTS: false,
+  FINANCE_OPERATIONS: false,
+  MODERATION: false,
+  SUPPORT: false,
+  KYC_REVIEW: false,
+  SYSTEM_SETTINGS: false,
+};
+
 const isAdminPageKey = (value: string): value is AdminPageKey => {
   return [
     "analytics",
+    "audit-logs",
     "image-moderation",
     "financial-report",
     "shamcash",
@@ -95,7 +113,48 @@ const isAdminPageKey = (value: string): value is AdminPageKey => {
     "activation-codes",
     "payment-settings",
     "support-messages",
+    "purchase-requests",
   ].includes(value);
+};
+
+const canAccessAdminPage = (
+  page: AdminPageKey,
+  capabilities: AdminCapabilityMap,
+  isOwner: boolean,
+) => {
+  if (page === "payment-settings") {
+    return isOwner && capabilities.SYSTEM_SETTINGS;
+  }
+
+  if (
+    page === "analytics" ||
+    page === "audit-logs" ||
+    page === "purchase-requests"
+  ) {
+    return capabilities.USER_MANAGEMENT;
+  }
+
+  if (page === "image-moderation") {
+    return capabilities.MODERATION;
+  }
+
+  if (page === "financial-report") {
+    return capabilities.FINANCE_REPORTS;
+  }
+
+  if (page === "shamcash" || page === "activation-codes") {
+    return capabilities.FINANCE_OPERATIONS;
+  }
+
+  if (page === "support-messages") {
+    return capabilities.SUPPORT;
+  }
+
+  if (page === "add-category") {
+    return capabilities.SYSTEM_SETTINGS;
+  }
+
+  return false;
 };
 
 const AdminDashBoard = () => {
@@ -110,6 +169,39 @@ const AdminDashBoard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isPaymentSettingsAuthorized, setIsPaymentSettingsAuthorized] =
     useState<boolean>(false);
+  const [capabilities, setCapabilities] = useState<AdminCapabilityMap>(
+    DEFAULT_ADMIN_CAPABILITIES,
+  );
+
+  useEffect(() => {
+    if (!session?.user?.isAdmin) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadCapabilities = async () => {
+      try {
+        const response = await request.get("/api/admin/capabilities");
+        if (!isCancelled && response?.data?.capabilities) {
+          setCapabilities({
+            ...DEFAULT_ADMIN_CAPABILITIES,
+            ...response.data.capabilities,
+          });
+        }
+      } catch {
+        if (!isCancelled) {
+          setCapabilities(DEFAULT_ADMIN_CAPABILITIES);
+        }
+      }
+    };
+
+    void loadCapabilities();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [session?.user?.isAdmin]);
 
   useEffect(() => {
     try {
@@ -154,7 +246,7 @@ const AdminDashBoard = () => {
         : queryPage;
 
     if (normalizedQueryPage && isAdminPageKey(normalizedQueryPage)) {
-      if (normalizedQueryPage === "payment-settings" && !isOwner) {
+      if (!canAccessAdminPage(normalizedQueryPage, capabilities, isOwner)) {
         setPage("analytics");
         setIsSidebarOpen(false);
         return;
@@ -162,7 +254,7 @@ const AdminDashBoard = () => {
 
       if (
         normalizedQueryPage === "payment-settings" &&
-        isOwner &&
+        canAccessAdminPage("payment-settings", capabilities, isOwner) &&
         !isPaymentSettingsAuthorized
       ) {
         paymentPasswordModal.onOpen();
@@ -186,6 +278,7 @@ const AdminDashBoard = () => {
       setIsSidebarOpen(false);
     }
   }, [
+    capabilities,
     isOwner,
     isPaymentSettingsAuthorized,
     paymentPasswordModal,
@@ -194,10 +287,10 @@ const AdminDashBoard = () => {
   ]);
 
   useEffect(() => {
-    if (!isOwner && page === "payment-settings") {
+    if (!canAccessAdminPage(page, capabilities, isOwner)) {
       setPage("analytics");
     }
-  }, [isOwner, page]);
+  }, [capabilities, isOwner, page]);
 
   const grantPaymentSettingsAccess = useCallback(() => {
     setIsPaymentSettingsAuthorized(true);
@@ -211,7 +304,7 @@ const AdminDashBoard = () => {
   }, []);
 
   const handlePaymentSettingsClick = useCallback(() => {
-    if (!isOwner) {
+    if (!canAccessAdminPage("payment-settings", capabilities, isOwner)) {
       return;
     }
 
@@ -222,7 +315,12 @@ const AdminDashBoard = () => {
     }
 
     paymentPasswordModal.onOpen();
-  }, [isOwner, isPaymentSettingsAuthorized, paymentPasswordModal]);
+  }, [
+    capabilities,
+    isOwner,
+    isPaymentSettingsAuthorized,
+    paymentPasswordModal,
+  ]);
 
   const focusedManualRequestId = String(
     searchParams.get("manualRequestId") || "",
@@ -244,7 +342,12 @@ const AdminDashBoard = () => {
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         onPaymentSettingsClick={handlePaymentSettingsClick}
-        canAccessPaymentSettings={isOwner}
+        canAccessPaymentSettings={canAccessAdminPage(
+          "payment-settings",
+          capabilities,
+          isOwner,
+        )}
+        capabilities={capabilities}
       />
 
       {/* المحتوى الرئيسي */}
@@ -255,20 +358,40 @@ const AdminDashBoard = () => {
         }`}
       >
         <GoBackBtn />
-        {page === "analytics" && <AdminAnalyticsDashboard />}
-        {page === "image-moderation" && <ImageModerationPanel />}
-        {page === "financial-report" && <FinancialReportPanel />}
-        {page === "shamcash" && (
+        {page === "analytics" && capabilities.USER_MANAGEMENT && (
+          <AdminAnalyticsDashboard />
+        )}
+        {page === "audit-logs" && capabilities.USER_MANAGEMENT && (
+          <AdminAuditLogsPanel />
+        )}
+        {page === "image-moderation" && capabilities.MODERATION && (
+          <ImageModerationPanel />
+        )}
+        {page === "financial-report" && capabilities.FINANCE_REPORTS && (
+          <FinancialReportPanel />
+        )}
+        {page === "shamcash" && capabilities.FINANCE_OPERATIONS && (
           <AdminShamCashPanel
             focusManualRequestId={focusedManualRequestId || undefined}
             focusActivationRequestId={focusedActivationRequestId || undefined}
           />
         )}
-        {page === "add-category" && <AddCategoryForm />}
-        {page === "activation-codes" && <AddCode />}
-        {page === "payment-settings" && isOwner && <PaymentSettingsPanel />}
-        {page === "support-messages" && <SupportMessagesPanel />}
-        {page === "purchase-requests" && <PurchaseRequestsPage />}
+        {page === "add-category" && capabilities.SYSTEM_SETTINGS && (
+          <AddCategoryForm />
+        )}
+        {page === "activation-codes" && capabilities.FINANCE_OPERATIONS && (
+          <AddCode />
+        )}
+        {page === "payment-settings" &&
+          canAccessAdminPage("payment-settings", capabilities, isOwner) && (
+            <PaymentSettingsPanel />
+          )}
+        {page === "support-messages" && capabilities.SUPPORT && (
+          <SupportMessagesPanel />
+        )}
+        {page === "purchase-requests" && capabilities.USER_MANAGEMENT && (
+          <PurchaseRequestsPage />
+        )}
         {!page && (
           <div className="flex justify-center items-center h-full text-slate-400 dark:text-slate-500 text-xl">
             {isArabic
@@ -289,6 +412,7 @@ const AdminDashBoard = () => {
         setIsSidebarOpen={setIsSidebarOpen}
         isLight={isLight}
         isArabic={isArabic}
+        capabilities={capabilities}
       />
     </section>
   );

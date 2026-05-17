@@ -187,7 +187,6 @@ enum LedgerType {
 }
 
 enum PaymentMethod {
-  PAYPAL
   CARD
   CRYPTO
   SHAMCASH
@@ -301,12 +300,13 @@ model User {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  properties         Property[]
-  newCars            NewCar[]
-  oldCars            OldCar[]
-  homeFurnitureItems HomeFurniture[]
-  medicalDevices     MedicalDevice[]
-  otherItems         OtherItem[]
+  properties                Property[]
+  newCars                   NewCar[]
+  oldCars                   OldCar[]
+  homeFurnitureItems        HomeFurniture[]
+  medicalDevices            MedicalDevice[]
+  otherItems                OtherItem[]
+  listingAvailabilityAlerts ListingAvailabilityAlert[]
 
   ownedTransactions  Transaction[] @relation("OwnerTransactions")
   clientTransactions Transaction[] @relation("ClientTransactions")
@@ -335,6 +335,8 @@ model User {
   sessions                      Session[]
   shamCashActivationRequests    ShamCashActivationRequest[]
   platformProfitLedgerEntries   PlatformProfitLedger[]
+  adminAuditLogsAsActor         AdminAuditLog[]               @relation("AdminAuditActor")
+  adminAuditLogsAsTarget        AdminAuditLog[]               @relation("AdminAuditTarget")
   freeActivationGrantedByAdmin  User?                         @relation("FreeAdminActivations", fields: [freeActivationGrantedByAdminId], references: [id])
   grantedFreeActivations        User[]                        @relation("FreeAdminActivations")
   identityVerificationRequest   IdentityVerificationRequest?  @relation("IdentityVerificationUser")
@@ -402,12 +404,13 @@ model Category {
   icon      String?
   isDeleted Boolean  @default(false)
 
-  properties         Property[]
-  newCars            NewCar[]
-  oldCars            OldCar[]
-  homeFurnitureItems HomeFurniture[]
-  medicalDevices     MedicalDevice[]
-  otherItems         OtherItem[]
+  properties                Property[]
+  newCars                   NewCar[]
+  oldCars                   OldCar[]
+  homeFurnitureItems        HomeFurniture[]
+  medicalDevices            MedicalDevice[]
+  otherItems                OtherItem[]
+  listingAvailabilityAlerts ListingAvailabilityAlert[]
 
   @@unique([name, type])
   @@index([type, isDeleted])
@@ -954,6 +957,50 @@ model Notification {
 
   @@index([userId])
   @@index([type])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorAdminId String
+  targetUserId String?
+  action       String
+  entityType   String
+  entityId     String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  actorAdmin User  @relation("AdminAuditActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+  targetUser User? @relation("AdminAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorAdminId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+}
+
+model ListingAvailabilityAlert {
+  id          String           @id @default(cuid())
+  signature   String           @unique
+  userId      String
+  itemType    ItemType?
+  categoryId  String?
+  sellOrRent  TransactionType?
+  centerLat   Float
+  centerLng   Float
+  radiusKm    Float
+  isEnabled   Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  lastMatchAt DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isEnabled])
+  @@index([isEnabled, itemType, sellOrRent])
+  @@index([categoryId, isEnabled])
 }
 
 model SupportTicket {

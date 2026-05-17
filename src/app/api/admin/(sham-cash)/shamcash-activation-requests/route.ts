@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 
 export async function GET() {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+  assertAdminCapability(
+    admin,
+    "FINANCE_OPERATIONS",
+    "You do not have permission to access ShamCash activation requests",
+  );
   const requests = await prisma.shamCashActivationRequest.findMany({
     include: {
       user: {
@@ -22,6 +28,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdminUser();
+  assertAdminCapability(
+    admin,
+    "FINANCE_OPERATIONS",
+    "You do not have permission to manage ShamCash activation requests",
+  );
   const body = (await req.json()) as {
     id?: string;
     action?: string;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import {
   localizeErrorMessage,
   resolveIsArabicFromRequest,
@@ -14,7 +15,15 @@ export async function POST(req: NextRequest) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "SUPPORT",
+      t(
+        "لا تملك صلاحية إدارة رسائل الدعم",
+        "You do not have permission to manage support messaging",
+      ),
+    );
     const input = broadcastSupportSchema.parse(await req.json());
     const recipients = await supportTicketService.broadcast(
       input.audience,

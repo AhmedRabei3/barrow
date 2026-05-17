@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireOwnerUser } from "@/app/api/utils/authHelper";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { calculatePlatformProfitSummary } from "@/lib/platformProfitSummary";
+import {
+  extractClientIp,
+  recordAdminAudit,
+} from "@/server/services/admin-audit.service";
 
 const OWNER_WITHDRAWAL_TYPE = "OWNER_PROFIT_WITHDRAWAL";
 
@@ -106,6 +110,8 @@ export async function POST(req: NextRequest) {
   const owner = await requireOwnerUser();
   const isArabic = resolveIsArabicFromRequest(req);
   const t = (ar: string, en: string) => (isArabic ? ar : en);
+  const clientIp = extractClientIp(req);
+  const userAgent = req.headers.get("user-agent");
 
   try {
     const body = (await req.json()) as {
@@ -173,6 +179,20 @@ export async function POST(req: NextRequest) {
         },
       });
     });
+
+    await recordAdminAudit({
+      actorAdminId: owner.id,
+      action: "OWNER_PROFIT_WITHDRAWAL_CREATE",
+      entityType: "OWNER_PROFIT_WITHDRAWAL",
+      targetUserId: owner.id,
+      ipAddress: clientIp,
+      userAgent,
+      metadata: {
+        amount,
+        walletCode,
+        hasNote: Boolean(note),
+      },
+    }).catch(() => null);
 
     return NextResponse.json({
       ok: true,

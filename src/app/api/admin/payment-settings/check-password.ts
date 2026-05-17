@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
+import { requireOwnerUser } from "@/app/api/utils/authHelper";
 
 export async function POST(req: NextRequest) {
   try {
+    await requireOwnerUser();
     const { password } = await req.json();
     if (!password) return NextResponse.json({ ok: false });
     const settings = await prisma.appPaymentSettings.findUnique({

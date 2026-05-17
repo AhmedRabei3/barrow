@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useAppPreferences } from "@/app/components/providers/AppPreferencesProvider";
@@ -21,9 +22,39 @@ export default function GoogleSignInButton({
   label,
 }: GoogleSignInButtonProps) {
   const { isArabic } = useAppPreferences();
+  const [isGoogleProviderEnabled, setIsGoogleProviderEnabled] = useState<
+    boolean | null
+  >(null);
 
-  // إخفاء الزر إذا لم تُضبط مفاتيح Google OAuth في البيئة
-  if (!process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProviders = async () => {
+      try {
+        const response = await fetch("/api/auth/providers", {
+          cache: "no-store",
+        });
+        const providers = (await response.json()) as Record<string, unknown>;
+        if (!isMounted) {
+          return;
+        }
+
+        setIsGoogleProviderEnabled(Boolean(providers.google));
+      } catch {
+        if (isMounted) {
+          setIsGoogleProviderEnabled(false);
+        }
+      }
+    };
+
+    void loadProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isGoogleProviderEnabled === false) {
     return null;
   }
 
@@ -80,7 +111,7 @@ export default function GoogleSignInButton({
       <button
         type="button"
         onClick={handleGoogleContinue}
-        disabled={disabled}
+        disabled={disabled || isGoogleProviderEnabled === null}
         className="w-full rounded-xl 
         border border-slate-300 bg-white 
         px-4 py-3 text-sm font-semibold 

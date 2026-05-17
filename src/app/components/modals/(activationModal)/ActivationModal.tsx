@@ -17,14 +17,18 @@ import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 import { localizeErrorMessage } from "@/app/i18n/errorMessages";
 import PaymentsBtn from "./PaymentsBtn";
 import ShamCashModal from "./ShamCashModal";
+import SyriatelCashModal from "./SyriatelCashModal";
 
 const SUCCESS_SOUND =
   "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3";
 const DEFAULT_SUBSCRIPTION_AMOUNT = 30;
 const ACTIVATION_PENDING_KEY = "barrow:activation-celebration-pending";
 
-type PaymentMethod = "PAYPAL" | "CARD" | "SHAMCASH";
-type RedirectPaymentMethod = Exclude<PaymentMethod, "SHAMCASH">;
+type PaymentMethod = "CARD" | "SHAMCASH" | "SYRIATEL_CASH";
+type RedirectPaymentMethod = Exclude<
+  PaymentMethod,
+  "SHAMCASH" | "SYRIATEL_CASH"
+>;
 
 const ActivationModal = () => {
   const { update, data } = useSession();
@@ -42,6 +46,12 @@ const ActivationModal = () => {
   const [shamCashQrUrl, setShamCashQrUrl] = useState<string>("");
   const [shamCashWalletCode, setShamCashWalletCode] = useState<string>("");
   const [isShamCashSubmitting, setIsShamCashSubmitting] = useState(false);
+  const [showSyriatelCashModal, setShowSyriatelCashModal] = useState(false);
+  const [syriatelCashQrUrl, setSyriatelCashQrUrl] = useState<string>("");
+  const [syriatelCashWalletCode, setSyriatelCashWalletCode] =
+    useState<string>("");
+  const [isSyriatelCashSubmitting, setIsSyriatelCashSubmitting] =
+    useState(false);
   const userId = data?.user?.id;
 
   useEffect(() => {
@@ -72,6 +82,22 @@ const ActivationModal = () => {
         }
         if (nextWalletCode) {
           setShamCashWalletCode(nextWalletCode);
+        }
+
+        const nextSyriatelQrUrl =
+          typeof res?.data?.syriatelCashQrCodeUrl === "string"
+            ? res.data.syriatelCashQrCodeUrl
+            : "";
+        const nextSyriatelWalletCode =
+          typeof res?.data?.syriatelCashWalletCode === "string"
+            ? res.data.syriatelCashWalletCode
+            : "";
+
+        if (nextSyriatelQrUrl) {
+          setSyriatelCashQrUrl(nextSyriatelQrUrl);
+        }
+        if (nextSyriatelWalletCode) {
+          setSyriatelCashWalletCode(nextSyriatelWalletCode);
         }
       } catch {
         // Keep defaults if settings endpoint fails.
@@ -186,6 +212,10 @@ const ActivationModal = () => {
     setShowShamCashModal(false);
   }, []);
 
+  const closeSyriatelCashModal = useCallback(() => {
+    setShowSyriatelCashModal(false);
+  }, []);
+
   const handleShamCashSubmit = useCallback(
     async (txNumber: string) => {
       try {
@@ -255,6 +285,75 @@ const ActivationModal = () => {
     [isArabic, update],
   );
 
+  const handleSyriatelCashSubmit = useCallback(
+    async (referenceNumber: string) => {
+      try {
+        setIsSyriatelCashSubmitting(true);
+
+        const response = await request.post("/api/pay/syriatel/verify", {
+          referenceNumber,
+        });
+
+        if (response.data?.activated) {
+          toast.success(
+            response.data?.message ||
+              (isArabic
+                ? "تم تفعيل الحساب بنجاح عبر سيريتل كاش"
+                : "Account activated successfully via Syriatel Cash"),
+          );
+
+          confetti({
+            particleCount: 140,
+            spread: 80,
+            origin: { y: 0.6 },
+          });
+
+          new Audio(SUCCESS_SOUND).play();
+          await update();
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(ACTIVATION_PENDING_KEY, "1");
+          }
+          dispatchEvent(new Event("activation-updated"));
+          setShowSyriatelCashModal(false);
+          return;
+        }
+
+        if (response.data?.pending || response.data?.adminReview) {
+          toast.success(
+            response.data?.message ||
+              (isArabic
+                ? "تم استلام طلبك وهو الآن قيد المعالجة"
+                : "Your request was received and is now processing"),
+          );
+          await update();
+          dispatchEvent(new Event("activation-updated"));
+          setShowSyriatelCashModal(false);
+          return;
+        }
+
+        toast(
+          response.data?.message ||
+            (isArabic
+              ? "تم إرسال الطلب بنجاح"
+              : "Request submitted successfully"),
+        );
+        setShowSyriatelCashModal(false);
+      } catch (error) {
+        console.error(error);
+        const rawMessage =
+          error instanceof Error
+            ? error.message
+            : isArabic
+              ? "تعذر التحقق من عملية سيريتل كاش"
+              : "Failed to verify Syriatel Cash payment";
+        toast.error(localizeErrorMessage(rawMessage, isArabic));
+      } finally {
+        setIsSyriatelCashSubmitting(false);
+      }
+    },
+    [isArabic, update],
+  );
+
   const bodyContent = (
     <div className="flex flex-col gap-3">
       <Heading
@@ -288,7 +387,9 @@ const ActivationModal = () => {
           isArabic={isArabic}
           setRequestingSupportCode={setRequestingSupportCode}
           isShamCashSubmitting={isShamCashSubmitting}
+          isSyriatelCashSubmitting={isSyriatelCashSubmitting}
           setShowShamCashModal={setShowShamCashModal}
+          setShowSyriatelCashModal={setShowSyriatelCashModal}
           requestActivationCodeViaSupport={requestActivationCodeViaSupport}
           setRedirectingMethod={setRedirectingMethod}
         />
@@ -334,6 +435,15 @@ const ActivationModal = () => {
         isSubmitting={isShamCashSubmitting}
         amount={subscriptionAmount}
         onSubmitTransaction={handleShamCashSubmit}
+      />
+      <SyriatelCashModal
+        isOpen={showSyriatelCashModal}
+        onClose={closeSyriatelCashModal}
+        qrUrl={syriatelCashQrUrl}
+        walletCode={syriatelCashWalletCode}
+        isSubmitting={isSyriatelCashSubmitting}
+        amount={subscriptionAmount}
+        onSubmitReference={handleSyriatelCashSubmit}
       />
     </>
   );

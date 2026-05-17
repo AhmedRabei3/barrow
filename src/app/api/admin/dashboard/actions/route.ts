@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { NotificationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "../../../utils/authHelper";
+import { assertAdminCapability } from "../../../utils/adminCapabilities";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { recordPlatformProfitLedgerEntries } from "@/lib/platformProfitLedger";
+import {
+  extractClientIp,
+  recordAdminAudit,
+} from "@/server/services/admin-audit.service";
 
 type AdminAction =
   | "BLOCK"
@@ -24,6 +29,30 @@ export async function POST(req: NextRequest) {
 
   try {
     const actingAdmin = await requireAdminUser();
+    const clientIp = extractClientIp(req);
+    const userAgent = req.headers.get("user-agent");
+    const safeAudit = async (input: {
+      action: string;
+      entityType: string;
+      entityId?: string;
+      targetUserId?: string;
+      metadata?: Record<string, unknown>;
+    }) => {
+      try {
+        await recordAdminAudit({
+          actorAdminId: actingAdmin.id,
+          action: input.action,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          targetUserId: input.targetUserId,
+          ipAddress: clientIp,
+          userAgent,
+          metadata: input.metadata,
+        });
+      } catch {
+        // Never block admin action execution due to audit side-effects.
+      }
+    };
 
     const body = (await req.json()) as {
       action?: AdminAction;
@@ -47,6 +76,36 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    const assertActionCapability = (action: AdminAction) => {
+      if (
+        action === "REWARD" ||
+        action === "RANDOM_LOW_REWARD" ||
+        action === "FREE_ACTIVATION"
+      ) {
+        assertAdminCapability(
+          actingAdmin,
+          "FINANCE_OPERATIONS",
+          t(
+            "لا تملك صلاحية تنفيذ العمليات المالية",
+            "You do not have permission to perform financial operations",
+          ),
+        );
+      }
+
+      if (action === "BLOCK" || action === "UNBLOCK" || action === "NOTIFY") {
+        assertAdminCapability(
+          actingAdmin,
+          "USER_MANAGEMENT",
+          t(
+            "لا تملك صلاحية إدارة المستخدمين",
+            "You do not have permission to manage users",
+          ),
+        );
+      }
+    };
+
+    assertActionCapability(body.action);
 
     if (body.action === "RANDOM_LOW_REWARD") {
       const candidateCount = Math.max(1, Number(body.candidateCount ?? 10));
@@ -145,6 +204,20 @@ export async function POST(req: NextRequest) {
         });
       });
 
+      await safeAudit({
+        action: "RANDOM_LOW_REWARD",
+        entityType: "USER_BALANCE",
+        entityId: winner.id,
+        targetUserId: winner.id,
+        metadata: {
+          amount: randomReward,
+          candidateCount,
+          maxBalance,
+          minReward,
+          maxReward,
+        },
+      });
+
       return NextResponse.json(
         {
           success: true,
@@ -241,6 +314,16 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      await safeAudit({
+        action: nextIsAdmin ? "MAKE_ADMIN" : "REMOVE_ADMIN",
+        entityType: "USER_ROLE",
+        entityId: targetUserId,
+        targetUserId,
+        metadata: {
+          nextIsAdmin,
+        },
+      });
+
       return NextResponse.json(
         {
           success: true,
@@ -315,6 +398,17 @@ export async function POST(req: NextRequest) {
             type: NotificationType.INFO,
           },
         });
+      });
+
+      await safeAudit({
+        action: "FREE_ACTIVATION",
+        entityType: "USER_ACTIVATION",
+        entityId: targetUserId,
+        targetUserId,
+        metadata: {
+          days: FREE_ACTIVATION_DAYS,
+          activeUntil: newActiveUntil.toISOString(),
+        },
       });
 
       return NextResponse.json(
@@ -402,6 +496,17 @@ export async function POST(req: NextRequest) {
             otherItems.count,
           notificationId: notification.id,
         };
+      });
+
+      await safeAudit({
+        action: "BLOCK_USER",
+        entityType: "USER",
+        entityId: targetUserId,
+        targetUserId,
+        metadata: {
+          hiddenListings: blockResult.hiddenListings,
+          notificationId: blockResult.notificationId,
+        },
       });
 
       return NextResponse.json(
@@ -514,6 +619,17 @@ export async function POST(req: NextRequest) {
         };
       });
 
+      await safeAudit({
+        action: "UNBLOCK_USER",
+        entityType: "USER",
+        entityId: targetUserId,
+        targetUserId,
+        metadata: {
+          restoredListings: unblockResult.restoredListings,
+          notificationId: unblockResult.notificationId,
+        },
+      });
+
       return NextResponse.json(
         {
           success: true,
@@ -534,6 +650,15 @@ export async function POST(req: NextRequest) {
           title: "🔔 إشعار من الإدارة",
           message: body.message || "لديك تحديث مهم من فريق الإدارة.",
           type: NotificationType.INFO,
+        },
+      });
+
+      await safeAudit({
+        action: "NOTIFY_USER",
+        entityType: "NOTIFICATION",
+        targetUserId,
+        metadata: {
+          hasCustomMessage: Boolean(body.message),
         },
       });
 
@@ -591,6 +716,17 @@ export async function POST(req: NextRequest) {
             type: NotificationType.INFO,
           },
         });
+      });
+
+      await safeAudit({
+        action: "REWARD_USER",
+        entityType: "USER_BALANCE",
+        entityId: targetUserId,
+        targetUserId,
+        metadata: {
+          amount,
+          hasCustomMessage: Boolean(body.message),
+        },
       });
 
       return NextResponse.json({ success: true }, { status: 200 });

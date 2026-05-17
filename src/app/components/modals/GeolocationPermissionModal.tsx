@@ -21,12 +21,107 @@ export default function GeolocationPermissionModal({
 }: GeolocationPermissionModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [settingsHint, setSettingsHint] = useState<string | null>(null);
   const { isArabic } = useAppPreferences();
   const { setFilters } = useSearchFilters();
+
+  const openBrowserLocationSettings = useCallback(() => {
+    if (typeof window === "undefined") return false;
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    const isEdge = /edg\//.test(userAgent);
+    const isFirefox = /firefox/.test(userAgent);
+    const isOpera = /opr\//.test(userAgent);
+    const isChrome = /chrome/.test(userAgent) && !isEdge && !isOpera;
+
+    let settingsUrl = "";
+    let guide = "";
+
+    if (isIOS) {
+      settingsUrl = "app-settings:";
+      guide = isArabic
+        ? "على iPhone: الإعدادات > Safari > الموقع الجغرافي > سماح"
+        : "On iPhone: Settings > Safari > Location > Allow";
+    } else if (isEdge) {
+      settingsUrl = "edge://settings/content/location";
+      guide = isArabic
+        ? "في Edge: إعدادات الموقع > السماح للموقع لهذا الموقع"
+        : "In Edge: Location settings > Allow location for this site";
+    } else if (isFirefox) {
+      settingsUrl = "about:preferences#privacy";
+      guide = isArabic
+        ? "في Firefox: الإعدادات > الخصوصية والأمان > الأذونات > الموقع"
+        : "In Firefox: Settings > Privacy & Security > Permissions > Location";
+    } else if (isOpera) {
+      settingsUrl = "opera://settings/content/location";
+      guide = isArabic
+        ? "في Opera: إعدادات الموقع > السماح لهذا الموقع"
+        : "In Opera: Location settings > Allow this site";
+    } else if (isChrome || isAndroid) {
+      settingsUrl = "chrome://settings/content/location";
+      guide = isArabic
+        ? "في Chrome: إعدادات الموقع > السماح للموقع الحالي"
+        : "In Chrome: Site settings > Location > Allow";
+    }
+
+    setSettingsHint(guide || null);
+
+    if (!settingsUrl) {
+      return false;
+    }
+
+    try {
+      const openedWindow = window.open(settingsUrl, "_blank");
+      if (openedWindow) return true;
+    } catch {
+      // ignore
+    }
+
+    // Only attempt href navigation for http/https URLs — browser-protocol
+    // URLs (edge://, chrome://, opera://) cannot be loaded via location.href
+    // and will generate a "Not allowed to load local resource" console error.
+    if (/^https?:\/\//i.test(settingsUrl)) {
+      try {
+        window.location.href = settingsUrl;
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    return false;
+  }, [isArabic]);
 
   const handleRequestLocation = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setPermissionDenied(false);
+
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      const isLocalhost =
+        host === "localhost" || host === "127.0.0.1" || host === "::1";
+
+      // On mobile/LAN HTTP (e.g. 192.168.x.x), browser geolocation is blocked
+      // even if the user enabled permission in browser settings.
+      if (!window.isSecureContext && !isLocalhost) {
+        setError(
+          isArabic
+            ? "تحديد الموقع يتطلب اتصالاً آمناً (HTTPS). على الهاتف استخدم رابط HTTPS بدلاً من عنوان IP المحلي."
+            : "Location access requires a secure context (HTTPS). On mobile, use an HTTPS URL instead of a local network IP.",
+        );
+        setSettingsHint(
+          isArabic
+            ? "إذا كنت في التطوير المحلي، استخدم التحديد اليدوي على الخارطة أو شغّل نسخة HTTPS."
+            : "If you are on local development, use manual map selection or run the app over HTTPS.",
+        );
+        setLoading(false);
+        return;
+      }
+    }
 
     if (!navigator.geolocation) {
       setError(
@@ -36,6 +131,35 @@ export default function GeolocationPermissionModal({
       );
       setLoading(false);
       return;
+    }
+
+    if ("permissions" in navigator && navigator.permissions?.query) {
+      try {
+        const status = await navigator.permissions.query({
+          name: "geolocation",
+        });
+
+        if (status.state === "denied") {
+          setPermissionDenied(true);
+          setError(
+            isArabic
+              ? "إذن الموقع مرفوض. فعّل إذن الموقع لهذا الموقع من إعدادات المتصفح ثم أعد المحاولة."
+              : "Location permission is denied. Enable location for this site in browser settings and try again.",
+          );
+          const opened = openBrowserLocationSettings();
+          if (!opened) {
+            setSettingsHint(
+              isArabic
+                ? "افتح إعدادات المتصفح ثم فعّل إذن الموقع لهذا الموقع"
+                : "Open your browser settings and enable location permission for this site",
+            );
+          }
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Some browsers throw on permissions.query; continue with getCurrentPosition.
+      }
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -58,9 +182,20 @@ export default function GeolocationPermissionModal({
           : "Failed to get location";
 
         if (err.code === err.PERMISSION_DENIED) {
+          setPermissionDenied(true);
           errorMessage = isArabic
-            ? "تم رفض الوصول للموقع. يرجى تفعيل الإذن في إعدادات المتصفح"
-            : "Permission denied. Please enable location access in your browser settings";
+            ? "تم رفض الوصول للموقع"
+            : "Location permission was denied";
+
+          // حاول فتح إعدادات المتصفح مباشرة بعد الرفض.
+          const opened = openBrowserLocationSettings();
+          if (!opened) {
+            setSettingsHint(
+              isArabic
+                ? "افتح إعدادات المتصفح ثم فعّل إذن الموقع لهذا الموقع"
+                : "Open your browser settings and enable location permission for this site",
+            );
+          }
         } else if (err.code === err.TIMEOUT) {
           errorMessage = isArabic
             ? "انتهت مهلة الانتظار. حاول مرة أخرى"
@@ -75,12 +210,18 @@ export default function GeolocationPermissionModal({
         setLoading(false);
       },
       {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000,
       },
     );
-  }, [isArabic, setFilters, onPermissionGranted, onClose]);
+  }, [
+    isArabic,
+    setFilters,
+    onPermissionGranted,
+    onClose,
+    openBrowserLocationSettings,
+  ]);
 
   if (!isOpen) return null;
 
@@ -112,6 +253,26 @@ export default function GeolocationPermissionModal({
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
             <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            {permissionDenied && (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={openBrowserLocationSettings}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">
+                    settings
+                  </span>
+                  {isArabic ? "فتح إعدادات المتصفح" : "Open browser settings"}
+                </button>
+
+                {settingsHint && (
+                  <p className="text-xs text-red-700/90 dark:text-red-200/90 leading-5">
+                    {settingsHint}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

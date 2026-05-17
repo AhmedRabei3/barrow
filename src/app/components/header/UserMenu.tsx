@@ -104,6 +104,11 @@ const UserMenu = () => {
     router.push("/messages");
   }, [closeMenu, router]);
 
+  const goToListingAlerts = useCallback(() => {
+    closeMenu();
+    router.push("/listing-alerts");
+  }, [closeMenu, router]);
+
   const goToAdmin = useCallback(() => {
     closeMenu();
     router.push("/admin");
@@ -374,6 +379,12 @@ const UserMenu = () => {
         label={isArabic ? "المحادثات" : "Messages"}
         onClick={goToMessages}
         iconName="RiMessage2Line"
+        isArabic={isArabic}
+      />
+      <UserMenueItem
+        label={isArabic ? "تنبيهات التوفر" : "Availability alerts"}
+        onClick={goToListingAlerts}
+        iconName="MdNotificationsActive"
         isArabic={isArabic}
       />
 

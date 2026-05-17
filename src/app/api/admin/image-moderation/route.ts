@@ -2,6 +2,7 @@ import { ItemType, NotificationType } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminUser } from "@/app/api/utils/authHelper";
+import { assertAdminCapability } from "@/app/api/utils/adminCapabilities";
 import { clearCategoriesRouteCache } from "@/app/api/categories/cache";
 import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { prisma } from "@/lib/prisma";
@@ -379,7 +380,15 @@ export async function GET(req: NextRequest) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
   try {
-    await requireAdminUser();
+    const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "MODERATION",
+      t(
+        "لا تملك صلاحية مراجعة المحتوى",
+        "You do not have permission to moderate content",
+      ),
+    );
     const rawType = String(
       req.nextUrl.searchParams.get("type") || "ALL",
     ).toUpperCase();
@@ -452,6 +461,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = await requireAdminUser();
+    assertAdminCapability(
+      admin,
+      "MODERATION",
+      t(
+        "لا تملك صلاحية مراجعة المحتوى",
+        "You do not have permission to moderate content",
+      ),
+    );
     const body = (await req.json()) as {
       action?: "APPROVE" | "REJECT";
       itemId?: string;

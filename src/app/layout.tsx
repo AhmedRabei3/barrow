@@ -136,13 +136,9 @@ export default function RootLayout({
         />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
 
-        {/* Preload critical resources for LCP optimization */}
-        <link
-          rel="preload"
-          as="image"
-          href="/images/logo.png"
-          fetchPriority="high"
-        />
+        {/* Logo is served via Next.js Image (/_next/image) so a plain
+             preload hint would never match the transformed URL and
+             would just generate a "preloaded but not used" warning. */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoKufiArabic.variable} antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors`}

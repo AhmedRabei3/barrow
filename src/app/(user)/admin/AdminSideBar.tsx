@@ -11,6 +11,7 @@ import { useAppPreferences } from "@/app/components/providers/AppPreferencesProv
 
 export type AdminPageKey =
   | "analytics"
+  | "audit-logs"
   | "image-moderation"
   | "financial-report"
   | "shamcash"
@@ -19,6 +20,16 @@ export type AdminPageKey =
   | "payment-settings"
   | "purchase-requests"
   | "support-messages";
+
+export type AdminCapabilityMap = {
+  USER_MANAGEMENT: boolean;
+  FINANCE_REPORTS: boolean;
+  FINANCE_OPERATIONS: boolean;
+  MODERATION: boolean;
+  SUPPORT: boolean;
+  KYC_REVIEW: boolean;
+  SYSTEM_SETTINGS: boolean;
+};
 
 interface AdminSideBarProps {
   setPage: Dispatch<SetStateAction<AdminPageKey>>;
@@ -29,6 +40,7 @@ interface AdminSideBarProps {
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   onPaymentSettingsClick?: () => void;
   canAccessPaymentSettings?: boolean;
+  capabilities: AdminCapabilityMap;
 }
 
 const AdminSideBar = ({
@@ -40,6 +52,7 @@ const AdminSideBar = ({
   setIsCollapsed,
   onPaymentSettingsClick,
   canAccessPaymentSettings = false,
+  capabilities,
 }: AdminSideBarProps) => {
   const { isArabic, theme } = useAppPreferences();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
@@ -115,69 +128,94 @@ const AdminSideBar = ({
             isCollapsed ? "md:items-center" : ""
           }`}
         >
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="analytics"
-            label={t("إدارة المستخدمين", "User Management")}
-            iconName="MdManageAccounts"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="image-moderation"
-            label={t("مراجعة الصور", "Image Moderation")}
-            iconName="MdOutlinePhotoLibrary"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="financial-report"
-            label={t("التقرير المالي", "Financial Report")}
-            iconName="MdOutlineAccountBalanceWallet"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="shamcash"
-            label={t("شام كاش", "ShamCash")}
-            iconName="MdQrCodeScanner"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="add-category"
-            label={t("إضافة فئات جديدة", "Add Categories")}
-            iconName="MdOutlineCategory"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="activation-codes"
-            label={t("أكواد التفعيل", "Activation Codes")}
-            iconName="BiBarcodeReader"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="support-messages"
-            label={t("رسائل الدعم", "Support Messages")}
-            iconName="RiCustomerService2Fill"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
+          {capabilities.USER_MANAGEMENT ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="analytics"
+              label={t("إدارة المستخدمين", "User Management")}
+              iconName="MdManageAccounts"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.USER_MANAGEMENT ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="audit-logs"
+              label={t("سجل التدقيق", "Audit Logs")}
+              iconName="MdOutlineHistory"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.MODERATION ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="image-moderation"
+              label={t("مراجعة الصور", "Image Moderation")}
+              iconName="MdOutlinePhotoLibrary"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.FINANCE_REPORTS ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="financial-report"
+              label={t("التقرير المالي", "Financial Report")}
+              iconName="MdOutlineAccountBalanceWallet"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.FINANCE_OPERATIONS ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="shamcash"
+              label={t("شام كاش", "ShamCash")}
+              iconName="MdQrCodeScanner"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.SYSTEM_SETTINGS ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="add-category"
+              label={t("إضافة فئات جديدة", "Add Categories")}
+              iconName="MdOutlineCategory"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.FINANCE_OPERATIONS ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="activation-codes"
+              label={t("أكواد التفعيل", "Activation Codes")}
+              iconName="BiBarcodeReader"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
+          {capabilities.SUPPORT ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="support-messages"
+              label={t("رسائل الدعم", "Support Messages")}
+              iconName="RiCustomerService2Fill"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
           {canAccessPaymentSettings ? (
             <SideBarBtn
               setPage={setPage}
@@ -190,15 +228,17 @@ const AdminSideBar = ({
               onClick={onPaymentSettingsClick}
             />
           ) : null}
-          <SideBarBtn
-            setPage={setPage}
-            page={page}
-            pageKey="purchase-requests"
-            label={t("طلبات الشراء", "Purchase Requests")}
-            iconName="BiPurchaseTagAlt"
-            setIsOpen={setIsOpen}
-            collapsed={isCollapsed}
-          />
+          {capabilities.USER_MANAGEMENT ? (
+            <SideBarBtn
+              setPage={setPage}
+              page={page}
+              pageKey="purchase-requests"
+              label={t("طلبات الشراء", "Purchase Requests")}
+              iconName="BiPurchaseTagAlt"
+              setIsOpen={setIsOpen}
+              collapsed={isCollapsed}
+            />
+          ) : null}
         </nav>
       </aside>
 

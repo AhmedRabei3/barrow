@@ -12,7 +12,6 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
     "الرصيد الجاهز غير كافٍ لإتمام السحب",
   "Withdrawal amount must be greater than 0":
     "قيمة السحب يجب أن تكون أكبر من 0",
-  "Valid PayPal email is required": "يلزم إدخال بريد PayPal صالح",
   "Capture failed": "تعذر تأكيد عملية الدفع",
   "Payment confirmation failed": "تعذر التحقق من عملية الدفع",
   "Payment not found": "لم يتم العثور على عملية الدفع",
@@ -20,9 +19,6 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   "paymentId is required": "معرّف عملية الدفع مطلوب",
   "Pending payment not found": "لم يتم العثور على عملية الدفع المعلقة",
   "Invalid captured amount": "قيمة الدفع الملتقطة غير صالحة",
-  "PayPal order is not approved yet":
-    "طلب PayPal غير مُعتمد بعد، يرجى إكمال الموافقة أولاً",
-  "Failed to create PayPal approval link": "تعذر إنشاء رابط موافقة PayPal",
   "NEXT_PUBLIC_APP_URL is not configured": "إعداد رابط التطبيق غير مكتمل",
   "Too many payment requests. Please try again shortly.":
     "عدد كبير من محاولات الدفع، يرجى المحاولة بعد قليل",
