@@ -297,6 +297,8 @@ const UserMenu = () => {
         : "Activate account";
 
   const subscriptionIcon = isSubscriptionActive ? "MdGroupAdd" : "FaCheck";
+  const showInstallBanner =
+    Boolean(deferredInstallPrompt) && !isRunningInsideInstalledApp;
 
   const handleInstallApp = useCallback(async () => {
     closeMenu();
@@ -422,6 +424,36 @@ const UserMenu = () => {
 
   return (
     <div className="w-full">
+      {showInstallBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-sky-200 bg-white/95 px-4 py-3 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/95"
+        >
+          <div
+            className={`flex items-center justify-between gap-3 ${textAlignClass}`}
+          >
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {isArabic ? "ثبّت التطبيق" : "Install the app"}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-300">
+                {isArabic
+                  ? "أضِف Barrow إلى شاشتك الرئيسية للوصول الأسرع."
+                  : "Add Barrow to your home screen for faster access."}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="shrink-0 rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-sky-500"
+            >
+              {isArabic ? "ثبّت الآن" : "Install now"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-end relative">
         {/* ✅ User menu + dropdown */}
         <div className="relative" ref={menuRef}>

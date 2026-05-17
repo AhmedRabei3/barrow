@@ -17,6 +17,8 @@ interface DistanceFilterProps {
   preferManualLocationSelection?: boolean;
   manualLocationLabel?: string;
   onSuccessfulApply?: () => void;
+  /** عند التفعيل: يطبّق المسافة مباشرةً حتى لو لم يُحدَّد موقع بعد، دون فتح أي modal */
+  applyWithoutLocation?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export default function DistanceFilter({
   preferManualLocationSelection = false,
   manualLocationLabel,
   onSuccessfulApply,
+  applyWithoutLocation = false,
 }: DistanceFilterProps) {
   const { isArabic } = useAppPreferences();
   const { filters, setFilters } = useSearchFilters();
@@ -86,6 +89,9 @@ export default function DistanceFilter({
         applyFilters({ distance });
         onDistanceApplied?.(distance, activeUserLat!, activeUserLng!);
         onSuccessfulApply?.();
+      } else if (applyWithoutLocation) {
+        // في سياق الخارطة: حفظ المسافة مباشرة، المستخدم يحدد موقعه من المحدد المدمج
+        applyFilters({ distance });
       } else {
         if (preferManualLocationSelection) {
           setShowManualLocationModal(true);
@@ -104,6 +110,7 @@ export default function DistanceFilter({
       activeUserLat,
       activeUserLng,
       preferManualLocationSelection,
+      applyWithoutLocation,
     ],
   );
 

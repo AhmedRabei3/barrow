@@ -43,6 +43,9 @@ const getZoomForDistance = (distanceKm) => {
   return 9;
 };
 
+const getRadiusBounds = (center, radiusMeters) =>
+  L.latLng(center).toBounds(radiusMeters);
+
 const formatPrice = (price, locale) => {
   if (!Number.isFinite(price)) return null;
 
@@ -56,9 +59,7 @@ const FitBounds = ({ items, userPosition, radiusKm }) => {
 
   useEffect(() => {
     if (userPosition && radiusKm) {
-      const bounds = L.circle(userPosition, {
-        radius: radiusKm * 1000,
-      }).getBounds();
+      const bounds = getRadiusBounds(userPosition, radiusKm * 1000);
 
       items.forEach((item) => {
         bounds.extend([item.latitude, item.longitude]);
@@ -240,9 +241,7 @@ const MapClient = ({ setShowMap, items }) => {
     if (!mapInstance) return;
 
     if (userPosition && hasDistanceFilter) {
-      const bounds = L.circle(userPosition, {
-        radius: distanceKm * 1000,
-      }).getBounds();
+      const bounds = getRadiusBounds(userPosition, distanceKm * 1000);
 
       visibleItems.forEach((item) => {
         bounds.extend([item.latitude, item.longitude]);
@@ -720,7 +719,10 @@ const MapClient = ({ setShowMap, items }) => {
 
             {/* Distance filter */}
             <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
-              <DistanceFilter onSuccessfulApply={closeFilterPanel} />
+              <DistanceFilter
+                onSuccessfulApply={closeFilterPanel}
+                applyWithoutLocation
+              />
             </div>
           </div>
         </div>
