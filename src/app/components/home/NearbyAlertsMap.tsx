@@ -154,14 +154,24 @@ export default function NearbyAlertsMap({
             >
               <Tooltip
                 direction="top"
-                offset={[0, -12]}
+                offset={[0, -20]}
                 permanent
                 className="leaflet-tooltip-own"
                 sticky
+                opacity={1}
               >
                 <span
-                  className="block cursor-pointer select-none px-2 py-1 text-[11px] font-semibold"
-                  onClick={() => handleZoomToAlert(alert)}
+                  className="block cursor-pointer select-none px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white hover:bg-opacity-20 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleZoomToAlert(alert);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      handleZoomToAlert(alert);
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
                 >
@@ -195,8 +205,15 @@ export default function NearbyAlertsMap({
               },
             }}
           >
-            <Tooltip direction="top" offset={[0, -12]} permanent sticky>
-              <span className="text-[11px] font-semibold">
+            <Tooltip
+              direction="top"
+              offset={[0, -20]}
+              permanent
+              sticky
+              opacity={1}
+              className="leaflet-tooltip-own"
+            >
+              <span className="text-[11px] font-semibold px-3 py-1.5">
                 {isArabic ? "الموقع الجديد" : "New location"}
               </span>
             </Tooltip>

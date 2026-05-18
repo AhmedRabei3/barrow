@@ -429,7 +429,7 @@ export default function NearbyAlertSetupModal({
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
             {t(
-              "إشعارات التوفر حسب المواقع",
+              "حدد مكان لنعلمك بالجديد قربه",
               "Availability alerts by locations",
             )}
           </h3>
@@ -447,8 +447,8 @@ export default function NearbyAlertSetupModal({
           <div className="space-y-3">
             <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-700 dark:border-blue-700/40 dark:bg-blue-900/20 dark:text-blue-200">
               {t(
-                "الخارطة ظاهرة دائمًا. اختر موقعًا جديدًا بالنقر على الخارطة أو سحب دبوس الموقع الجديد، وستبقى الأماكن السابقة محفوظة.",
-                "The map is always visible. Pick a new location by clicking the map or dragging the new-location pin, and your previous locations stay saved.",
+                "حدد موقعاً من الخريطة لنعلمك عند توفر شيء جديد فيه",
+                "Set a new location from map to notifing you if update",
               )}
             </div>
 
@@ -469,9 +469,7 @@ export default function NearbyAlertSetupModal({
                 title={t("موقعي الحالي", "My location")}
                 className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-blue-50 p-2.5 text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300"
               >
-                <span className="material-symbols-outlined text-lg">
-                  my_location
-                </span>
+                <DynamicIcon iconName="RiUserLocationLine" size={24} />
               </button>
 
               <button
@@ -480,9 +478,7 @@ export default function NearbyAlertSetupModal({
                 title={t("إضافة مكان جديد", "Add new place")}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200"
               >
-                <span className="material-symbols-outlined text-lg">
-                  add_location_alt
-                </span>
+                <DynamicIcon iconName="MdAddLocationAlt" size={24} />
               </button>
 
               <button
@@ -496,7 +492,7 @@ export default function NearbyAlertSetupModal({
                 }
                 className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
               >
-                <span className="material-symbols-outlined text-lg">edit</span>
+                <DynamicIcon iconName="MdEditLocationAlt" size={24} />
               </button>
 
               <button
@@ -510,9 +506,7 @@ export default function NearbyAlertSetupModal({
                 }
                 className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 p-2.5 text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-700/50 dark:bg-red-900/20 dark:text-red-300"
               >
-                <span className="material-symbols-outlined text-lg">
-                  delete
-                </span>
+                <DynamicIcon iconName="RiDeleteBin6Line" size={24} />
               </button>
             </div>
           </div>
@@ -600,13 +594,11 @@ export default function NearbyAlertSetupModal({
               disabled={creatingAlert}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300"
             >
-              <span className="material-symbols-outlined text-sm">
-                add_alert
-              </span>
+              <DynamicIcon iconName="MdNotificationAdd" size={24} />
               <span>
                 {creatingAlert
                   ? t("جاري الإضافة...", "Adding...")
-                  : t("إضافة مكان تنبيه", "Add alert place")}
+                  : t("تفعيل التنبيه", "Add alert")}
               </span>
             </button>
 

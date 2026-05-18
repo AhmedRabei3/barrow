@@ -5,20 +5,35 @@
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 0.5rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
-  padding: 0.25rem 0 !important;
+  padding: 0 !important;
   color: #fff !important;
   font-weight: 600;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto !important;
+  cursor: pointer;
+  /* Position directly above the pin */
+  bottom: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) translateY(-100%);
+  white-space: nowrap;
 }
 
 .leaflet-tooltip-own span {
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: block;
+  padding: 0.375rem 0.75rem;
 }
 
 .leaflet-tooltip-own span:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25rem;
+}
+
+.leaflet-tooltip-own span:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
   border-radius: 0.25rem;
 }
 
