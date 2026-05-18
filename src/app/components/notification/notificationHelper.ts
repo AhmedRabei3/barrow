@@ -78,3 +78,39 @@ export function extractListingAlertMetadata(
 export function stripListingAlertMetadata(message: string): string {
   return message.replace(LISTING_ALERT_TOKEN_REGEX, "").trim();
 }
+
+export type SeekerAlertMetadata = {
+  alertId: string;
+  seekerUserId: string;
+  chatListingId: string;
+  itemType: string;
+};
+
+const SEEKER_ALERT_TOKEN_REGEX =
+  /(?:\n|^)SEEKER_ALERT:([a-z0-9]{10,}):([a-z0-9]{10,}):(seek_[a-z0-9]{10,}):([A-Z_]+)\s*$/i;
+
+export function extractSeekerAlertMetadata(
+  message: string,
+): SeekerAlertMetadata | null {
+  const tokenMatch = message.match(SEEKER_ALERT_TOKEN_REGEX);
+
+  if (
+    !tokenMatch?.[1] ||
+    !tokenMatch?.[2] ||
+    !tokenMatch?.[3] ||
+    !tokenMatch?.[4]
+  ) {
+    return null;
+  }
+
+  return {
+    alertId: tokenMatch[1],
+    seekerUserId: tokenMatch[2],
+    chatListingId: tokenMatch[3],
+    itemType: tokenMatch[4].toUpperCase(),
+  };
+}
+
+export function stripSeekerAlertMetadata(message: string): string {
+  return message.replace(SEEKER_ALERT_TOKEN_REGEX, "").trim();
+}

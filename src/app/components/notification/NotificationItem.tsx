@@ -9,9 +9,11 @@ import {
   extractItemModerationTarget,
   extractListingAlertMetadata,
   extractRequestId,
+  extractSeekerAlertMetadata,
   extractShamCashActivationRequestId,
   extractShamCashRequestId,
   stripListingAlertMetadata,
+  stripSeekerAlertMetadata,
 } from "./notificationHelper";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -61,6 +63,7 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
   );
   const moderationTarget = extractItemModerationTarget(message, title);
   const listingAlertMetadata = extractListingAlertMetadata(message);
+  const seekerAlertMetadata = extractSeekerAlertMetadata(message);
   const listingAlertItemLabel = listingAlertMetadata
     ? (listingAlertItemLabels[listingAlertMetadata.itemType] ??
       listingAlertItemLabels.OTHER)
@@ -69,6 +72,9 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
   const hasShamCashActivationLink = Boolean(shamCashActivationRequestId);
   const hasModerationLink = Boolean(moderationTarget?.itemId);
   const hasListingAlertAction = Boolean(listingAlertMetadata?.alertId);
+  const hasSeekerAlertAction = Boolean(
+    seekerAlertMetadata?.seekerUserId && seekerAlertMetadata.chatListingId,
+  );
   const shamCashQueueHref = shamCashRequestId
     ? `/admin?page=shamcash-payout-jobs&manualRequestId=${shamCashRequestId}`
     : null;
@@ -97,6 +103,21 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
     navigateTo(moderationHref);
   };
 
+  const openSeekerChat = () => {
+    if (!seekerAlertMetadata) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      ownerId: seekerAlertMetadata.seekerUserId,
+      listingId: seekerAlertMetadata.chatListingId,
+      title: isArabic ? "طلب قريب" : "Nearby request",
+      itemType: seekerAlertMetadata.itemType,
+    });
+
+    navigateTo(`/messages?${params.toString()}`);
+  };
+
   const displayTitle = useMemo(() => {
     if (!listingAlertMetadata || !listingAlertItemLabel) {
       return title;
@@ -108,14 +129,24 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
   }, [isArabic, listingAlertItemLabel, listingAlertMetadata, title]);
 
   const displayMessage = useMemo(() => {
+    if (seekerAlertMetadata) {
+      return stripSeekerAlertMetadata(stripListingAlertMetadata(message));
+    }
+
     if (!listingAlertMetadata || !listingAlertItemLabel) {
-      return stripListingAlertMetadata(message);
+      return stripSeekerAlertMetadata(stripListingAlertMetadata(message));
     }
 
     return isArabic
       ? `تمت إضافة ${listingAlertItemLabel.ar} جديد مؤخراً في نطاق الموقع الذي حددته سابقاً.`
       : `A new ${listingAlertItemLabel.en} was added recently within the area you selected earlier.`;
-  }, [isArabic, listingAlertItemLabel, listingAlertMetadata, message]);
+  }, [
+    isArabic,
+    listingAlertItemLabel,
+    listingAlertMetadata,
+    message,
+    seekerAlertMetadata,
+  ]);
 
   const disableListingAlert = async () => {
     if (!listingAlertMetadata?.alertId || isTogglingAlert) {
@@ -333,6 +364,18 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
             : isArabic
               ? "إيقاف إشعارات هذا الموقع"
               : "Stop alerts for this location"}
+        </button>
+      )}
+
+      {hasSeekerAlertAction && (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            openSeekerChat();
+          }}
+          className="mt-3 w-full text-sm font-semibold text-cyan-700 hover:underline dark:text-cyan-300"
+        >
+          {isArabic ? "مراسلة صاحب الطلب" : "Message requester"}
         </button>
       )}
     </motion.div>

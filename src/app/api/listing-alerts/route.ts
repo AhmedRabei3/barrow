@@ -7,6 +7,7 @@ import { resolveIsArabicFromRequest } from "@/app/i18n/errorMessages";
 import { handleApiError } from "@/app/api/lib/errors/errorHandler";
 import { CACHE_HEADERS } from "@/app/api/lib/cacheHeaders";
 import { createHash } from "crypto";
+import { notifyNearbyUsersAboutSeekerAlertAsync } from "@/server/services/listing-alerts-seeker-notify.service";
 
 const roundCoord = (value: number) => Number(value.toFixed(4));
 
@@ -123,7 +124,13 @@ export async function POST(req: NextRequest) {
       radiusKm: payload.radiusKm,
     });
 
-    await prisma.listingAvailabilityAlert.upsert({
+    const existingBySignature =
+      await prisma.listingAvailabilityAlert.findUnique({
+        where: { signature },
+        select: { id: true },
+      });
+
+    const alert = await prisma.listingAvailabilityAlert.upsert({
       where: { signature },
       create: {
         signature,
@@ -145,6 +152,28 @@ export async function POST(req: NextRequest) {
         isEnabled: true,
       },
     });
+
+    if (!existingBySignature) {
+      const requesterProfile = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { name: true },
+      });
+
+      notifyNearbyUsersAboutSeekerAlertAsync({
+        alertId: alert.id,
+        seekerUserId: user.id,
+        seekerName: requesterProfile?.name ?? null,
+        lat: payload.lat,
+        lng: payload.lng,
+        radiusKm: payload.radiusKm,
+        itemType: payload.itemType ?? null,
+        action: payload.action ?? null,
+        categoryId: category?.id ?? null,
+        categoryName:
+          category?.nameAr ?? category?.nameEn ?? category?.name ?? null,
+        isArabic,
+      });
+    }
 
     return NextResponse.json(
       {
