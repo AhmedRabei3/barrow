@@ -16,7 +16,7 @@ const GoBackBtn = ({ closeBtn = false }: { closeBtn?: boolean }) => {
        w-fit p-2.5 rounded-full hover:text-rose-500 
        transition-colors duration-300
        backdrop-blur-md
-       z-30
+       z-1200
        ${closeBtn ? "" : "fixed top-[27vh] left-5 "}
        font-bold
        cursor-pointer

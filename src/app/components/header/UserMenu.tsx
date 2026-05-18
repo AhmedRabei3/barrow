@@ -106,6 +106,11 @@ const UserMenu = () => {
 
   const goToListingAlerts = useCallback(() => {
     closeMenu();
+    if (typeof window !== "undefined" && window.location.pathname === "/") {
+      window.dispatchEvent(new CustomEvent("open-listing-alerts-modal"));
+      return;
+    }
+
     router.push("/listing-alerts");
   }, [closeMenu, router]);
 

@@ -7,6 +7,7 @@ import {
   MdCategory,
   MdKeyboardArrowDown,
   MdMyLocation,
+  MdNotificationsActive,
 } from "react-icons/md";
 import { BsRobot } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
@@ -59,6 +60,14 @@ const ACTIONS: ActionConfig[] = [
     gradFrom: "#0284c7",
     gradTo: "#0369a1",
     shadow: "rgba(2,132,199,0.42)",
+  },
+  {
+    id: "alerts",
+    labelAr: "إشعاري",
+    labelEn: "My alerts",
+    gradFrom: "#16a34a",
+    gradTo: "#15803d",
+    shadow: "rgba(22,163,74,0.42)",
   },
   {
     id: "assistant",
@@ -114,6 +123,8 @@ export default function FloatingActionMenu({
       onCategories();
     } else if (id === "nearby") {
       window.dispatchEvent(new CustomEvent("open-nearby-items"));
+    } else if (id === "alerts") {
+      window.dispatchEvent(new CustomEvent("open-listing-alerts-modal"));
     } else if (id === "map") {
       /* Dispatch event – HomeBody listens and toggles its showMap state */
       window.dispatchEvent(new CustomEvent("toggle-map-view"));
@@ -136,6 +147,7 @@ export default function FloatingActionMenu({
     if (id === "categories") return <MdCategory size={size} />;
     if (id === "map") return <FaMapMarkedAlt size={size} />;
     if (id === "nearby") return <MdMyLocation size={size} />;
+    if (id === "alerts") return <MdNotificationsActive size={size} />;
     return (
       <motion.span
         key={waveKey}

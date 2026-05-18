@@ -22,6 +22,13 @@ import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useSession } from "next-auth/react";
 
 const ALERT_RADIUS_OPTIONS_KM = [1, 5, 10, 25, 50];
+const ALERT_ITEM_TYPE_OPTIONS = [
+  { value: "", ar: "كل العناصر", en: "All items" },
+  { value: "PROPERTY", ar: "منزل / عقار", en: "Home / Property" },
+  { value: "NEW_CAR", ar: "سيارة جديدة", en: "New car" },
+  { value: "USED_CAR", ar: "سيارة مستعملة", en: "Used car" },
+  { value: "OTHER", ar: "دراجة نارية / أخرى", en: "Motorcycle / Other" },
+];
 
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -155,6 +162,13 @@ const MapClient = ({
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [locatingUser, setLocatingUser] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const [isNearbyQuickMode, setIsNearbyQuickMode] = useState(false);
+  const [isAlertAccordionOpen, setIsAlertAccordionOpen] = useState(false);
+  const [alertItemType, setAlertItemType] = useState(filters.type ?? "");
+  const [alertCategoryName, setAlertCategoryName] = useState(
+    filters.catName ?? "",
+  );
+  const [alertAction, setAlertAction] = useState(filters.action ?? "");
   const userPosition = useMemo(
     () =>
       filters.userLat !== null && filters.userLng !== null
@@ -240,11 +254,10 @@ const MapClient = ({
     }
 
     setIsFilterPanelOpen(true);
-
-    if (!userPosition) {
-      setTempPickerPos(null);
-      setIsEditingLocation(true);
-    }
+    setIsNearbyQuickMode(true);
+    setIsAlertAccordionOpen(true);
+    setTempPickerPos(userPosition ? [...userPosition] : null);
+    setIsEditingLocation(true);
   }, [promptForLocationSelection, userPosition]);
 
   const handleMapReady = useCallback((event) => {
@@ -311,7 +324,11 @@ const MapClient = ({
       return;
     }
 
-    if (!userPosition || !hasAlertRadius) {
+    const effectivePosition = isNearbyQuickMode
+      ? tempPickerPos || userPosition
+      : userPosition;
+
+    if (!effectivePosition || !hasAlertRadius) {
       setAlertFeedback({
         type: "warning",
         text: t(
@@ -332,12 +349,12 @@ const MapClient = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          lat: userPosition[0],
-          lng: userPosition[1],
+          lat: effectivePosition[0],
+          lng: effectivePosition[1],
           radiusKm: alertRadiusKm,
-          itemType: filters.type ?? null,
-          action: filters.action ?? null,
-          catName: filters.catName,
+          itemType: (isNearbyQuickMode ? alertItemType : filters.type) || null,
+          action: (isNearbyQuickMode ? alertAction : filters.action) || null,
+          catName: isNearbyQuickMode ? alertCategoryName : filters.catName,
         }),
       });
 
@@ -350,11 +367,23 @@ const MapClient = ({
         );
       }
 
+      if (isNearbyQuickMode && tempPickerPos) {
+        setFilters({ userLat: tempPickerPos[0], userLng: tempPickerPos[1] });
+      }
+
+      const selectedTypeLabel = ALERT_ITEM_TYPE_OPTIONS.find(
+        (option) => option.value === alertItemType,
+      );
+
       setAlertFeedback({
         type: "success",
-        text:
-          data?.message ||
-          t("تم تفعيل التنبيه بنجاح", "Alert has been enabled successfully"),
+        text: isNearbyQuickMode
+          ? t(
+              `تم حفظ التنبيه. سيتم إشعارك عند توفر ${selectedTypeLabel?.ar || "عنصر"} جديد ضمن النطاق ${alertRadiusKm} كم حول الموقع المحدد.`,
+              `Alert saved. You will be notified when a new ${selectedTypeLabel?.en || "listing"} appears within ${alertRadiusKm} km of the selected area.`,
+            )
+          : data?.message ||
+            t("تم تفعيل التنبيه بنجاح", "Alert has been enabled successfully"),
       });
     } catch (error) {
       setAlertFeedback({
@@ -369,12 +398,18 @@ const MapClient = ({
     }
   }, [
     alertRadiusKm,
+    alertAction,
+    alertCategoryName,
+    alertItemType,
     filters.action,
     filters.catName,
     filters.type,
     hasAlertRadius,
+    isNearbyQuickMode,
     session?.user?.id,
     sessionStatus,
+    setFilters,
+    tempPickerPos,
     t,
     userPosition,
   ]);
@@ -483,6 +518,8 @@ const MapClient = ({
 
   const closeFilterPanel = useCallback(() => {
     setIsFilterPanelOpen(false);
+    setIsNearbyQuickMode(false);
+    setIsAlertAccordionOpen(false);
   }, []);
 
   const toggleFilterPanel = useCallback(() => {
@@ -548,7 +585,9 @@ const MapClient = ({
           {/* Drawer header */}
           <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              {t("فلاتر الخريطة", "Map filters")}
+              {isNearbyQuickMode
+                ? t("تحديد الموقع والتنبيه", "Location and alert setup")
+                : t("فلاتر الخريطة", "Map filters")}
             </h3>
             <button
               type="button"
@@ -564,146 +603,51 @@ const MapClient = ({
 
           {/* Scrollable body */}
           <div className="flex-1 overflow-y-auto">
-            {/* Summary + action buttons */}
-            <div className="space-y-2.5 px-4 pb-3 pt-4">
-              <div className="flex flex-wrap gap-2">
-                {summaryLabel && (
-                  <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                    {summaryLabel}
-                  </span>
-                )}
-                {hasAlertRadius && (
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                    {t(
-                      `تنبيه ضمن ${alertRadiusKm} كم`,
-                      `Alert within ${alertRadiusKm} km`,
-                    )}
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleEnableAvailabilityAlert}
-                disabled={alertSaving}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  notifications_active
-                </span>
-                <span>
-                  {alertSaving
-                    ? buttonText.enabling
-                    : buttonText.notifyNewMatches}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={recenterToActiveArea}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800/70"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  my_location
-                </span>
-                <span>{buttonText.recenterArea}</span>
-              </button>
-
-              {alertFeedback && (
-                <div
-                  className={`rounded-xl border px-3 py-2 text-xs font-medium ${
-                    alertFeedback.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300"
-                      : alertFeedback.type === "warning"
-                        ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
-                        : "border-red-200 bg-red-50 text-red-700 dark:border-red-700/50 dark:bg-red-900/20 dark:text-red-300"
-                  }`}
-                >
-                  {alertFeedback.text}
-                </div>
-              )}
-            </div>
-
-            {/* Location section */}
-            <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
-              <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {t("موقعك", "Your location")}
-                </h4>
-                {userPosition && !isEditingLocation && (
-                  <button
-                    type="button"
-                    onClick={handleOpenLocationEditor}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    {buttonText.editLocation}
-                  </button>
-                )}
-              </div>
-
-              {/* Current location display */}
-              {userPosition && !isEditingLocation && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-700/50 dark:bg-emerald-900/20">
-                  <span className="material-symbols-outlined shrink-0 text-[20px] text-emerald-600 dark:text-emerald-400">
-                    location_on
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
-                      {t("موقعك محدد", "Location set")}
-                    </p>
-                    <p className="font-mono text-[11px] text-emerald-600/80 dark:text-emerald-400/70">
-                      {userPosition[0].toFixed(5)}°&nbsp;&nbsp;
-                      {userPosition[1].toFixed(5)}°
+            {isNearbyQuickMode ? (
+              <>
+                <div className="space-y-3 px-4 pb-4 pt-4">
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3 dark:border-blue-700/40 dark:bg-blue-900/20">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                      {t("تحديد الموقع", "Choose location")}
+                    </h4>
+                    <p className="mt-1 text-xs text-blue-700/85 dark:text-blue-200/80">
+                      {t(
+                        "حدد أي موقع تريد البحث حوله، ليس بالضرورة موقعك الحالي.",
+                        "Pick any location you want to search around, not necessarily your current location.",
+                      )}
                     </p>
                   </div>
-                </div>
-              )}
 
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={locatingUser}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  my_location
-                </span>
-                <span>
-                  {locatingUser
-                    ? buttonText.locating
-                    : buttonText.useCurrentLocation}
-                </span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={locatingUser}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      my_location
+                    </span>
+                    <span>
+                      {locatingUser
+                        ? buttonText.locating
+                        : buttonText.useCurrentLocation}
+                    </span>
+                  </button>
 
-              {locationError && (
-                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
-                  {locationError}
-                </p>
-              )}
-
-              {/* Inline mini map picker */}
-              {isFilterPanelOpen && showLocationPicker && (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {tempPickerPos
-                      ? t(
-                          "يمكنك سحب العلامة أو النقر في مكان آخر لتعديل الموقع",
-                          "Drag the pin or tap elsewhere to adjust",
-                        )
-                      : t(
-                          "انقر على الخريطة لتحديد موقعك",
-                          "Tap the map to set your location",
-                        )}
-                  </p>
+                  {locationError && (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+                      {locationError}
+                    </p>
+                  )}
 
                   <div
                     className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"
-                    style={{ height: "200px" }}
+                    style={{ height: "220px" }}
                   >
                     <MapContainer
-                      center={tempPickerPos ?? SYRIA_CENTER}
-                      zoom={tempPickerPos ? 11 : 6}
-                      style={{ height: "200px", width: "100%" }}
+                      center={tempPickerPos ?? userPosition ?? SYRIA_CENTER}
+                      zoom={tempPickerPos || userPosition ? 11 : 6}
+                      style={{ height: "220px", width: "100%" }}
                       zoomControl={false}
                       scrollWheelZoom
                       attributionControl={false}
@@ -711,9 +655,9 @@ const MapClient = ({
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <ZoomControl position="bottomright" />
                       <ClickableLayer onPlace={handleTempPickerPlace} />
-                      {tempPickerPos && (
+                      {(tempPickerPos || userPosition) && (
                         <Marker
-                          position={tempPickerPos}
+                          position={tempPickerPos ?? userPosition}
                           icon={pickerMarkerIcon}
                           draggable
                           eventHandlers={{
@@ -727,87 +671,381 @@ const MapClient = ({
                     </MapContainer>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSavePickerLocation}
-                      disabled={!tempPickerPos}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="material-symbols-outlined text-base">
-                        check
-                      </span>
-                      {buttonText.saveLocation}
-                    </button>
-                    {isEditingLocation && userPosition && (
-                      <button
-                        type="button"
-                        onClick={handleCancelLocationEdit}
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                      >
-                        {buttonText.cancel}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Alert radius */}
-            <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {buttonText.alertRadius}
-                </h4>
-                {hasAlertRadius && (
                   <button
                     type="button"
-                    onClick={handleClearAlertRadius}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    onClick={() =>
+                      setIsAlertAccordionOpen((current) => !current)
+                    }
+                    className="inline-flex w-full items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
                   >
-                    {buttonText.clearRadius}
+                    <span>
+                      {t("أعلمني عند توفر جديد", "Notify me about new matches")}
+                    </span>
+                    <span className="material-symbols-outlined text-[18px]">
+                      {isAlertAccordionOpen ? "expand_less" : "expand_more"}
+                    </span>
                   </button>
-                )}
-              </div>
 
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                {t(
-                  "اختر المسافة التي تريد أن يعتمدها التنبيه حول الموقع الذي حددته على الخارطة.",
-                  "Choose the radius the alert should watch around the location you picked on the map.",
-                )}
-              </p>
+                  {isAlertAccordionOpen && (
+                    <div className="space-y-3 rounded-2xl border border-emerald-200/80 bg-white p-3 dark:border-emerald-700/40 dark:bg-slate-900/80">
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {t(
+                          "ما الذي تريد التنبيه عنه؟",
+                          "What should we notify you about?",
+                        )}
+                        <select
+                          value={alertItemType}
+                          onChange={(e) => setAlertItemType(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                        >
+                          {ALERT_ITEM_TYPE_OPTIONS.map((option) => (
+                            <option
+                              key={option.value || "all"}
+                              value={option.value}
+                            >
+                              {isArabic ? option.ar : option.en}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {ALERT_RADIUS_OPTIONS_KM.map((radius) => {
-                  const isSelected = alertRadiusKm === radius;
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {t("فئة إضافية (اختياري)", "Extra category (optional)")}
+                        <input
+                          value={alertCategoryName}
+                          onChange={(e) => setAlertCategoryName(e.target.value)}
+                          placeholder={t(
+                            "مثال: دراجة نارية",
+                            "Example: motorcycle",
+                          )}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                        />
+                      </label>
 
-                  return (
-                    <button
-                      key={radius}
-                      type="button"
-                      onClick={() => handleAlertRadiusSelect(radius)}
-                      className={`inline-flex min-w-16 items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {t("نوع العملية (اختياري)", "Action type (optional)")}
+                        <select
+                          value={alertAction}
+                          onChange={(e) => setAlertAction(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                        >
+                          <option value="">{t("الكل", "Any")}</option>
+                          <option value="SELL">{t("بيع", "Sell")}</option>
+                          <option value="RENT">{t("إيجار", "Rent")}</option>
+                        </select>
+                      </label>
+
+                      <div>
+                        <h5 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          {buttonText.alertRadius}
+                        </h5>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {ALERT_RADIUS_OPTIONS_KM.map((radius) => {
+                            const isSelected = alertRadiusKm === radius;
+
+                            return (
+                              <button
+                                key={radius}
+                                type="button"
+                                onClick={() => handleAlertRadiusSelect(radius)}
+                                className={`inline-flex min-w-16 items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+                                  isSelected
+                                    ? "border-blue-600 bg-blue-600 text-white"
+                                    : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
+                                }`}
+                                aria-pressed={isSelected}
+                              >
+                                {radius} {t("كم", "km")}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleEnableAvailabilityAlert}
+                        disabled={alertSaving}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          notifications_active
+                        </span>
+                        <span>
+                          {alertSaving
+                            ? buttonText.enabling
+                            : t("حفظ التنبيه", "Save alert")}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  {alertFeedback && (
+                    <div
+                      className={`rounded-xl border px-3 py-2 text-xs font-medium ${
+                        alertFeedback.type === "success"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                          : alertFeedback.type === "warning"
+                            ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
+                            : "border-red-200 bg-red-50 text-red-700 dark:border-red-700/50 dark:bg-red-900/20 dark:text-red-300"
                       }`}
-                      aria-pressed={isSelected}
                     >
-                      {radius} {t("كم", "km")}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {hasAlertRadius && (
-                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300">
-                  {t(
-                    `سيتم إشعارك فقط عند توفر نتائج ضمن دائرة نصف قطرها ${alertRadiusKm} كم حول هذا الموقع.`,
-                    `You will only be notified when results appear within a ${alertRadiusKm} km radius around this location.`,
+                      {alertFeedback.text}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2.5 px-4 pb-3 pt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {summaryLabel && (
+                      <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                        {summaryLabel}
+                      </span>
+                    )}
+                    {hasAlertRadius && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        {t(
+                          `تنبيه ضمن ${alertRadiusKm} كم`,
+                          `Alert within ${alertRadiusKm} km`,
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleEnableAvailabilityAlert}
+                    disabled={alertSaving}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      notifications_active
+                    </span>
+                    <span>
+                      {alertSaving
+                        ? buttonText.enabling
+                        : buttonText.notifyNewMatches}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={recenterToActiveArea}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800/70"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      my_location
+                    </span>
+                    <span>{buttonText.recenterArea}</span>
+                  </button>
+
+                  {alertFeedback && (
+                    <div
+                      className={`rounded-xl border px-3 py-2 text-xs font-medium ${
+                        alertFeedback.type === "success"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                          : alertFeedback.type === "warning"
+                            ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
+                            : "border-red-200 bg-red-50 text-red-700 dark:border-red-700/50 dark:bg-red-900/20 dark:text-red-300"
+                      }`}
+                    >
+                      {alertFeedback.text}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Location section */}
+            {!isNearbyQuickMode && (
+              <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {t("موقعك", "Your location")}
+                  </h4>
+                  {userPosition && !isEditingLocation && (
+                    <button
+                      type="button"
+                      onClick={handleOpenLocationEditor}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {buttonText.editLocation}
+                    </button>
+                  )}
+                </div>
+
+                {/* Current location display */}
+                {userPosition && !isEditingLocation && (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-700/50 dark:bg-emerald-900/20">
+                    <span className="material-symbols-outlined shrink-0 text-[20px] text-emerald-600 dark:text-emerald-400">
+                      location_on
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                        {t("موقعك محدد", "Location set")}
+                      </p>
+                      <p className="font-mono text-[11px] text-emerald-600/80 dark:text-emerald-400/70">
+                        {userPosition[0].toFixed(5)}°&nbsp;&nbsp;
+                        {userPosition[1].toFixed(5)}°
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locatingUser}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    my_location
+                  </span>
+                  <span>
+                    {locatingUser
+                      ? buttonText.locating
+                      : buttonText.useCurrentLocation}
+                  </span>
+                </button>
+
+                {locationError && (
+                  <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+                    {locationError}
+                  </p>
+                )}
+
+                {/* Inline mini map picker */}
+                {isFilterPanelOpen && showLocationPicker && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {tempPickerPos
+                        ? t(
+                            "يمكنك سحب العلامة أو النقر في مكان آخر لتعديل الموقع",
+                            "Drag the pin or tap elsewhere to adjust",
+                          )
+                        : t(
+                            "انقر على الخريطة لتحديد موقعك",
+                            "Tap the map to set your location",
+                          )}
+                    </p>
+
+                    <div
+                      className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"
+                      style={{ height: "200px" }}
+                    >
+                      <MapContainer
+                        center={tempPickerPos ?? SYRIA_CENTER}
+                        zoom={tempPickerPos ? 11 : 6}
+                        style={{ height: "200px", width: "100%" }}
+                        zoomControl={false}
+                        scrollWheelZoom
+                        attributionControl={false}
+                      >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <ZoomControl position="bottomright" />
+                        <ClickableLayer onPlace={handleTempPickerPlace} />
+                        {tempPickerPos && (
+                          <Marker
+                            position={tempPickerPos}
+                            icon={pickerMarkerIcon}
+                            draggable
+                            eventHandlers={{
+                              dragend(e) {
+                                const { lat, lng } = e.target.getLatLng();
+                                setTempPickerPos([lat, lng]);
+                              },
+                            }}
+                          />
+                        )}
+                      </MapContainer>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSavePickerLocation}
+                        disabled={!tempPickerPos}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          check
+                        </span>
+                        {buttonText.saveLocation}
+                      </button>
+                      {isEditingLocation && userPosition && (
+                        <button
+                          type="button"
+                          onClick={handleCancelLocationEdit}
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        >
+                          {buttonText.cancel}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Alert radius */}
+            {!isNearbyQuickMode && (
+              <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {buttonText.alertRadius}
+                  </h4>
+                  {hasAlertRadius && (
+                    <button
+                      type="button"
+                      onClick={handleClearAlertRadius}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    >
+                      {buttonText.clearRadius}
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {t(
+                    "اختر المسافة التي تريد أن يعتمدها التنبيه حول الموقع الذي حددته على الخارطة.",
+                    "Choose the radius the alert should watch around the location you picked on the map.",
+                  )}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ALERT_RADIUS_OPTIONS_KM.map((radius) => {
+                    const isSelected = alertRadiusKm === radius;
+
+                    return (
+                      <button
+                        key={radius}
+                        type="button"
+                        onClick={() => handleAlertRadiusSelect(radius)}
+                        className={`inline-flex min-w-16 items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+                          isSelected
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        {radius} {t("كم", "km")}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {hasAlertRadius && (
+                  <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300">
+                    {t(
+                      `سيتم إشعارك فقط عند توفر نتائج ضمن دائرة نصف قطرها ${alertRadiusKm} كم حول هذا الموقع.`,
+                      `You will only be notified when results appear within a ${alertRadiusKm} km radius around this location.`,
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </aside>

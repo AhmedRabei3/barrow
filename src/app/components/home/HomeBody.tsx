@@ -1,13 +1,14 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import CardList from "./CardList";
 import MapWrapper from "./MyMap";
+import NearbyAlertSetupModal from "./NearbyAlertSetupModal";
+import LocationPickerModal from "./LocationPickerModal";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import Tryagain from "../category/Tryagain";
-import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 interface HomeBodyProps {
   items: FormattedItem[];
@@ -29,11 +30,27 @@ const HomeBody = ({
   onRefresh,
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
-  const [promptForLocationSelection, setPromptForLocationSelection] =
-    useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
   const { isArabic } = useAppPreferences();
-  const { filters } = useSearchFilters();
-  const hasUserLocation = filters.userLat !== null && filters.userLng !== null;
+
+  const handleCloseLocationModal = useCallback(() => {
+    setShowLocationModal(false);
+  }, []);
+
+  const handleCloseAlertModal = useCallback(() => {
+    setShowAlertModal(false);
+  }, []);
+
+  const handleOpenLocationModal = useCallback(() => {
+    setShowAlertModal(false);
+    setShowLocationModal(true);
+  }, []);
+
+  const handleOpenAlertModal = useCallback(() => {
+    setShowLocationModal(false);
+    setShowAlertModal(true);
+  }, []);
 
   /* Listen for mobile FAB map toggle */
   useEffect(() => {
@@ -43,20 +60,23 @@ const HomeBody = ({
   }, []);
 
   useEffect(() => {
-    if (hasUserLocation) {
-      setPromptForLocationSelection(false);
-    }
-  }, [hasUserLocation]);
-
-  useEffect(() => {
     const handler = () => {
-      setShowMap(true);
-      setPromptForLocationSelection(!hasUserLocation);
+      handleOpenLocationModal();
     };
 
     window.addEventListener("open-nearby-items", handler);
     return () => window.removeEventListener("open-nearby-items", handler);
-  }, [hasUserLocation]);
+  }, [handleOpenLocationModal]);
+
+  useEffect(() => {
+    const handler = () => {
+      handleOpenAlertModal();
+    };
+
+    window.addEventListener("open-listing-alerts-modal", handler);
+    return () =>
+      window.removeEventListener("open-listing-alerts-modal", handler);
+  }, [handleOpenAlertModal]);
 
   const fallbackFeaturedItems = useMemo(
     () => items.filter((it) => Boolean(it.item.isFeatured)),
@@ -155,14 +175,19 @@ const HomeBody = ({
         <CardList items={mainItems} />
         {/* ✅ خريطة تظهر بانزلاق من الجانب */}
         {showMap && (
-          <MapWrapper
-            setShowMap={setShowMap}
-            showMap={showMap}
-            items={items}
-            promptForLocationSelection={promptForLocationSelection}
-          />
+          <MapWrapper setShowMap={setShowMap} showMap={showMap} items={items} />
         )}
       </div>
+
+      <LocationPickerModal
+        isOpen={showLocationModal}
+        onClose={handleCloseLocationModal}
+      />
+
+      <NearbyAlertSetupModal
+        isOpen={showAlertModal}
+        onClose={handleCloseAlertModal}
+      />
     </Container>
   );
 };
