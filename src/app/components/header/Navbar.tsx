@@ -205,10 +205,10 @@ const Navbar = ({
 
   const nearbyTooltip = hasUserLocation
     ? isArabic
-      ? "إنقر هنا لإعادة تحديد موقعك وترتيب العناصر حسب قربها منك"
+      ? "أنقر هنا لإعادة تحديد موقعك وترتيب العناصر حسب قربها منك"
       : "Click here to update your location and sort items by proximity"
     : isArabic
-      ? "إنقر هنا لتحديد موقعك وترتيب العناصر حسب قربها منك"
+      ? "أنقر هنا لتحديد موقعك وترتيب العناصر حسب قربها منك"
       : "Click here to pick your location and sort items by proximity";
 
   if (isAdminPage) return null;

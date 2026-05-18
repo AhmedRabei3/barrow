@@ -237,19 +237,6 @@ export default function FloatingActionMenu({
             ))}
         </AnimatePresence>
 
-        {expanded && !hasUserLocation && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            className="max-w-[16rem] rounded-2xl border border-sky-200 bg-white/95 px-3 py-2 text-right text-[12px] font-medium leading-5 text-slate-700 shadow-lg backdrop-blur dark:border-sky-800/60 dark:bg-slate-900/95 dark:text-slate-200"
-          >
-            {isArabic
-              ? "إنقر هنا لتحديد موقعك وترتيب العناصر حسب قربها منك"
-              : "Click here to pick your location and sort items by proximity."}
-          </motion.div>
-        )}
-
         {/* Main trigger */}
         <motion.button
           whileTap={{ scale: 0.9 }}
