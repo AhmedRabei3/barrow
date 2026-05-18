@@ -1,13 +1,13 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
-import MapButton from "./MapButton";
 import CardList from "./CardList";
 import MapWrapper from "./MyMap";
 import { FormattedItem } from "./getItems";
 import Container from "../Container";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import Tryagain from "../category/Tryagain";
+import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 interface HomeBodyProps {
   items: FormattedItem[];
@@ -29,7 +29,11 @@ const HomeBody = ({
   onRefresh,
 }: HomeBodyProps) => {
   const [showMap, setShowMap] = useState<boolean>(false);
+  const [promptForLocationSelection, setPromptForLocationSelection] =
+    useState(false);
   const { isArabic } = useAppPreferences();
+  const { filters } = useSearchFilters();
+  const hasUserLocation = filters.userLat !== null && filters.userLng !== null;
 
   /* Listen for mobile FAB map toggle */
   useEffect(() => {
@@ -37,6 +41,23 @@ const HomeBody = ({
     window.addEventListener("toggle-map-view", handler);
     return () => window.removeEventListener("toggle-map-view", handler);
   }, []);
+
+  useEffect(() => {
+    if (hasUserLocation) {
+      setPromptForLocationSelection(false);
+    }
+  }, [hasUserLocation]);
+
+  useEffect(() => {
+    const handler = () => {
+      setShowMap(true);
+      setPromptForLocationSelection(!hasUserLocation);
+    };
+
+    window.addEventListener("open-nearby-items", handler);
+    return () => window.removeEventListener("open-nearby-items", handler);
+  }, [hasUserLocation]);
+
   const fallbackFeaturedItems = useMemo(
     () => items.filter((it) => Boolean(it.item.isFeatured)),
     [items],
@@ -132,13 +153,14 @@ const HomeBody = ({
       <div className={`${CONTENT_LAYOUT_CLASS} mt-6`}>
         {/* ✅ قسم العناصر */}
         <CardList items={mainItems} />
-        {/* ✅ زر عائم لإظهار الخريطة – مخفي في الجوال (يتحكم به FAB) */}
-        <div className="hidden md:block">
-          <MapButton setShowMap={setShowMap} showMap={showMap} />
-        </div>
         {/* ✅ خريطة تظهر بانزلاق من الجانب */}
         {showMap && (
-          <MapWrapper setShowMap={setShowMap} showMap={showMap} items={items} />
+          <MapWrapper
+            setShowMap={setShowMap}
+            showMap={showMap}
+            items={items}
+            promptForLocationSelection={promptForLocationSelection}
+          />
         )}
       </div>
     </Container>

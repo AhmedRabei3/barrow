@@ -49,12 +49,14 @@ type RawItem = {
 interface MapClientProps {
   setShowMap: Dispatch<SetStateAction<boolean>>;
   items: MappedItem[];
+  promptForLocationSelection?: boolean;
 }
 
 interface MapProps {
   showMap: boolean;
   setShowMap: Dispatch<SetStateAction<boolean>>;
   items: RawItem[];
+  promptForLocationSelection?: boolean;
 }
 
 const DynamicMap = dynamic<MapClientProps>(
@@ -68,7 +70,12 @@ const DynamicMap = dynamic<MapClientProps>(
   },
 );
 
-const MapWrapper = ({ showMap, setShowMap, items }: MapProps) => {
+const MapWrapper = ({
+  showMap,
+  setShowMap,
+  items,
+  promptForLocationSelection = false,
+}: MapProps) => {
   const { isArabic } = useAppPreferences();
   const t = useCallback(
     (ar: string, en: string) => (isArabic ? ar : en),
@@ -100,7 +107,11 @@ const MapWrapper = ({ showMap, setShowMap, items }: MapProps) => {
   );
 
   return showMap ? (
-    <DynamicMap setShowMap={setShowMap} items={mappedItems} />
+    <DynamicMap
+      setShowMap={setShowMap}
+      items={mappedItems}
+      promptForLocationSelection={promptForLocationSelection}
+    />
   ) : null;
 };
 

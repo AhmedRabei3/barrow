@@ -44,6 +44,43 @@ const createListingAlertSchema = z.object({
   isEnabled: z.boolean().optional(),
 });
 
+const updateListingAlertSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    lat: z.number().finite().min(-90).max(90).optional(),
+    lng: z.number().finite().min(-180).max(180).optional(),
+    radiusKm: z.number().finite().positive().max(250).optional(),
+    itemType: z.nativeEnum(ItemType).optional().nullable(),
+    action: z.nativeEnum(TransactionType).optional().nullable(),
+    catName: z.string().trim().max(120).optional().nullable(),
+    isEnabled: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasCoordinates =
+      value.lat !== undefined ||
+      value.lng !== undefined ||
+      value.radiusKm !== undefined ||
+      value.itemType !== undefined ||
+      value.action !== undefined ||
+      value.catName !== undefined;
+
+    if (!hasCoordinates) {
+      return;
+    }
+
+    if (
+      value.lat === undefined ||
+      value.lng === undefined ||
+      value.radiusKm === undefined
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "lat, lng, and radiusKm are required when updating alert filters",
+      });
+    }
+  });
+
 const resolveAlertCategory = async (catName?: string | null) => {
   const normalizedCategoryName = catName?.trim();
   const shouldResolveCategory =
@@ -168,19 +205,59 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const user = await requireActiveUser();
-    const payload = createListingAlertSchema.parse(await req.json());
-
-    if (!payload.id) {
-      return NextResponse.json({ message: "id is required" }, { status: 400 });
-    }
+    const payload = updateListingAlertSchema.parse(await req.json());
 
     const existing = await prisma.listingAvailabilityAlert.findFirst({
       where: { id: payload.id, userId: user.id },
-      select: { id: true },
+      select: {
+        id: true,
+        isEnabled: true,
+        centerLat: true,
+        centerLng: true,
+        radiusKm: true,
+        itemType: true,
+        sellOrRent: true,
+        categoryId: true,
+      },
     });
 
     if (!existing) {
       return NextResponse.json({ message: "Alert not found" }, { status: 404 });
+    }
+
+    const hasFullAlertUpdate =
+      payload.lat !== undefined ||
+      payload.lng !== undefined ||
+      payload.radiusKm !== undefined ||
+      payload.itemType !== undefined ||
+      payload.action !== undefined ||
+      payload.catName !== undefined;
+
+    if (!hasFullAlertUpdate) {
+      await prisma.listingAvailabilityAlert.update({
+        where: { id: payload.id },
+        data: {
+          isEnabled: payload.isEnabled ?? existing.isEnabled,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message:
+            payload.isEnabled === false
+              ? t(
+                  "تم إيقاف إشعارات هذا الموقع",
+                  "Alerts for this location have been turned off",
+                )
+              : t("تم تحديث حالة التنبيه", "Alert status updated successfully"),
+        },
+        {
+          headers: {
+            "Cache-Control": CACHE_HEADERS.privateNoStore,
+          },
+        },
+      );
     }
 
     const category = await resolveAlertCategory(payload.catName ?? null);
@@ -189,9 +266,9 @@ export async function PATCH(req: NextRequest) {
       itemType: payload.itemType ?? null,
       categoryId: category?.id ?? null,
       action: payload.action ?? null,
-      lat: payload.lat,
-      lng: payload.lng,
-      radiusKm: payload.radiusKm,
+      lat: payload.lat ?? existing.centerLat,
+      lng: payload.lng ?? existing.centerLng,
+      radiusKm: payload.radiusKm ?? existing.radiusKm,
     });
 
     const duplicate = await prisma.listingAvailabilityAlert.findFirst({
@@ -219,9 +296,9 @@ export async function PATCH(req: NextRequest) {
       where: { id: payload.id },
       data: {
         signature,
-        centerLat: payload.lat,
-        centerLng: payload.lng,
-        radiusKm: payload.radiusKm,
+        centerLat: payload.lat ?? existing.centerLat,
+        centerLng: payload.lng ?? existing.centerLng,
+        radiusKm: payload.radiusKm ?? existing.radiusKm,
         itemType: payload.itemType ?? null,
         sellOrRent: payload.action ?? null,
         categoryId: category?.id ?? null,

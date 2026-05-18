@@ -23,7 +23,7 @@ const updateDocumentTitleUnreadBadge = (unreadCount: number) => {
 
 const refreshUnreadBadge = async () => {
   try {
-    const response = await fetch("/api/chat/unread-count", {
+    const response = await fetch("/api/unread-badge-count", {
       cache: "no-store",
     });
 
@@ -65,7 +65,7 @@ export default function FCMProvider({
   const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (!messaging || !userId || isInitialized.current) return;
+    if (!userId || isInitialized.current) return;
 
     isInitialized.current = true;
 
@@ -73,10 +73,13 @@ export default function FCMProvider({
 
     const setupFCM = async () => {
       try {
+        await refreshUnreadBadge();
+
+        if (!messaging) return;
+
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
-        if (!messaging) return;
         const token = await getToken(messaging, { vapidKey: VAPID_KEY });
         if (!token) return;
 
@@ -86,8 +89,6 @@ export default function FCMProvider({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
-
-        await refreshUnreadBadge();
 
         unsubscribe = onMessage(messaging, (payload) => {
           const title =
@@ -130,12 +131,23 @@ export default function FCMProvider({
     };
 
     setupFCM();
-    void refreshUnreadBadge();
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }, [userId, isArabic]);
+
+  useEffect(() => {
+    const handleBadgeRefresh = () => {
+      void refreshUnreadBadge();
+    };
+
+    window.addEventListener("app-badge:refresh", handleBadgeRefresh);
+
+    return () => {
+      window.removeEventListener("app-badge:refresh", handleBadgeRefresh);
+    };
+  }, []);
 
   return <>{children}</>;
 }

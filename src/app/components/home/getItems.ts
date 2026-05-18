@@ -23,7 +23,6 @@ interface FetchItemsParams {
   q?: string;
   latitude?: number;
   longitude?: number;
-  distance?: number | string; // المسافة بالكيلومتر
   signal?: AbortSignal;
   keepPreviousData?: boolean;
   setRefreshing?: Dispatch<SetStateAction<boolean>>;
@@ -130,7 +129,6 @@ export const fetchItems = async ({
   q,
   latitude,
   longitude,
-  distance,
   setItems,
   setTotal,
   setLoading,
@@ -171,8 +169,6 @@ export const fetchItems = async ({
     if (q) params.append("q", q);
     if (Number.isFinite(latitude)) params.append("lat", String(latitude));
     if (Number.isFinite(longitude)) params.append("lng", String(longitude));
-    if (distance !== undefined && distance !== "" && Number(distance) > 0)
-      params.append("distance", String(distance));
     /* هنا لا يوجد لدينا مودل اسمه كار لذلك وهو موجود ضمن الأنواع فاستخدمناه لحذف باراميترات البحث من أجل جلب كل العناصر  */
 
     if (type === "ALL") {

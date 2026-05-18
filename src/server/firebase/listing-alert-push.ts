@@ -10,6 +10,7 @@ export type ListingAlertPushInput = {
   title: string;
   body: string;
   url: string;
+  unreadCount?: number;
 };
 
 const getUserFcmTokens = async (userId: string): Promise<string[]> => {
@@ -26,6 +27,7 @@ export async function sendListingAlertPushNotification({
   title,
   body,
   url,
+  unreadCount,
 }: ListingAlertPushInput) {
   if (!isFirebaseAdminConfigured) {
     return { sent: false, reason: "firebase_not_configured" as const };
@@ -36,6 +38,8 @@ export async function sendListingAlertPushNotification({
     return { sent: false, reason: "no_tokens" as const };
   }
 
+  const badgeCount = Math.max(1, unreadCount ?? 1);
+
   const response = await adminMessaging.sendEachForMulticast({
     tokens,
     notification: {
@@ -45,10 +49,30 @@ export async function sendListingAlertPushNotification({
     data: {
       type: "listing_alert",
       url,
+      unreadCount: String(badgeCount),
+    },
+    android: {
+      notification: {
+        notificationCount: badgeCount,
+        sound: "default",
+        priority: "high",
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          badge: badgeCount,
+          sound: "default",
+        },
+      },
     },
     webpush: {
       headers: { Urgency: "high" },
       fcmOptions: { link: url },
+      notification: {
+        icon: "/images/logo.png",
+        badge: "/images/logo.png",
+      },
     },
   });
 

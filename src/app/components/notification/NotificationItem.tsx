@@ -1,15 +1,17 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo, useState } from "react";
 import { NotificationType } from "@prisma/client";
 import clsx from "clsx";
 import SetReadBtn from "./SetReadBtn";
 import { DynamicIcon } from "../addCategory/IconSetter";
 import {
   extractItemModerationTarget,
+  extractListingAlertMetadata,
   extractRequestId,
   extractShamCashActivationRequestId,
   extractShamCashRequestId,
+  stripListingAlertMetadata,
 } from "./notificationHelper";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -23,6 +25,15 @@ const typeStyles: Record<NotificationType, string> = {
   WARNING:
     "border-yellow-500 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/50",
   ERROR: "border-red-500 bg-red-50 dark:border-red-700 dark:bg-red-900/50",
+};
+
+const listingAlertItemLabels: Record<string, { ar: string; en: string }> = {
+  PROPERTY: { ar: "عقار", en: "property" },
+  NEW_CAR: { ar: "سيارة جديدة", en: "new car" },
+  USED_CAR: { ar: "سيارة مستعملة", en: "used car" },
+  HOME_FURNITURE: { ar: "أثاث منزلي", en: "home furniture" },
+  MEDICAL_DEVICE: { ar: "جهاز طبي", en: "medical device" },
+  OTHER: { ar: "عنصر", en: "listing" },
 };
 
 interface Props {
@@ -40,6 +51,7 @@ interface Props {
 const NotificationItem = ({ notification, markAsRead }: Props) => {
   const { isArabic } = useAppPreferences();
   const { title, message, type, isRead, createdAt } = notification;
+  const [isTogglingAlert, setIsTogglingAlert] = useState(false);
   const requestId =
     type === "PURCHASEREQUEST" ? extractRequestId(message) : null;
   const shamCashRequestId = extractShamCashRequestId(message, title);
@@ -48,9 +60,15 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
     title,
   );
   const moderationTarget = extractItemModerationTarget(message, title);
+  const listingAlertMetadata = extractListingAlertMetadata(message);
+  const listingAlertItemLabel = listingAlertMetadata
+    ? (listingAlertItemLabels[listingAlertMetadata.itemType] ??
+      listingAlertItemLabels.OTHER)
+    : null;
   const hasShamCashQueueLink = Boolean(shamCashRequestId);
   const hasShamCashActivationLink = Boolean(shamCashActivationRequestId);
   const hasModerationLink = Boolean(moderationTarget?.itemId);
+  const hasListingAlertAction = Boolean(listingAlertMetadata?.alertId);
   const shamCashQueueHref = shamCashRequestId
     ? `/admin?page=shamcash-payout-jobs&manualRequestId=${shamCashRequestId}`
     : null;
@@ -77,6 +95,74 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
 
   const openModerationTarget = () => {
     navigateTo(moderationHref);
+  };
+
+  const displayTitle = useMemo(() => {
+    if (!listingAlertMetadata || !listingAlertItemLabel) {
+      return title;
+    }
+
+    return isArabic
+      ? `تنبيه توفر ${listingAlertItemLabel.ar}`
+      : `${listingAlertItemLabel.en} availability alert`;
+  }, [isArabic, listingAlertItemLabel, listingAlertMetadata, title]);
+
+  const displayMessage = useMemo(() => {
+    if (!listingAlertMetadata || !listingAlertItemLabel) {
+      return stripListingAlertMetadata(message);
+    }
+
+    return isArabic
+      ? `تمت إضافة ${listingAlertItemLabel.ar} جديد مؤخراً في نطاق الموقع الذي حددته سابقاً.`
+      : `A new ${listingAlertItemLabel.en} was added recently within the area you selected earlier.`;
+  }, [isArabic, listingAlertItemLabel, listingAlertMetadata, message]);
+
+  const disableListingAlert = async () => {
+    if (!listingAlertMetadata?.alertId || isTogglingAlert) {
+      return;
+    }
+
+    setIsTogglingAlert(true);
+    try {
+      const res = await fetch("/api/listing-alerts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: listingAlertMetadata.alertId,
+          isEnabled: false,
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+
+      if (!res.ok) {
+        throw new Error(
+          data.message ||
+            (isArabic
+              ? "تعذر إيقاف تنبيه هذا الموقع حالياً"
+              : "Failed to stop alerts for this location right now"),
+        );
+      }
+
+      toast.success(
+        data.message ||
+          (isArabic
+            ? "تم إيقاف إشعارات هذا الموقع"
+            : "Alerts for this location have been turned off"),
+      );
+
+      await markAsRead(notification.id);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isArabic
+            ? "حدث خطأ أثناء إيقاف التنبيه"
+            : "An error occurred while disabling the alert",
+      );
+    } finally {
+      setIsTogglingAlert(false);
+    }
   };
 
   const claimRequest = async () => {
@@ -133,7 +219,7 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
     >
       <div className="flex justify-between items-start">
         <h4 className="font-semibold text-gray-800 dark:text-slate-200">
-          {title}
+          {displayTitle}
         </h4>
         <span className="text-xs text-gray-500 dark:text-slate-400">
           {new Date(createdAt).toLocaleString(getUiLocale(isArabic))}
@@ -149,7 +235,7 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
        dark:hover:bg-gray-700/70
        whitespace-pre-line"
       >
-        {message}
+        {displayMessage}
       </p>
       {!isRead ? (
         <div
@@ -228,6 +314,25 @@ const NotificationItem = ({ notification, markAsRead }: Props) => {
           className="mt-3 w-full text-sm text-cyan-700 hover:underline"
         >
           {isArabic ? "فتح مراجعة العنصر" : "Open item review"}
+        </button>
+      )}
+
+      {hasListingAlertAction && (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            void disableListingAlert();
+          }}
+          disabled={isTogglingAlert}
+          className="mt-3 w-full text-sm font-semibold text-rose-700 hover:underline disabled:opacity-60 dark:text-rose-300"
+        >
+          {isTogglingAlert
+            ? isArabic
+              ? "جاري إيقاف التنبيه..."
+              : "Stopping alert..."
+            : isArabic
+              ? "إيقاف إشعارات هذا الموقع"
+              : "Stop alerts for this location"}
         </button>
       )}
     </motion.div>

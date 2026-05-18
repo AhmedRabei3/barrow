@@ -42,6 +42,10 @@ function itemTypeLabels(itemType: SupportedItemType): {
   return map[itemType];
 }
 
+function buildListingAlertToken(alertId: string, itemType: SupportedItemType) {
+  return `LISTING_ALERT:${alertId}:${itemType}`;
+}
+
 export async function notifyListingAlertSubscribers({
   ownerId,
   itemId,
@@ -94,6 +98,13 @@ export async function notifyListingAlertSubscribers({
   const uniqueRecipientIds = Array.from(
     new Set(matchedAlerts.map((alert) => alert.userId)),
   );
+  const recipientAlertMap = new Map<string, string>();
+
+  for (const alert of matchedAlerts) {
+    if (!recipientAlertMap.has(alert.userId)) {
+      recipientAlertMap.set(alert.userId, alert.id);
+    }
+  }
 
   const activeUsers = await prisma.user.findMany({
     where: {
@@ -113,9 +124,9 @@ export async function notifyListingAlertSubscribers({
     ? `🔔 ${labels.ar} جديد ضمن نطاق تنبيهك`
     : `🔔 New ${labels.en} in your alert area`;
 
-  const notifMessage = isArabic
-    ? `تمت إضافة "${safeTitle}" ضمن الموقع والمسافة التي حددتها مسبقاً.`
-    : `"${safeTitle}" was posted within your saved location radius.`;
+  const cleanNotifMessage = isArabic
+    ? `تمت إضافة ${labels.ar} جديد مؤخراً في نطاق الموقع الذي حددته سابقاً.`
+    : `A new ${labels.en} was added recently within the area you selected earlier.`;
 
   const listingUrl = buildListingDetailsPath({
     id: itemId,
@@ -124,11 +135,21 @@ export async function notifyListingAlertSubscribers({
 
   await Promise.all(
     activeUsers.map(async (user) => {
+      const unreadCount = await prisma.notification.count({
+        where: {
+          userId: user.id,
+          isRead: false,
+        },
+      });
+      const alertId = recipientAlertMap.get(user.id);
+
       await prisma.notification.create({
         data: {
           userId: user.id,
           title: notifTitle,
-          message: notifMessage,
+          message: alertId
+            ? `${cleanNotifMessage}\n${buildListingAlertToken(alertId, itemType)}`
+            : cleanNotifMessage,
           type: NotificationType.INFO,
         },
       });
@@ -136,8 +157,9 @@ export async function notifyListingAlertSubscribers({
       await sendListingAlertPushNotification({
         recipientUserId: user.id,
         title: notifTitle,
-        body: notifMessage,
+        body: cleanNotifMessage,
         url: listingUrl,
+        unreadCount: unreadCount + 1,
       });
     }),
   );

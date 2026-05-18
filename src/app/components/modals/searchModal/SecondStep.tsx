@@ -1,15 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { Filters } from "@/app/hooks/useSearchFilters";
 import QuestionContainer from "./Question";
 import { useAppPreferences } from "../../providers/AppPreferencesProvider";
 import { SEARCH_MODAL_TEXT } from "@/app/i18n/searchModal";
-
-const DistanceFilter = dynamic(
-  () => import("../../filters/DistanceFilter.tsx").then((mod) => mod.default),
-  { ssr: false },
-);
 
 interface StepTwoProps {
   filters: Filters;
@@ -17,7 +11,7 @@ interface StepTwoProps {
   updateFilters: (nextFilters: Partial<Filters>) => void;
 }
 
-const StepTwo = ({ filters, update, updateFilters }: StepTwoProps) => {
+const StepTwo = ({ filters, update }: StepTwoProps) => {
   const { isArabic } = useAppPreferences();
   const locale = isArabic ? "ar" : "en";
 
@@ -45,12 +39,11 @@ const StepTwo = ({ filters, update, updateFilters }: StepTwoProps) => {
       </div>
 
       <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-        <DistanceFilter
-          value={filters.distance}
-          userLat={filters.userLat}
-          userLng={filters.userLng}
-          onChange={updateFilters}
-        />
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100">
+          {isArabic
+            ? "ترتيب العناصر حسب القرب يتم من الصفحة الرئيسية بعد اختيار موقعك على الخارطة، ولم يعد هناك فلتر مسافة ضمن البحث العام."
+            : "Nearby ordering now happens from the home page after choosing your location on the map, and the general search no longer uses a distance filter."}
+        </div>
       </div>
     </div>
   );

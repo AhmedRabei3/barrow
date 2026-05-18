@@ -18,9 +18,10 @@ import Link from "next/link";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { buildListingDetailsPath } from "@/lib/listingSeo";
 import Image from "next/image";
-import DistanceFilter from "../filters/DistanceFilter";
 import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 import { useSession } from "next-auth/react";
+
+const ALERT_RADIUS_OPTIONS_KM = [1, 5, 10, 25, 50];
 
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -136,7 +137,11 @@ const ClickableLayer = ({ onPlace }) => {
   return null;
 };
 
-const MapClient = ({ setShowMap, items }) => {
+const MapClient = ({
+  setShowMap,
+  items,
+  promptForLocationSelection = false,
+}) => {
   const { isArabic } = useAppPreferences();
   const { filters, setFilters } = useSearchFilters();
   const { data: session, status: sessionStatus } = useSession();
@@ -157,8 +162,8 @@ const MapClient = ({ setShowMap, items }) => {
         : null,
     [filters.userLat, filters.userLng],
   );
-  const distanceKm = Number(filters.distance);
-  const hasDistanceFilter = Number.isFinite(distanceKm) && distanceKm > 0;
+  const alertRadiusKm = Number(filters.distance);
+  const hasAlertRadius = Number.isFinite(alertRadiusKm) && alertRadiusKm > 0;
 
   const itemsWithDistance = useMemo(() => {
     if (!userPosition) {
@@ -182,20 +187,12 @@ const MapClient = ({ setShowMap, items }) => {
       });
   }, [items, userPosition]);
 
-  const visibleItems = useMemo(() => {
-    if (!userPosition || !hasDistanceFilter) {
-      return itemsWithDistance;
-    }
+  const visibleItems = itemsWithDistance;
 
-    return itemsWithDistance.filter(
-      (item) => item.distanceKm !== null && item.distanceKm <= distanceKm,
-    );
-  }, [distanceKm, hasDistanceFilter, itemsWithDistance, userPosition]);
-
-  const summaryLabel = hasDistanceFilter
+  const summaryLabel = userPosition
     ? t(
-        `${visibleItems.length} عنصر ضمن ${distanceKm} كم`,
-        `${visibleItems.length} items within ${distanceKm} km`,
+        `يتم ترتيب ${visibleItems.length} عنصر حسب قربها من موقعك`,
+        `${visibleItems.length} items ordered nearest to your location`,
       )
     : "";
 
@@ -215,6 +212,8 @@ const MapClient = ({ setShowMap, items }) => {
             locating: "جاري تحديد موقعك...",
             saveLocation: "حفظ الموقع",
             cancel: "إلغاء",
+            alertRadius: "نطاق التنبيه",
+            clearRadius: "مسح النطاق",
           }
         : {
             closeMap: "Close map",
@@ -229,9 +228,24 @@ const MapClient = ({ setShowMap, items }) => {
             locating: "Locating you...",
             saveLocation: "Save location",
             cancel: "Cancel",
+            alertRadius: "Alert radius",
+            clearRadius: "Clear radius",
           },
     [isArabic],
   );
+
+  useEffect(() => {
+    if (!promptForLocationSelection) {
+      return;
+    }
+
+    setIsFilterPanelOpen(true);
+
+    if (!userPosition) {
+      setTempPickerPos(null);
+      setIsEditingLocation(true);
+    }
+  }, [promptForLocationSelection, userPosition]);
 
   const handleMapReady = useCallback((event) => {
     setMapInstance(event.target);
@@ -240,16 +254,12 @@ const MapClient = ({ setShowMap, items }) => {
   const recenterToActiveArea = useCallback(() => {
     if (!mapInstance) return;
 
-    if (userPosition && hasDistanceFilter) {
-      const bounds = getRadiusBounds(userPosition, distanceKm * 1000);
-
-      visibleItems.forEach((item) => {
-        bounds.extend([item.latitude, item.longitude]);
-      });
+    if (userPosition && hasAlertRadius) {
+      const bounds = getRadiusBounds(userPosition, alertRadiusKm * 1000);
 
       mapInstance.fitBounds(bounds, {
         padding: [70, 70],
-        maxZoom: getZoomForDistance(distanceKm),
+        maxZoom: getZoomForDistance(alertRadiusKm),
       });
       return;
     }
@@ -268,7 +278,22 @@ const MapClient = ({ setShowMap, items }) => {
         maxZoom: 14,
       });
     }
-  }, [distanceKm, hasDistanceFilter, mapInstance, userPosition, visibleItems]);
+  }, [alertRadiusKm, hasAlertRadius, mapInstance, userPosition, visibleItems]);
+
+  const handleAlertRadiusSelect = useCallback(
+    (radius) => {
+      setFilters({ distance: radius });
+    },
+    [setFilters],
+  );
+
+  const handleClearAlertRadius = useCallback(() => {
+    setFilters({ distance: "" });
+  }, [setFilters]);
+
+  const handleTempPickerPlace = useCallback((lat, lng) => {
+    setTempPickerPos([lat, lng]);
+  }, []);
 
   const handleEnableAvailabilityAlert = useCallback(async () => {
     if (sessionStatus === "loading") {
@@ -286,12 +311,12 @@ const MapClient = ({ setShowMap, items }) => {
       return;
     }
 
-    if (!userPosition || !hasDistanceFilter) {
+    if (!userPosition || !hasAlertRadius) {
       setAlertFeedback({
         type: "warning",
         text: t(
-          "حدّد موقعًا ومسافة أولاً، ثم فعّل التنبيه",
-          "Pick a location and distance first, then enable the alert",
+          "حدّد موقعًا ونطاق تنبيه أولاً، ثم فعّل التنبيه",
+          "Pick a location and alert radius first, then enable the alert",
         ),
       });
       return;
@@ -309,7 +334,7 @@ const MapClient = ({ setShowMap, items }) => {
         body: JSON.stringify({
           lat: userPosition[0],
           lng: userPosition[1],
-          radiusKm: distanceKm,
+          radiusKm: alertRadiusKm,
           itemType: filters.type ?? null,
           action: filters.action ?? null,
           catName: filters.catName,
@@ -343,11 +368,11 @@ const MapClient = ({ setShowMap, items }) => {
       setAlertSaving(false);
     }
   }, [
-    distanceKm,
+    alertRadiusKm,
     filters.action,
     filters.catName,
     filters.type,
-    hasDistanceFilter,
+    hasAlertRadius,
     session?.user?.id,
     sessionStatus,
     t,
@@ -481,9 +506,11 @@ const MapClient = ({ setShowMap, items }) => {
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur dark:bg-slate-800/90 dark:text-slate-200">
-            {summaryLabel}
-          </span>
+          {summaryLabel && (
+            <span className="inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur dark:bg-slate-800/90 dark:text-slate-200">
+              {summaryLabel}
+            </span>
+          )}
           <button
             type="button"
             onClick={toggleFilterPanel}
@@ -495,7 +522,13 @@ const MapClient = ({ setShowMap, items }) => {
             className="inline-flex items-center justify-center rounded-full bg-white/90 p-2.5 text-slate-700 shadow-lg backdrop-blur transition-colors hover:bg-white dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="material-symbols-outlined text-[20px]">
-              {isFilterPanelOpen ? "dock_to_right" : "tune"}
+              {isFilterPanelOpen
+                ? isArabic
+                  ? "إخفاء"
+                  : "Hide"
+                : isArabic
+                  ? "إظهار"
+                  : "Show"}
             </span>
           </button>
         </div>
@@ -534,12 +567,17 @@ const MapClient = ({ setShowMap, items }) => {
             {/* Summary + action buttons */}
             <div className="space-y-2.5 px-4 pb-3 pt-4">
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                  {summaryLabel}
-                </span>
-                {hasDistanceFilter && (
+                {summaryLabel && (
+                  <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                    {summaryLabel}
+                  </span>
+                )}
+                {hasAlertRadius && (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                    {t("نطاق محدد", "Focused radius")}
+                    {t(
+                      `تنبيه ضمن ${alertRadiusKm} كم`,
+                      `Alert within ${alertRadiusKm} km`,
+                    )}
                   </span>
                 )}
               </div>
@@ -672,9 +710,7 @@ const MapClient = ({ setShowMap, items }) => {
                     >
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <ZoomControl position="bottomright" />
-                      <ClickableLayer
-                        onPlace={(lat, lng) => setTempPickerPos([lat, lng])}
-                      />
+                      <ClickableLayer onPlace={handleTempPickerPlace} />
                       {tempPickerPos && (
                         <Marker
                           position={tempPickerPos}
@@ -717,12 +753,60 @@ const MapClient = ({ setShowMap, items }) => {
               )}
             </div>
 
-            {/* Distance filter */}
+            {/* Alert radius */}
             <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
-              <DistanceFilter
-                onSuccessfulApply={closeFilterPanel}
-                applyWithoutLocation
-              />
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {buttonText.alertRadius}
+                </h4>
+                {hasAlertRadius && (
+                  <button
+                    type="button"
+                    onClick={handleClearAlertRadius}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    {buttonText.clearRadius}
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {t(
+                  "اختر المسافة التي تريد أن يعتمدها التنبيه حول الموقع الذي حددته على الخارطة.",
+                  "Choose the radius the alert should watch around the location you picked on the map.",
+                )}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {ALERT_RADIUS_OPTIONS_KM.map((radius) => {
+                  const isSelected = alertRadiusKm === radius;
+
+                  return (
+                    <button
+                      key={radius}
+                      type="button"
+                      onClick={() => handleAlertRadiusSelect(radius)}
+                      className={`inline-flex min-w-16 items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      {radius} {t("كم", "km")}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {hasAlertRadius && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-300">
+                  {t(
+                    `سيتم إشعارك فقط عند توفر نتائج ضمن دائرة نصف قطرها ${alertRadiusKm} كم حول هذا الموقع.`,
+                    `You will only be notified when results appear within a ${alertRadiusKm} km radius around this location.`,
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -741,7 +825,7 @@ const MapClient = ({ setShowMap, items }) => {
         <FitBounds
           items={visibleItems}
           userPosition={userPosition}
-          radiusKm={hasDistanceFilter ? distanceKm : undefined}
+          radiusKm={hasAlertRadius ? alertRadiusKm : undefined}
         />
 
         {userPosition && (
@@ -753,23 +837,23 @@ const MapClient = ({ setShowMap, items }) => {
                     {t("موقعك الحالي", "Your current location")}
                   </div>
                   <div className="text-xs text-slate-600">
-                    {hasDistanceFilter
+                    {hasAlertRadius
                       ? t(
-                          `يتم التركيز على نطاق ${distanceKm} كم من موقعك`,
-                          `Focusing on a ${distanceKm} km radius around you`,
+                          `التنبيه مضبوط على نطاق ${alertRadiusKm} كم حول هذا الموقع`,
+                          `Alerts are set for a ${alertRadiusKm} km radius around this location`,
                         )
                       : t(
-                          "اختر مسافة لإظهار نطاق البحث حولك",
-                          "Choose a distance to show your search radius",
+                          "يتم ترتيب العناصر حسب قربها من هذا الموقع",
+                          "Items are ordered by distance from this location",
                         )}
                   </div>
                 </div>
               </Popup>
             </Marker>
-            {hasDistanceFilter && (
+            {hasAlertRadius && (
               <Circle
                 center={userPosition}
-                radius={distanceKm * 1000}
+                radius={alertRadiusKm * 1000}
                 pathOptions={{
                   color: "#2563eb",
                   fillColor: "#60a5fa",
@@ -842,23 +926,6 @@ const MapClient = ({ setShowMap, items }) => {
           ))}
         </MarkerClusterGroup>
       </MapContainer>
-
-      {userPosition && hasDistanceFilter && visibleItems.length === 0 && (
-        <div className="absolute bottom-6 left-1/2 z-1000 w-[min(92vw,34rem)] -translate-x-1/2 rounded-2xl border border-amber-200 bg-white/95 px-4 py-3 text-center shadow-xl dark:border-amber-800 dark:bg-slate-900/95">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {t(
-              "لا توجد عناصر ضمن هذه المسافة في النتائج الحالية",
-              "No items found within this distance in the current results",
-            )}
-          </p>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-            {t(
-              "جرّب توسيع المسافة أو إزالة بعض الفلاتر الأخرى لعرض نطاق أوسع",
-              "Try a wider distance or clear some other filters to show a broader area",
-            )}
-          </p>
-        </div>
-      )}
     </div>
   );
 };

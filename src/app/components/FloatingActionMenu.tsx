@@ -2,13 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MdApps, MdCategory, MdKeyboardArrowDown } from "react-icons/md";
+import {
+  MdApps,
+  MdCategory,
+  MdKeyboardArrowDown,
+  MdMyLocation,
+} from "react-icons/md";
 import { BsRobot } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
 import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { useSession } from "next-auth/react";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
 import useActivationModal from "@/app/hooks/useActivationModal";
+import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 /* ─── Props ──────────────────────────────────────────────────────────────── */
 
@@ -47,6 +53,14 @@ const ACTIONS: ActionConfig[] = [
     shadow: "rgba(13,148,136,0.4)",
   },
   {
+    id: "nearby",
+    labelAr: "القرب",
+    labelEn: "Nearby",
+    gradFrom: "#0284c7",
+    gradTo: "#0369a1",
+    shadow: "rgba(2,132,199,0.42)",
+  },
+  {
     id: "assistant",
     labelAr: "المساعد",
     labelEn: "Assistant",
@@ -67,12 +81,14 @@ export default function FloatingActionMenu({
 
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
+  const { filters } = useSearchFilters();
   const registerModal = useRegisterModal();
   const activationModal = useActivationModal();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const user = session?.user;
   const isLoggedIn = Boolean(user?.id);
+  const hasUserLocation = filters.userLat !== null && filters.userLng !== null;
   const isUserActive = Boolean(user?.isActive);
 
   /* Close on outside click */
@@ -96,6 +112,8 @@ export default function FloatingActionMenu({
     setExpanded(false);
     if (id === "categories") {
       onCategories();
+    } else if (id === "nearby") {
+      window.dispatchEvent(new CustomEvent("open-nearby-items"));
     } else if (id === "map") {
       /* Dispatch event – HomeBody listens and toggles its showMap state */
       window.dispatchEvent(new CustomEvent("toggle-map-view"));
@@ -113,11 +131,11 @@ export default function FloatingActionMenu({
       setWaveKey((k) => k + 1);
     }
   };
-
   /* Icon components per action */
   const ActionIcon = ({ id, size = 22 }: { id: string; size?: number }) => {
     if (id === "categories") return <MdCategory size={size} />;
     if (id === "map") return <FaMapMarkedAlt size={size} />;
+    if (id === "nearby") return <MdMyLocation size={size} />;
     return (
       <motion.span
         key={waveKey}
@@ -206,6 +224,19 @@ export default function FloatingActionMenu({
               </motion.div>
             ))}
         </AnimatePresence>
+
+        {expanded && !hasUserLocation && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            className="max-w-[16rem] rounded-2xl border border-sky-200 bg-white/95 px-3 py-2 text-right text-[12px] font-medium leading-5 text-slate-700 shadow-lg backdrop-blur dark:border-sky-800/60 dark:bg-slate-900/95 dark:text-slate-200"
+          >
+            {isArabic
+              ? "إنقر هنا لتحديد موقعك وترتيب العناصر حسب قربها منك"
+              : "Click here to pick your location and sort items by proximity."}
+          </motion.div>
+        )}
 
         {/* Main trigger */}
         <motion.button

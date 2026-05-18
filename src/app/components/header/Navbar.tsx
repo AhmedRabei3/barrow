@@ -6,6 +6,7 @@ import {
   type ComponentType,
   useState,
   useEffect,
+  useCallback,
   memo,
 } from "react";
 import Container from "../Container";
@@ -19,8 +20,10 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import ChatBadge from "../chat/ChatBadge";
 import { BiSearch } from "react-icons/bi";
+import { MdMyLocation } from "react-icons/md";
 import { useAppPreferences } from "../providers/AppPreferencesProvider";
 import { useSearchHelper } from "../../hooks/useSearchHelper";
+import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 /* ─── Mobile search input ──────────────────────────────────────────────── */
 
@@ -131,6 +134,8 @@ const Navbar = ({
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith("/admin");
   const scrollDir = useScrollDirection();
+  const { filters } = useSearchFilters();
+  const hasUserLocation = filters.userLat !== null && filters.userLng !== null;
   const { isArabic } = useAppPreferences();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -193,6 +198,19 @@ const Navbar = ({
     });
   }, []);
 
+  // ✅ Define React Hooks before conditional returns
+  const openNearbyItems = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("open-nearby-items"));
+  }, []);
+
+  const nearbyTooltip = hasUserLocation
+    ? isArabic
+      ? "إنقر هنا لإعادة تحديد موقعك وترتيب العناصر حسب قربها منك"
+      : "Click here to update your location and sort items by proximity"
+    : isArabic
+      ? "إنقر هنا لتحديد موقعك وترتيب العناصر حسب قربها منك"
+      : "Click here to pick your location and sort items by proximity";
+
   if (isAdminPage) return null;
 
   const topBarStyle = {
@@ -228,6 +246,20 @@ const Navbar = ({
         <div dir="ltr" className={DESKTOP_GRID_CLASS}>
           <div className="flex items-center gap-2 min-w-0 shrink-0 justify-self-start">
             <Logo />
+            <div className="group relative hidden lg:block">
+              <button
+                type="button"
+                onClick={openNearbyItems}
+                aria-label={nearbyTooltip}
+                title={nearbyTooltip}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-sky-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:text-sky-400 dark:hover:border-sky-700 dark:hover:bg-sky-950/40"
+              >
+                <MdMyLocation size={18} />
+              </button>
+              <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 hidden w-64 -translate-x-1/2 rounded-2xl border border-sky-200 bg-white/95 px-3 py-2 text-center text-[12px] font-medium leading-5 text-slate-700 shadow-lg backdrop-blur group-hover:block dark:border-sky-800/60 dark:bg-slate-900/95 dark:text-slate-200">
+                {nearbyTooltip}
+              </div>
+            </div>
           </div>
 
           <div className="justify-self-center w-full min-w-0">
@@ -245,7 +277,7 @@ const Navbar = ({
           </div>
 
           <div className="flex items-center justify-end gap-2 min-w-0 justify-self-end">
-            <div className="hidden xl:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               <Suspense
                 fallback={<div className={ICON_BUTTON_SKELETON_CLASS} />}
               >

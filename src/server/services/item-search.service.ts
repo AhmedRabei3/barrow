@@ -146,7 +146,6 @@ const sortByNearest = (
   items: ItemSearchItemDto[],
   userLat: number | null,
   userLng: number | null,
-  maxDistance?: number,
 ) => {
   const dist = (item: ItemSearchItemDto) => {
     if (userLat === null || userLng === null) return Number.POSITIVE_INFINITY;
@@ -163,16 +162,7 @@ const sortByNearest = (
     return Number.isFinite(t) ? t : 0;
   };
 
-  // إذا تم تحديد حد أقصى للمسافة، قم بفلترة العناصر
-  let filtered = items;
-  if (typeof maxDistance === "number" && maxDistance > 0) {
-    filtered = items.filter((item) => {
-      const itemDist = dist(item);
-      return itemDist <= maxDistance;
-    });
-  }
-
-  return filtered.sort((a, b) => {
+  return items.sort((a, b) => {
     const dd = dist(a) - dist(b);
     if (dd !== 0) return dd;
     const rd = Number(b.averageRating ?? 0) - Number(a.averageRating ?? 0);
@@ -198,7 +188,7 @@ const sortFeaturedFirst = (items: ItemSearchItemDto[]) =>
 async function searchItemsUncached(
   query: ItemSearchQueryDto,
 ): Promise<ItemSearchResponseDto> {
-  const { page, limit, userLat, userLng, distance } = query;
+  const { page, limit, userLat, userLng } = query;
   const skip = (page - 1) * limit;
   const hasGeoSort = userLat !== null && userLng !== null;
 
@@ -234,7 +224,7 @@ async function searchItemsUncached(
   // ── Geo-sort: fetch all matching, sort in-memory ─────────────────────────
   const allItems = await itemSearchRepository.findByIndex(where);
   const enriched = await itemSearchRepository.attachMetadataBatch(allItems);
-  const sorted = sortByNearest(enriched, userLat, userLng, distance);
+  const sorted = sortByNearest(enriched, userLat, userLng);
 
   return {
     success: true,

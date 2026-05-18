@@ -51,3 +51,30 @@ export function extractItemModerationTarget(message: string, title?: string) {
     itemId: tokenMatch[2],
   };
 }
+
+export type ListingAlertMetadata = {
+  alertId: string;
+  itemType: string;
+};
+
+const LISTING_ALERT_TOKEN_REGEX =
+  /(?:\n|^)LISTING_ALERT:([a-z0-9]{10,}):([A-Z_]+)\s*$/i;
+
+export function extractListingAlertMetadata(
+  message: string,
+): ListingAlertMetadata | null {
+  const tokenMatch = message.match(LISTING_ALERT_TOKEN_REGEX);
+
+  if (!tokenMatch?.[1] || !tokenMatch?.[2]) {
+    return null;
+  }
+
+  return {
+    alertId: tokenMatch[1],
+    itemType: tokenMatch[2].toUpperCase(),
+  };
+}
+
+export function stripListingAlertMetadata(message: string): string {
+  return message.replace(LISTING_ALERT_TOKEN_REGEX, "").trim();
+}

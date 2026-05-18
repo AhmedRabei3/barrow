@@ -105,6 +105,14 @@ export const useNotifications = (enabled: boolean) => {
     };
   }, [hasMore, nextCursor, notifications, unreadCount]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent("app-badge:refresh"));
+  }, [unreadCount]);
+
   const fetchNotifications = useCallback(
     async (cursor?: string, reset = false) => {
       if (!isAuthenticated) {
@@ -305,10 +313,7 @@ export const useNotifications = (enabled: boolean) => {
     window.addEventListener("notifications:remove", onNotificationsRemove);
 
     return () => {
-      window.removeEventListener(
-        "notifications:remove",
-        onNotificationsRemove,
-      );
+      window.removeEventListener("notifications:remove", onNotificationsRemove);
     };
   }, [fetchUnreadCount, isAuthenticated]);
 
