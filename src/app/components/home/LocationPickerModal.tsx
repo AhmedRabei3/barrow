@@ -139,7 +139,7 @@ export default function LocationPickerModal({
         >
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-blue-600">
-              my_location
+              my location
             </span>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {t("تحديد موقعي", "Set My Location")}

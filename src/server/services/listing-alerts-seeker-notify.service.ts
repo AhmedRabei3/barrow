@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { sendListingAlertPushNotification } from "@/server/firebase/listing-alert-push";
+import { sendNotificationToUser } from "@/lib/websocketServer";
 
 const MAX_RECIPIENTS = 250;
 const MAX_RADIUS_KM = 50;
@@ -188,13 +189,22 @@ export async function notifyNearbyUsersAboutSeekerAlert({
         },
       });
 
-      await prisma.notification.create({
+      const createdNotification = await prisma.notification.create({
         data: {
           userId: user.id,
           title: notificationTitle,
           message: notificationMessage,
           type: NotificationType.INFO,
         },
+      });
+
+      sendNotificationToUser(user.id, {
+        id: createdNotification.id,
+        title: createdNotification.title,
+        message: createdNotification.message,
+        type: createdNotification.type ?? NotificationType.INFO,
+        createdAt: createdNotification.createdAt.toISOString(),
+        isRead: createdNotification.isRead,
       });
 
       await sendListingAlertPushNotification({

@@ -13,6 +13,7 @@
 import { NotificationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { sendNotificationToUser } from "@/lib/websocketServer";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -129,16 +130,28 @@ export async function notifyNearbyUsers({
     ? `تمّ إضافة "${safeTitle}" على بعد ${NEARBY_RADIUS_KM} كم منك — اكتشفه الآن!`
     : `"${safeTitle}" was listed within ${NEARBY_RADIUS_KM} km of you — check it out!`;
 
-  // ── 4. Bulk-insert notifications ────────────────────────────────────────
-  await prisma.notification.createMany({
-    data: activeUsers.map((u) => ({
-      userId: u.id,
-      title: notifTitle,
-      message: notifMessage,
-      type: NotificationType.INFO,
-    })),
-    skipDuplicates: true,
-  });
+  // ── 4. Persist + realtime emit ─────────────────────────────────────────
+  await Promise.all(
+    activeUsers.map(async (u) => {
+      const createdNotification = await prisma.notification.create({
+        data: {
+          userId: u.id,
+          title: notifTitle,
+          message: notifMessage,
+          type: NotificationType.INFO,
+        },
+      });
+
+      sendNotificationToUser(u.id, {
+        id: createdNotification.id,
+        title: createdNotification.title,
+        message: createdNotification.message,
+        type: createdNotification.type ?? NotificationType.INFO,
+        createdAt: createdNotification.createdAt.toISOString(),
+        isRead: createdNotification.isRead,
+      });
+    }),
+  );
 
   logger.info(
     `[nearby-notify] Sent nearby notification for "${safeTitle}" (${itemType}) to ${activeUsers.length} user(s) within ${NEARBY_RADIUS_KM} km.`,

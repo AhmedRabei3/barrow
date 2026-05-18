@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { buildListingDetailsPath } from "@/lib/listingSeo";
 import { sendListingAlertPushNotification } from "@/server/firebase/listing-alert-push";
+import { sendNotificationToUser } from "@/lib/websocketServer";
 
 type SupportedItemType =
   | "NEW_CAR"
@@ -143,7 +144,7 @@ export async function notifyListingAlertSubscribers({
       });
       const alertId = recipientAlertMap.get(user.id);
 
-      await prisma.notification.create({
+      const createdNotification = await prisma.notification.create({
         data: {
           userId: user.id,
           title: notifTitle,
@@ -152,6 +153,15 @@ export async function notifyListingAlertSubscribers({
             : cleanNotifMessage,
           type: NotificationType.INFO,
         },
+      });
+
+      sendNotificationToUser(user.id, {
+        id: createdNotification.id,
+        title: createdNotification.title,
+        message: createdNotification.message,
+        type: createdNotification.type ?? NotificationType.INFO,
+        createdAt: createdNotification.createdAt.toISOString(),
+        isRead: createdNotification.isRead,
       });
 
       await sendListingAlertPushNotification({

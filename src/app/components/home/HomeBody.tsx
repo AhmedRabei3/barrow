@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import CardList from "./CardList";
 import MapWrapper from "./MyMap";
+import MapButton from "./MapButton";
 import NearbyAlertSetupModal from "./NearbyAlertSetupModal";
 import LocationPickerModal from "./LocationPickerModal";
 import { FormattedItem } from "./getItems";
@@ -177,6 +178,10 @@ const HomeBody = ({
         {showMap && (
           <MapWrapper setShowMap={setShowMap} showMap={showMap} items={items} />
         )}
+      </div>
+
+      <div className="hidden lg:block">
+        <MapButton showMap={showMap} setShowMap={setShowMap} />
       </div>
 
       <LocationPickerModal
