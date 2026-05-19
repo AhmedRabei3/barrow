@@ -178,18 +178,18 @@ function CategoryCard({
         <p
           className={
             isArabic
-              ? "text-[14px] font-extrabold leading-[1.55] tracking-[0.02em] sm:text-[15px]"
+              ? "text-[14px] font-extrabold leading-[1.55] tracking-normal sm:text-[15px]"
               : "text-[14px] font-extrabold leading-snug tracking-[0.01em] sm:text-[15px]"
           }
         >
           {isArabic ? cat.nameAr : cat.nameEn}
         </p>
         {isArabic ? (
-          <p className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-white/80 sm:text-[11px]">
+          <p className="mt-0.5 text-[10px] font-medium tracking-normal text-white/80 sm:text-[11px]">
             {cat.nameEn}
           </p>
         ) : (
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 sm:text-[11px]">
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-normal text-white/90 sm:text-[11px]">
             {cat.nameAr}
           </p>
         )}

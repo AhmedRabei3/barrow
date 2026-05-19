@@ -42,6 +42,30 @@ const triggerSingleReload = () => {
   window.location.reload();
 };
 
+const isEventLikeRejection = (reason: unknown): reason is Event => {
+  if (typeof Event !== "undefined" && reason instanceof Event) {
+    return true;
+  }
+
+  if (typeof reason === "object" && reason !== null) {
+    const maybeEvent = reason as { type?: unknown; isTrusted?: unknown };
+    return (
+      typeof maybeEvent.type === "string" &&
+      typeof maybeEvent.isTrusted === "boolean"
+    );
+  }
+
+  return false;
+};
+
+const formatEventLikeRejection = (reason: Event) => {
+  const target =
+    (reason.target as { src?: string; href?: string } | null) ?? null;
+  const source = target?.src || target?.href || "unknown";
+
+  return `Unhandled promise rejection with Event reason (type: ${reason.type}, source: ${source})`;
+};
+
 const ChunkErrorRecovery = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -57,6 +81,13 @@ const ChunkErrorRecovery = () => {
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (isEventLikeRejection(event.reason)) {
+        // Prevent noisy Next dev overlay message: "[object Event]".
+        event.preventDefault();
+        console.error(formatEventLikeRejection(event.reason));
+        return;
+      }
+
       if (isChunkLoadError(event.reason)) {
         triggerSingleReload();
       }

@@ -200,6 +200,7 @@ export default function MessagesPage() {
   const typingSentRef = useRef(false);
   const subscribedPresenceUserIdsRef = useRef(new Set<string>());
   const readingConversationsRef = useRef(new Set<string>());
+  const appliedPreferredConversationIdRef = useRef("");
 
   const preferredConversationId = useMemo(() => {
     if (directConversationId) {
@@ -286,6 +287,10 @@ export default function MessagesPage() {
     }
 
     const nextConversations = data.conversations ?? [];
+    const shouldApplyPreferredConversation =
+      Boolean(preferredConversationId) &&
+      appliedPreferredConversationIdRef.current !== preferredConversationId;
+
     setConversations(nextConversations);
     setOnlineUserIds(
       new Set(
@@ -296,7 +301,18 @@ export default function MessagesPage() {
     );
 
     setSelectedConversationId((prev) => {
-      if (preferredConversationId) {
+      if (shouldApplyPreferredConversation) {
+        const preferredExists = nextConversations.some(
+          (item) => item.id === preferredConversationId,
+        );
+
+        if (preferredExists) {
+          appliedPreferredConversationIdRef.current = preferredConversationId;
+          return preferredConversationId;
+        }
+      }
+
+      if (preferredConversationId && prev === preferredConversationId) {
         return preferredConversationId;
       }
 
@@ -310,7 +326,7 @@ export default function MessagesPage() {
       return nextConversations[0]?.id ?? "";
     });
 
-    if (preferredConversationId) {
+    if (shouldApplyPreferredConversation) {
       setMobilePanel("chat");
       return;
     }

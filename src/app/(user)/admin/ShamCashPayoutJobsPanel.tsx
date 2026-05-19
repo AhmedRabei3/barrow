@@ -19,6 +19,7 @@ type PayoutJob = {
   userId: string;
   userName: string;
   userEmail: string;
+  userWithdrawableBalance?: number;
   walletCode: string;
   qrCode: string;
   amount: number;
@@ -663,6 +664,10 @@ const ShamCashPayoutJobsPanel = ({
                         {job.userEmail}
                       </p>
                     ) : null}
+                    <p className="mt-1 text-[11px] text-cyan-300">
+                      {t("الرصيد القابل للسحب", "Withdrawable balance")}: $
+                      {formatMoney(job.userWithdrawableBalance ?? 0)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-slate-500">{t("المحفظة", "Wallet")}</p>
@@ -858,6 +863,10 @@ const ShamCashPayoutJobsPanel = ({
                             {job.userEmail}
                           </p>
                         ) : null}
+                        <p className="mt-1 text-xs text-cyan-300">
+                          {t("الرصيد القابل للسحب", "Withdrawable balance")}: $
+                          {formatMoney(job.userWithdrawableBalance ?? 0)}
+                        </p>
                       </td>
                       <td className="py-2 px-2 text-slate-200">
                         <div className="flex items-start gap-2">

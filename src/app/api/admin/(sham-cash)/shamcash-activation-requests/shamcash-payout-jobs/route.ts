@@ -264,6 +264,7 @@ export async function GET(req: NextRequest) {
             id: true,
             name: true,
             email: true,
+            balance: true,
           },
         })
       : [];
@@ -280,6 +281,7 @@ export async function GET(req: NextRequest) {
         qrCode: "",
         userName: user?.name || "",
         userEmail: user?.email || "",
+        userWithdrawableBalance: Number(user?.balance || 0),
       };
     });
 
@@ -290,6 +292,7 @@ export async function GET(req: NextRequest) {
         ...row,
         userName: user?.name || "",
         userEmail: user?.email || "",
+        userWithdrawableBalance: Number(user?.balance || 0),
       };
     });
 

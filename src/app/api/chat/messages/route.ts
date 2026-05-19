@@ -336,6 +336,11 @@ export async function POST(req: NextRequest) {
       seenAt: null as string | null,
     };
 
+    await publishChatMessageEvent({
+      conversationId,
+      message: messagePayload,
+    });
+
     const receiverIsOnline = await isUserConnected(recipientUserId);
     let pushSent = false;
 
@@ -354,11 +359,6 @@ export async function POST(req: NextRequest) {
         logger.warn("Chat message saved but FCM push failed", pushError);
       }
     }
-
-    await publishChatMessageEvent({
-      conversationId,
-      message: messagePayload,
-    });
 
     return NextResponse.json({
       success: true,
