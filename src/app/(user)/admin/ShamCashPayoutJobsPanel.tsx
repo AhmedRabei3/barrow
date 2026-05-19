@@ -104,6 +104,36 @@ const toLocaleDateTime = (value: string, locale: string) => {
   return parsed.toLocaleString(locale);
 };
 
+const copyText = async (value: string) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    throw new Error("EMPTY");
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(normalized);
+    return;
+  }
+
+  if (typeof document === "undefined") {
+    throw new Error("UNAVAILABLE");
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = normalized;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const succeeded = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!succeeded) {
+    throw new Error("COPY_FAILED");
+  }
+};
+
 const statusLabel = (
   status: PayoutJob["status"],
   t: (ar: string, en: string) => string,
@@ -357,6 +387,20 @@ const ShamCashPayoutJobsPanel = ({
       }
     },
     [isArabic, loadJobs, t],
+  );
+
+  const handleCopyWalletCode = useCallback(
+    async (walletCode: string) => {
+      try {
+        await copyText(walletCode);
+        toast.success(
+          t("تم نسخ رقم المحفظة", "Wallet number copied successfully"),
+        );
+      } catch {
+        toast.error(t("تعذر نسخ رقم المحفظة", "Failed to copy wallet number"));
+      }
+    },
+    [t],
   );
 
   const jobs = useMemo(() => data?.jobs ?? [], [data?.jobs]);
@@ -622,9 +666,19 @@ const ShamCashPayoutJobsPanel = ({
                   </div>
                   <div>
                     <p className="text-slate-500">{t("المحفظة", "Wallet")}</p>
-                    <p className="font-mono whitespace-normal break-all">
-                      {job.walletCode || "-"}
-                    </p>
+                    <div className="mt-1 flex items-start gap-2">
+                      <p className="font-mono whitespace-normal break-all">
+                        {job.walletCode || "-"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyWalletCode(job.walletCode)}
+                        disabled={!job.walletCode}
+                        className="admin-tab rounded-md px-2 py-1 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {t("نسخ", "Copy")}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -806,9 +860,19 @@ const ShamCashPayoutJobsPanel = ({
                         ) : null}
                       </td>
                       <td className="py-2 px-2 text-slate-200">
-                        <p className="font-mono text-xs whitespace-normal wrap-break-words">
-                          {job.walletCode}
-                        </p>
+                        <div className="flex items-start gap-2">
+                          <p className="font-mono text-xs whitespace-normal wrap-break-words">
+                            {job.walletCode}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyWalletCode(job.walletCode)}
+                            disabled={!job.walletCode}
+                            className="admin-tab rounded-md px-2 py-1 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {t("نسخ", "Copy")}
+                          </button>
+                        </div>
                         {job.qrCode ? (
                           <div className="mt-2">
                             {job.qrCode.startsWith("data:image/") ? (

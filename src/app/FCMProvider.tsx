@@ -80,7 +80,17 @@ export default function FCMProvider({
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        let serviceWorkerRegistration: ServiceWorkerRegistration | undefined;
+        try {
+          serviceWorkerRegistration = await navigator.serviceWorker.ready;
+        } catch (error) {
+          console.error("Service worker readiness error:", error);
+        }
+
+        const token = await getToken(messaging, {
+          vapidKey: VAPID_KEY,
+          ...(serviceWorkerRegistration ? { serviceWorkerRegistration } : {}),
+        });
         if (!token) return;
 
         // Save token to PostgreSQL via API — no Firestore writes.

@@ -15,7 +15,6 @@ import { useAppPreferences } from "./providers/AppPreferencesProvider";
 import { useSession } from "next-auth/react";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
 import useActivationModal from "@/app/hooks/useActivationModal";
-import { useSearchFilters } from "@/app/hooks/useSearchFilters";
 
 /* ─── Props ──────────────────────────────────────────────────────────────── */
 
@@ -90,14 +89,12 @@ export default function FloatingActionMenu({
 
   const { isArabic } = useAppPreferences();
   const { data: session } = useSession();
-  const { filters } = useSearchFilters();
   const registerModal = useRegisterModal();
   const activationModal = useActivationModal();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const user = session?.user;
   const isLoggedIn = Boolean(user?.id);
-  const hasUserLocation = filters.userLat !== null && filters.userLng !== null;
   const isUserActive = Boolean(user?.isActive);
 
   /* Close on outside click */
@@ -233,7 +230,6 @@ export default function FloatingActionMenu({
                 >
                   {isArabic ? action.labelAr : action.labelEn}
                 </motion.span>
-                
               </motion.div>
             ))}
         </AnimatePresence>

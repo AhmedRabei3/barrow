@@ -397,7 +397,7 @@ const MapClient = ({
     } finally {
       setAlertSaving(false);
     }
-   }, [
+  }, [
     alertRadiusKm,
     alertAction,
     alertCategoryName,
@@ -517,12 +517,6 @@ const MapClient = ({
 
   const showLocationPicker = !userPosition || isEditingLocation;
 
-  const closeFilterPanel = useCallback(() => {
-    setIsFilterPanelOpen(false);
-    setIsNearbyQuickMode(false);
-    setIsAlertAccordionOpen(false);
-  }, []);
-
   const toggleFilterPanel = useCallback(() => {
     setIsFilterPanelOpen((current) => !current);
   }, []);
@@ -584,7 +578,6 @@ const MapClient = ({
       >
         <div className="flex h-full flex-col overflow-hidden">
           {/* Drawer header */}
-         
 
           {/* Scrollable body */}
           <div className="flex-1 overflow-y-auto">

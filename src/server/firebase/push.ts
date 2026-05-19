@@ -1,4 +1,8 @@
-import { adminMessaging } from "@/server/firebase/admin";
+import {
+  adminMessaging,
+  firebaseAdminSetupHint,
+  isFirebaseAdminConfigured,
+} from "@/server/firebase/admin";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -27,6 +31,13 @@ export const sendChatPushNotification = async ({
   conversationId,
   unreadCount,
 }: ChatPushInput) => {
+  if (!isFirebaseAdminConfigured) {
+    logger.warn("Chat push skipped: Firebase Admin is not configured", {
+      hint: firebaseAdminSetupHint,
+    });
+    return { sent: false, reason: "firebase_not_configured" as const };
+  }
+
   const tokens = await getUserFcmTokens(recipientUserId);
   if (tokens.length === 0) {
     return { sent: false, reason: "no_tokens" as const };
