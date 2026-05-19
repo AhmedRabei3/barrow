@@ -269,6 +269,7 @@ const Profile = () => {
   const [withdrawingShamCash, setWithdrawingShamCash] = useState(false);
   const [shamCashWithdrawModalOpen, setShamCashWithdrawModalOpen] =
     useState(false);
+  const [shamCashHelpOpen, setShamCashHelpOpen] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [identityVerificationModalOpen, setIdentityVerificationModalOpen] =
     useState(false);
@@ -411,6 +412,7 @@ const Profile = () => {
 
   const closeShamCashWithdrawModal = useCallback(() => {
     setShamCashWithdrawModalOpen(false);
+    setShamCashHelpOpen(false);
     setShamCashWalletNumber("");
   }, []);
 
@@ -580,6 +582,7 @@ const Profile = () => {
     if (!user) return;
     setShamCashWithdrawAmount("");
     setShamCashWalletNumber("");
+    setShamCashHelpOpen(false);
     setShamCashWithdrawModalOpen(true);
   };
 
@@ -1314,6 +1317,22 @@ const Profile = () => {
               ? "أدخل رقم استقبال المحفظة والمبلغ الذي تريد سحبه"
               : "Enter your wallet receive number and the amount to withdraw"}
           </p>
+          <div className="flex justify-start">
+            <button
+              type="button"
+              onClick={() => setShamCashHelpOpen((current) => !current)}
+              className="rounded-xl border border-cyan-400/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/20"
+            >
+              {isArabic ? "مساعدة" : "Help"}
+            </button>
+          </div>
+          {shamCashHelpOpen ? (
+            <p className="rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs leading-relaxed text-cyan-100">
+              {isArabic
+                ? "قم بنسخ الكود من واجهة تطبيق شام كاش أسفل الباركود الخاص باستقبال الأموال ولصقه هنا كي نرسل لك المبلغ"
+                : "Copy the code from the ShamCash app interface below the receive-money barcode and paste it here so we can send you the amount."}
+            </p>
+          ) : null}
           <p className="text-xs font-semibold text-cyan-300">
             {isArabic
               ? `الرصيد المتاح للسحب: ${availableToWithdraw.toFixed(2)} USD`
@@ -1327,8 +1346,8 @@ const Profile = () => {
             onChange={(e) => setShamCashWalletNumber(e.target.value)}
             placeholder={
               isArabic
-                ? "رقم الاستقبال (أسفل الباركود)"
-                : "Receive number (below barcode)"
+                ? "رقم استقبال محفظة شام كاش"
+                : "ShamCash wallet receive number"
             }
             className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
             disabled={withdrawingShamCash}
