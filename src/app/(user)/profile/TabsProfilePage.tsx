@@ -219,7 +219,7 @@ const TabbedView = ({
             onClick={() => handleTabChange(t.key as ProfileTabKey)}
             className={`flex items-center gap-2 whitespace-nowrap rounded-lg border px-4 py-2.5 text-sm transition-colors ${
               active === t.key
-                ? "border-primary bg-primary text-white shadow-sm"
+                ? "border-primary bg-primary dark:text-white shadow-sm font-bold"
                 : "border-slate-200 bg-white text-slate-600 hover:border-primary/30 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
             }`}
             aria-pressed={active === t.key}

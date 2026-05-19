@@ -44,10 +44,21 @@ export async function POST(req: NextRequest) {
       note?: string;
     };
 
-    const inputWalletCode = String(body.walletCode || "").trim();
-    const walletCode = inputWalletCode || `UID-${sessionUserId}`;
+    const walletCode = String(body.walletCode || "").trim();
     const amount = Number(body.amount ?? 0);
     const inputNote = String(body.note || "").trim();
+
+    if (!walletCode) {
+      return NextResponse.json(
+        {
+          message: localizeErrorMessage(
+            "Wallet receive number is required",
+            isArabic,
+          ),
+        },
+        { status: 400 },
+      );
+    }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(

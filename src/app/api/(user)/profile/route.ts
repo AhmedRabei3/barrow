@@ -132,92 +132,86 @@ export async function GET(req: NextRequest) {
     if (!user) throw Errors.UNAUTHORIZED();
 
     const invitedUserIds = user.referrals.map((referral) => referral.newUser);
-    const activeInvitedCount = invitedUserIds.length
-      ? await withTimeout(
-          prisma.user.count({
-            where: {
-              id: { in: invitedUserIds },
-              activeUntil: { gt: now },
-              isDeleted: false,
-            },
-          }),
-          5000,
-          "Referral lookup timed out",
-        )
-      : 0;
-
     const items = [...newCars, ...oldCars, ...otherItems, ...properties];
 
     const propertyIds = properties.map((item) => item.id);
     const newCarIds = newCars.map((item) => item.id);
     const oldCarIds = oldCars.map((item) => item.id);
     const otherItemIds = otherItems.map((item) => item.id);
-
-    const purchaseRequestsRaw =
+    const hasItems =
       propertyIds.length ||
       newCarIds.length ||
       oldCarIds.length ||
-      otherItemIds.length
-        ? await withTimeout(
-            prisma.purchaseRequest.findMany({
-              where: {
-                OR: [
-                  ...(propertyIds.length
-                    ? [
-                        {
-                          itemType: "PROPERTY" as const,
-                          itemId: { in: propertyIds },
-                        },
-                      ]
-                    : []),
-                  ...(newCarIds.length
-                    ? [
-                        {
-                          itemType: "NEW_CAR" as const,
-                          itemId: { in: newCarIds },
-                        },
-                      ]
-                    : []),
-                  ...(oldCarIds.length
-                    ? [
-                        {
-                          itemType: "USED_CAR" as const,
-                          itemId: { in: oldCarIds },
-                        },
-                      ]
-                    : []),
-                  ...(otherItemIds.length
-                    ? [
-                        {
-                          itemType: "OTHER" as const,
-                          itemId: { in: otherItemIds },
-                        },
-                      ]
-                    : []),
-                ],
-              },
-              orderBy: { createdAt: "desc" },
-              include: {
-                buyer: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    profileImage: true,
+      otherItemIds.length;
+
+    const [activeInvitedCount, purchaseRequestsRaw, itemsExtra] =
+      await withTimeout(
+        Promise.all([
+          invitedUserIds.length
+            ? prisma.user.count({
+                where: {
+                  id: { in: invitedUserIds },
+                  activeUntil: { gt: now },
+                  isDeleted: false,
+                },
+              })
+            : Promise.resolve(0),
+          hasItems
+            ? prisma.purchaseRequest.findMany({
+                where: {
+                  OR: [
+                    ...(propertyIds.length
+                      ? [
+                          {
+                            itemType: "PROPERTY" as const,
+                            itemId: { in: propertyIds },
+                          },
+                        ]
+                      : []),
+                    ...(newCarIds.length
+                      ? [
+                          {
+                            itemType: "NEW_CAR" as const,
+                            itemId: { in: newCarIds },
+                          },
+                        ]
+                      : []),
+                    ...(oldCarIds.length
+                      ? [
+                          {
+                            itemType: "USED_CAR" as const,
+                            itemId: { in: oldCarIds },
+                          },
+                        ]
+                      : []),
+                    ...(otherItemIds.length
+                      ? [
+                          {
+                            itemType: "OTHER" as const,
+                            itemId: { in: otherItemIds },
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+                orderBy: { createdAt: "desc" },
+                include: {
+                  buyer: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      profileImage: true,
+                    },
                   },
                 },
-              },
-            }),
-            8000,
-            "Owner purchase requests lookup timed out",
-          )
-        : [];
-
-    const itemsExtra = await withTimeout(
-      attachExtrasBatch(items),
-      8000,
-      "Profile item enrichment timed out",
-    );
+              })
+            : Promise.resolve([]),
+          attachExtrasBatch(items),
+        ]),
+        10000,
+        "Profile enrichment timed out",
+      );
 
     type EnrichedProfileItem = {
       id: string;

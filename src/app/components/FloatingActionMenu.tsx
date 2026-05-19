@@ -55,16 +55,16 @@ const ACTIONS: ActionConfig[] = [
   },
   {
     id: "nearby",
-    labelAr: "القرب",
-    labelEn: "Nearby",
+    labelAr: "موقعي",
+    labelEn: "My Location",
     gradFrom: "#0284c7",
     gradTo: "#0369a1",
     shadow: "rgba(2,132,199,0.42)",
   },
   {
     id: "alerts",
-    labelAr: "إشعاري",
-    labelEn: "My alerts",
+    labelAr: "طلباتي",
+    labelEn: "My requests",
     gradFrom: "#16a34a",
     gradTo: "#15803d",
     shadow: "rgba(22,163,74,0.42)",
@@ -197,6 +197,21 @@ export default function FloatingActionMenu({
                 }}
                 className="flex items-center gap-2.5"
               >
+                {/* Icon button */}
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={() => handleAction(action.id)}
+                  disabled={action.id === "categories" && !categoriesEnabled}
+                  aria-label={isArabic ? action.labelAr : action.labelEn}
+                  className="h-12 w-12 flex items-center justify-center rounded-full text-white focus:outline-none disabled:opacity-40"
+                  style={{
+                    background: `linear-gradient(145deg, ${action.gradFrom}, ${action.gradTo})`,
+                    boxShadow: `0 8px 22px ${action.shadow}, 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                  }}
+                >
+                  <ActionIcon id={action.id} />
+                </motion.button>
+
                 {/* Pill label */}
                 <motion.span
                   initial={{ opacity: 0, x: 12 }}
@@ -218,21 +233,7 @@ export default function FloatingActionMenu({
                 >
                   {isArabic ? action.labelAr : action.labelEn}
                 </motion.span>
-
-                {/* Icon button */}
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
-                  onClick={() => handleAction(action.id)}
-                  disabled={action.id === "categories" && !categoriesEnabled}
-                  aria-label={isArabic ? action.labelAr : action.labelEn}
-                  className="h-12 w-12 flex items-center justify-center rounded-full text-white focus:outline-none disabled:opacity-40"
-                  style={{
-                    background: `linear-gradient(145deg, ${action.gradFrom}, ${action.gradTo})`,
-                    boxShadow: `0 8px 22px ${action.shadow}, 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.18)`,
-                  }}
-                >
-                  <ActionIcon id={action.id} />
-                </motion.button>
+                
               </motion.div>
             ))}
         </AnimatePresence>

@@ -219,6 +219,16 @@ const UserShamCashWithdrawalsTab = ({
     [rows],
   );
 
+  const pendingTotalAmount = useMemo(
+    () =>
+      rows
+        .filter(
+          (row) => row.status === "PENDING" || row.status === "PROCESSING",
+        )
+        .reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    [rows],
+  );
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-cyan-200 bg-white p-4 shadow-sm dark:border-cyan-800 dark:bg-slate-900">
@@ -267,6 +277,10 @@ const UserShamCashWithdrawalsTab = ({
           <MetricCard
             title={t("قيد المعالجة", "Processing")}
             value={String(data?.summary.statusCounts.PROCESSING || 0)}
+          />
+          <MetricCard
+            title={t("المبالغ المعلقة", "Pending amounts")}
+            value={`$${formatMoney(pendingTotalAmount)}`}
           />
           <MetricCard
             title={t("مكتمل", "Completed")}

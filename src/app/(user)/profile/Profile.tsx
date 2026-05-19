@@ -205,8 +205,8 @@ const MobileNavButton = memo(function MobileNavButton({
       onClick={onClick}
       className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-colors ${
         isActive
-          ? "bg-primary text-white"
-          : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+          ? "bg-primary text-blue-600 shadow-sm"
+          : "text-slate-500 shadow-md hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
       }`}
     >
       <DynamicIcon iconName={iconName} size={18} />
@@ -279,6 +279,7 @@ const Profile = () => {
   const [activeSidebarSection, setActiveSidebarSection] =
     useState<ProfileSidebarSection>("OVERVIEW");
   const [shamCashWithdrawAmount, setShamCashWithdrawAmount] = useState("");
+  const [shamCashWalletNumber, setShamCashWalletNumber] = useState("");
   const overviewSectionRef = useRef<HTMLDivElement | null>(null);
   const listingsSectionRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -410,6 +411,7 @@ const Profile = () => {
 
   const closeShamCashWithdrawModal = useCallback(() => {
     setShamCashWithdrawModalOpen(false);
+    setShamCashWalletNumber("");
   }, []);
 
   const handleTabbedViewChange = useCallback((tab: ProfileTabKey) => {
@@ -577,11 +579,22 @@ const Profile = () => {
   const handleOpenShamCashWithdrawModal = () => {
     if (!user) return;
     setShamCashWithdrawAmount("");
+    setShamCashWalletNumber("");
     setShamCashWithdrawModalOpen(true);
   };
 
   const handleShamCashWithdraw = async () => {
     if (!user) return;
+
+    const walletNumber = shamCashWalletNumber.trim();
+    if (!walletNumber) {
+      toast.error(
+        isArabic
+          ? "يرجى إدخال رقم استقبال محفظة شام كاش"
+          : "Please enter your ShamCash wallet receive number",
+      );
+      return;
+    }
 
     const amount = Number(shamCashWithdrawAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -608,6 +621,7 @@ const Profile = () => {
           "x-lang": isArabic ? "ar" : "en",
         },
         body: JSON.stringify({
+          walletCode: walletNumber,
           amount,
           note: isArabic
             ? "طلب سحب من واجهة البروفايل"
@@ -633,6 +647,7 @@ const Profile = () => {
       await refetch();
       setShamCashWithdrawModalOpen(false);
       setShamCashWithdrawAmount("");
+      setShamCashWalletNumber("");
     } catch (error) {
       const rawMessage =
         error instanceof Error ? error.message : "Withdrawal request failed";
@@ -781,7 +796,7 @@ const Profile = () => {
   }> = [
     {
       iconName: "MdDashboard",
-      label: isArabic ? "نظرة عامة" : "Overview",
+      label: isArabic ? "عام" : "Overview",
       isActive: activeSidebarSection === "OVERVIEW",
       onClick: () => handleSidebarAction("OVERVIEW"),
     },
@@ -1289,21 +1304,36 @@ const Profile = () => {
           onClose={closeShamCashWithdrawModal}
           isArabic={isArabic}
           showCloseButton={false}
-          containerClassName="market-panel z-10 w-11/12 max-w-md space-y-3 rounded-[26px] p-5 shadow-xl"
+          containerClassName="market-panel bg-white dark:bg-neutral-800 z-10 w-11/12 max-w-md space-y-3 rounded-[26px] p-5 shadow-xl"
         >
-          <h3 className="font-semibold text-white">
+          <h3 className="font-semibold dark:text-white">
             {isArabic ? "سحب شام كاش" : "ShamCash withdrawal"}
           </h3>
           <p className="text-xs leading-relaxed text-slate-400">
             {isArabic
-              ? "أدخل المبلغ فقط وسيصل الطلب إلى الإدارة لإتمامه يدوياً."
-              : "Enter the amount only and the request will be sent to admin for manual completion."}
+              ? "أدخل رقم استقبال المحفظة والمبلغ الذي تريد سحبه"
+              : "Enter your wallet receive number and the amount to withdraw"}
           </p>
           <p className="text-xs font-semibold text-cyan-300">
             {isArabic
               ? `الرصيد المتاح للسحب: ${availableToWithdraw.toFixed(2)} USD`
               : `Available to withdraw: ${availableToWithdraw.toFixed(2)} USD`}
           </p>
+
+          <input
+            type="text"
+            name="shamCashWalletNumber"
+            value={shamCashWalletNumber}
+            onChange={(e) => setShamCashWalletNumber(e.target.value)}
+            placeholder={
+              isArabic
+                ? "رقم الاستقبال (أسفل الباركود)"
+                : "Receive number (below barcode)"
+            }
+            className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
+            disabled={withdrawingShamCash}
+            dir="ltr"
+          />
 
           <input
             type="number"

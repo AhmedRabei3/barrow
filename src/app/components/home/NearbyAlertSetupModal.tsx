@@ -359,8 +359,8 @@ export default function NearbyAlertSetupModal({
 
     const confirmed = window.confirm(
       t(
-        "هل أنت متأكد من حذف هذا الموقع من تنبيهات التوفر؟",
-        "Are you sure you want to delete this alert location?",
+        "هل أنت متأكد من حذف هذا الطلب؟",
+        "Are you sure you want to delete this request?",
       ),
     );
 
@@ -381,7 +381,10 @@ export default function NearbyAlertSetupModal({
 
       setAlertFeedback({
         type: "success",
-        text: t("تم حذف الموقع المحدد", "Selected location has been deleted"),
+        text: t(
+          "تم حذف الطلب من هذا الموقع",
+          "Selected request has been deleted from this site",
+        ),
       });
 
       await loadSavedAlerts();

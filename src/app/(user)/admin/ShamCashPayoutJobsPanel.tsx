@@ -128,6 +128,7 @@ const ShamCashPayoutJobsPanel = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [retryingId, setRetryingId] = useState<string>("");
   const [completingId, setCompletingId] = useState<string>("");
+  const [rejectingId, setRejectingId] = useState<string>("");
   const [data, setData] = useState<JobsResponse | null>(null);
 
   const loadJobs = useCallback(
@@ -299,6 +300,60 @@ const ShamCashPayoutJobsPanel = ({
         );
       } finally {
         setCompletingId("");
+      }
+    },
+    [isArabic, loadJobs, t],
+  );
+
+  const handleRejectManual = useCallback(
+    async (job: PayoutJob) => {
+      const failureReason =
+        window.prompt(
+          t("سبب الرفض (اختياري)", "Rejection reason (optional)"),
+        ) ?? "";
+
+      if (failureReason === null) return; // user cancelled
+
+      try {
+        setRejectingId(job.id);
+
+        const response = await fetch(SHAMCASH_MANUAL_WITHDRAWALS_API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-lang": isArabic ? "ar" : "en",
+          },
+          body: JSON.stringify({
+            action: "REJECT",
+            requestId: job.manualRequestId || job.id.replace(/^manual-/, ""),
+            failureReason: failureReason.trim(),
+          }),
+        });
+
+        const body = await readJsonResponse<ApiMessageResponse>(
+          response,
+          t("تعذر رفض الطلب", "Failed to reject request"),
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            body.message || t("تعذر رفض الطلب", "Failed to reject request"),
+          );
+        }
+
+        toast.success(
+          body.message || t("تم رفض الطلب بنجاح", "Request rejected"),
+        );
+
+        await loadJobs(true);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("حدث خطأ غير متوقع", "Unexpected error"),
+        );
+      } finally {
+        setRejectingId("");
       }
     },
     [isArabic, loadJobs, t],
@@ -619,22 +674,40 @@ const ShamCashPayoutJobsPanel = ({
                   </p>
                 </div>
 
-                <div className="mt-3">
+                <div className="mt-3 flex flex-col gap-2">
                   {job.source === "MANUAL_FALLBACK" ? (
-                    <button
-                      type="button"
-                      disabled={
-                        (job.status !== "PENDING" &&
-                          job.status !== "PROCESSING") ||
-                        completingId === job.id
-                      }
-                      onClick={() => handleCompleteManual(job)}
-                      className="admin-btn-success w-full rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {completingId === job.id
-                        ? t("جارِ التأكيد...", "Completing...")
-                        : t("تم التحويل يدوياً", "Mark as completed")}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={
+                          (job.status !== "PENDING" &&
+                            job.status !== "PROCESSING") ||
+                          completingId === job.id ||
+                          rejectingId === job.id
+                        }
+                        onClick={() => handleCompleteManual(job)}
+                        className="admin-btn-success w-full rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {completingId === job.id
+                          ? t("جارِ التأكيد...", "Completing...")
+                          : t("تم التحويل يدوياً", "Mark as completed")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          (job.status !== "PENDING" &&
+                            job.status !== "PROCESSING") ||
+                          rejectingId === job.id ||
+                          completingId === job.id
+                        }
+                        onClick={() => handleRejectManual(job)}
+                        className="admin-btn-danger w-full rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {rejectingId === job.id
+                          ? t("جارِ الرفض...", "Rejecting...")
+                          : t("رفض الطلب", "Reject request")}
+                      </button>
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -811,20 +884,38 @@ const ShamCashPayoutJobsPanel = ({
                       </td>
                       <td className="py-2 px-2">
                         {job.source === "MANUAL_FALLBACK" ? (
-                          <button
-                            type="button"
-                            disabled={
-                              (job.status !== "PENDING" &&
-                                job.status !== "PROCESSING") ||
-                              completingId === job.id
-                            }
-                            onClick={() => handleCompleteManual(job)}
-                            className="admin-btn-success rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {completingId === job.id
-                              ? t("جارِ التأكيد...", "Completing...")
-                              : t("تم التحويل يدوياً", "Mark as completed")}
-                          </button>
+                          <div className="flex flex-col gap-1.5">
+                            <button
+                              type="button"
+                              disabled={
+                                (job.status !== "PENDING" &&
+                                  job.status !== "PROCESSING") ||
+                                completingId === job.id ||
+                                rejectingId === job.id
+                              }
+                              onClick={() => handleCompleteManual(job)}
+                              className="admin-btn-success rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {completingId === job.id
+                                ? t("جارِ التأكيد...", "Completing...")
+                                : t("تم التحويل يدوياً", "Mark as completed")}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={
+                                (job.status !== "PENDING" &&
+                                  job.status !== "PROCESSING") ||
+                                rejectingId === job.id ||
+                                completingId === job.id
+                              }
+                              onClick={() => handleRejectManual(job)}
+                              className="admin-btn-danger rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {rejectingId === job.id
+                                ? t("جارِ الرفض...", "Rejecting...")
+                                : t("رفض الطلب", "Reject request")}
+                            </button>
+                          </div>
                         ) : (
                           <button
                             type="button"

@@ -250,31 +250,30 @@ export async function attachExtrasBatch(items: BatchItem[]) {
   const ids = items.map((it) => it.id);
   const featuredCutoff = getFeaturedCutoffDate();
 
-  // Fetch all images for these items in one query
-  const images = await prisma.itemImage.findMany({
-    where: { itemId: { in: ids } },
-    select: { itemId: true, url: true },
-  });
-
-  // Aggregate reviews (count + avg) grouped by itemId
-  const reviewsAgg = await prisma.review.groupBy({
-    by: ["itemId"],
-    where: { itemId: { in: ids } },
-    _count: { _all: true },
-    _avg: { rate: true },
-  });
-
-  const featuredPins = await prisma.pinnedItem.findMany({
-    where: {
-      itemId: { in: ids },
-      createdAt: { gte: featuredCutoff },
-    },
-    select: {
-      itemId: true,
-      itemType: true,
-      createdAt: true,
-    },
-  });
+  // Fetch images, reviews, and featured pins in parallel
+  const [images, reviewsAgg, featuredPins] = await Promise.all([
+    prisma.itemImage.findMany({
+      where: { itemId: { in: ids } },
+      select: { itemId: true, url: true },
+    }),
+    prisma.review.groupBy({
+      by: ["itemId"],
+      where: { itemId: { in: ids } },
+      _count: { _all: true },
+      _avg: { rate: true },
+    }),
+    prisma.pinnedItem.findMany({
+      where: {
+        itemId: { in: ids },
+        createdAt: { gte: featuredCutoff },
+      },
+      select: {
+        itemId: true,
+        itemType: true,
+        createdAt: true,
+      },
+    }),
+  ]);
 
   const imagesMap = images.reduce<Record<string, { url: string }[]>>(
     (acc, img) => {

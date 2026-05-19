@@ -389,7 +389,7 @@ const UserMenu = () => {
         isArabic={isArabic}
       />
       <UserMenueItem
-        label={isArabic ? "تنبيهات التوفر" : "Availability alerts"}
+        label={isArabic ? "طلباتي" : "My requests"}
         onClick={goToListingAlerts}
         iconName="MdNotificationsActive"
         isArabic={isArabic}
