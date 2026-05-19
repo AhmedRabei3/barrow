@@ -39,6 +39,7 @@ export type ProfilePurchaseRequest = {
 
 export type ProfileData = {
   user: User & {
+    hasPendingWithdrawal?: boolean;
     referredBy?: {
       id: string;
       name: string;

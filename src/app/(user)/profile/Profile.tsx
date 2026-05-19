@@ -270,6 +270,7 @@ const Profile = () => {
   const [shamCashWithdrawModalOpen, setShamCashWithdrawModalOpen] =
     useState(false);
   const [shamCashHelpOpen, setShamCashHelpOpen] = useState(false);
+  const [hasPendingWithdrawal, setHasPendingWithdrawal] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [identityVerificationModalOpen, setIdentityVerificationModalOpen] =
     useState(false);
@@ -448,6 +449,14 @@ const Profile = () => {
   }, []);
 
   useEffect(() => {
+    if (user?.hasPendingWithdrawal) {
+      setHasPendingWithdrawal(true);
+    } else {
+      setHasPendingWithdrawal(false);
+    }
+  }, [user?.hasPendingWithdrawal]);
+
+  useEffect(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
 
     if (tab === "requests" || tab === "purchases") {
@@ -580,6 +589,14 @@ const Profile = () => {
 
   const handleOpenShamCashWithdrawModal = () => {
     if (!user) return;
+    if (hasPendingWithdrawal) {
+      toast.error(
+        isArabic
+          ? "لديك طلب سحب قيد المراجعة. لن تتمكن من إرسال طلب جديد حتى يتم مراجعة طلبك الحالي."
+          : "You have a withdrawal request under review. You cannot submit a new request until your current request is processed.",
+      );
+      return;
+    }
     setShamCashWithdrawAmount("");
     setShamCashWalletNumber("");
     setShamCashHelpOpen(false);
@@ -588,6 +605,15 @@ const Profile = () => {
 
   const handleShamCashWithdraw = async () => {
     if (!user) return;
+
+    if (hasPendingWithdrawal) {
+      toast.error(
+        isArabic
+          ? "لديك طلب سحب قيد المراجعة. لن تتمكن من إرسال طلب جديد حتى يتم مراجعة طلبك الحالي."
+          : "You have a withdrawal request under review. You cannot submit a new request until your current request is processed.",
+      );
+      return;
+    }
 
     const walletNumber = shamCashWalletNumber.trim();
     if (!walletNumber) {
@@ -648,9 +674,15 @@ const Profile = () => {
       );
 
       await refetch();
+      setHasPendingWithdrawal(true);
       setShamCashWithdrawModalOpen(false);
       setShamCashWithdrawAmount("");
       setShamCashWalletNumber("");
+      toast.success(
+        isArabic
+          ? "تم إرسال طلب السحب. سيتم مراجعته قريباً."
+          : "Your withdrawal request has been submitted. It will be reviewed soon.",
+      );
     } catch (error) {
       const rawMessage =
         error instanceof Error ? error.message : "Withdrawal request failed";
@@ -1346,17 +1378,18 @@ const Profile = () => {
             onChange={(e) => setShamCashWalletNumber(e.target.value)}
             placeholder={
               isArabic
-                ? "رقم استقبال محفظة شام كاش"
+                ? "رقم محفظة شام كاش للاستقبال"
                 : "ShamCash wallet receive number"
             }
             className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
-            disabled={withdrawingShamCash}
+            disabled={withdrawingShamCash || hasPendingWithdrawal}
             dir="ltr"
           />
 
           <input
             type="number"
             name="shamCashWithdrawAmount"
+            dir="ltr"
             min={0.01}
             max={Math.max(0, availableToWithdraw)}
             step="0.01"
@@ -1366,7 +1399,7 @@ const Profile = () => {
               isArabic ? "المبلغ بالدولار الأمريكي (USD)" : "Amount in USD"
             }
             className="profile-modal-input rounded-2xl px-4 py-3 text-sm focus:border-cyan-400 focus:outline-none"
-            disabled={withdrawingShamCash}
+            disabled={withdrawingShamCash || hasPendingWithdrawal}
           />
 
           <div className="flex justify-end gap-2 pt-1">
@@ -1379,16 +1412,20 @@ const Profile = () => {
             </button>
             <button
               onClick={handleShamCashWithdraw}
-              disabled={withdrawingShamCash}
+              disabled={withdrawingShamCash || hasPendingWithdrawal}
               className="market-primary-btn rounded-2xl px-4 py-2.5 text-sm disabled:opacity-50"
             >
-              {withdrawingShamCash
+              {hasPendingWithdrawal
                 ? isArabic
-                  ? "جارٍ الإرسال..."
-                  : "Submitting..."
-                : isArabic
-                  ? "تأكيد سحب شام كاش"
-                  : "Confirm ShamCash withdrawal"}
+                  ? "طلب قيد المراجعة"
+                  : "Request under review"
+                : withdrawingShamCash
+                  ? isArabic
+                    ? "جارٍ الإرسال..."
+                    : "Submitting..."
+                  : isArabic
+                    ? "تأكيد سحب شام كاش"
+                    : "Confirm ShamCash withdrawal"}
             </button>
           </div>
         </ProfileModalShell>

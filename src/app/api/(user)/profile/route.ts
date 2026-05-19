@@ -40,94 +40,109 @@ export async function GET(req: NextRequest) {
   try {
     const session = await authHelper();
     const now = new Date();
-    const [user, referredByLink, properties, newCars, oldCars, otherItems] =
-      await withTimeout(
-        Promise.all([
-          prisma.user.findUnique({
-            where: { id: session.id },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              phone: true,
-              profileImage: true,
-              createdAt: true,
-              balance: true,
-              isActive: true,
-              activeUntil: true,
-              pendingReferralEarnings: true,
-              isIdentityVerified: true,
-              isAdmin: true,
-              isOwner: true,
-              isDeleted: true,
-              referrals: {
-                select: {
-                  newUser: true,
-                },
-              },
-              favorites: {
-                select: {
-                  itemId: true,
-                  itemType: true,
-                },
-              },
-              identityVerificationRequest: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  nationalId: true,
-                  frontImageUrl: true,
-                  backImageUrl: true,
-                  status: true,
-                  adminNote: true,
-                  createdAt: true,
-                  updatedAt: true,
-                  reviewedAt: true,
-                },
+    const [
+      user,
+      referredByLink,
+      properties,
+      newCars,
+      oldCars,
+      otherItems,
+      pendingShamCashWithdrawalCount,
+    ] = await withTimeout(
+      Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            profileImage: true,
+            createdAt: true,
+            balance: true,
+            isActive: true,
+            activeUntil: true,
+            pendingReferralEarnings: true,
+            isIdentityVerified: true,
+            isAdmin: true,
+            isOwner: true,
+            isDeleted: true,
+            referrals: {
+              select: {
+                newUser: true,
               },
             },
-          }),
-          prisma.referral.findFirst({
-            where: {
-              newUser: session.id,
-              user: {
-                is: {
-                  isDeleted: false,
-                },
+            favorites: {
+              select: {
+                itemId: true,
+                itemType: true,
               },
             },
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  profileImage: true,
-                  isActive: true,
-                },
+            identityVerificationRequest: {
+              select: {
+                id: true,
+                fullName: true,
+                nationalId: true,
+                frontImageUrl: true,
+                backImageUrl: true,
+                status: true,
+                adminNote: true,
+                createdAt: true,
+                updatedAt: true,
+                reviewedAt: true,
               },
             },
-          }),
-          prisma.property.findMany({
-            where: { ownerId: session.id, isDeleted: false },
-            include: ITEM_RELATION_SELECT,
-          }),
-          prisma.newCar.findMany({
-            where: { ownerId: session.id, isDeleted: false },
-            include: ITEM_RELATION_SELECT,
-          }),
-          prisma.oldCar.findMany({
-            where: { ownerId: session.id, isDeleted: false },
-            include: ITEM_RELATION_SELECT,
-          }),
-          prisma.otherItem.findMany({
-            where: { ownerId: session.id, isDeleted: false },
-            include: ITEM_RELATION_SELECT,
-          }),
-        ]),
-        8000,
-        "Profile lookup timed out",
-      );
+          },
+        }),
+        prisma.referral.findFirst({
+          where: {
+            newUser: session.id,
+            user: {
+              is: {
+                isDeleted: false,
+              },
+            },
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                profileImage: true,
+                isActive: true,
+              },
+            },
+          },
+        }),
+        prisma.property.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.newCar.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.oldCar.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.otherItem.findMany({
+          where: { ownerId: session.id, isDeleted: false },
+          include: ITEM_RELATION_SELECT,
+        }),
+        prisma.shamCashManualWithdrawal.count({
+          where: {
+            userId: session.id,
+            status: {
+              in: ["PENDING_ADMIN", "VERIFYING"],
+            },
+          },
+        }),
+      ]),
+      8000,
+      "Profile lookup timed out",
+    );
 
     if (!user) throw Errors.UNAUTHORIZED();
 
@@ -283,6 +298,7 @@ export async function GET(req: NextRequest) {
     const safeUser = {
       ...user,
       password: undefined,
+      hasPendingWithdrawal: pendingShamCashWithdrawalCount > 0,
       referredBy: referredByLink?.user
         ? {
             id: referredByLink.user.id,

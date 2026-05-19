@@ -128,6 +128,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const existingPendingRequest =
+      await prisma.shamCashManualWithdrawal.findFirst({
+        where: {
+          userId: user.id,
+          status: {
+            in: ["PENDING_ADMIN", "VERIFYING"],
+          },
+        },
+        select: { id: true },
+      });
+
+    if (existingPendingRequest) {
+      return NextResponse.json(
+        {
+          message: t(
+            "لديك طلب سحب قيد المراجعة. لا يمكنك إرسال طلب جديد حتى يتم البت بالطلب الحالي.",
+            "You already have a withdrawal request under review. You cannot submit a new request until the current one is processed.",
+          ),
+        },
+        { status: 409 },
+      );
+    }
+
     const manualRequest = await prisma.shamCashManualWithdrawal.create({
       data: {
         userId: user.id,
