@@ -1,181 +1,133 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+import { NextResponse } from "next/server";
 
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-type RateLimitStore = Map<string, RateLimitEntry>;
-
-type RateLimitGlobals = typeof globalThis & {
-  __mashhoorRateLimitStore?: RateLimitStore;
-  __mashhoorRateLimitSweepCounter?: number;
-};
-
-const globals = globalThis as RateLimitGlobals;
-const store: RateLimitStore = globals.__mashhoorRateLimitStore || new Map();
-globals.__mashhoorRateLimitStore = store;
-globals.__mashhoorRateLimitSweepCounter =
-  globals.__mashhoorRateLimitSweepCounter || 0;
-
-const SWEEP_INTERVAL = 100;
-
-const getClientIp = (req: NextRequest) => {
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(",")[0]?.trim();
-    if (firstIp) return firstIp;
-  }
-
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  return "unknown-ip";
-};
-
-const maybeSweepStore = () => {
-  globals.__mashhoorRateLimitSweepCounter =
-    (globals.__mashhoorRateLimitSweepCounter || 0) + 1;
-
-  if ((globals.__mashhoorRateLimitSweepCounter || 0) % SWEEP_INTERVAL !== 0) {
-    return;
-  }
-
-  const now = Date.now();
-  for (const [key, entry] of store.entries()) {
-    if (entry.resetAt <= now) {
-      store.delete(key);
-    }
-  }
-};
-
-export type RateLimitOptions = {
-  req: NextRequest;
+export interface RateLimitOptions {
   key: string;
   limit: number;
   windowMs: number;
-  userId?: string | null;
-  errorMessage?: string;
-};
+}
 
-const RATE_LIMIT_LUA_SCRIPT = `
-local current = redis.call('INCR', KEYS[1])
-if current == 1 then
-  redis.call('PEXPIRE', KEYS[1], ARGV[1])
-end
-local ttl = redis.call('PTTL', KEYS[1])
-return { current, ttl }
-`;
-
-const createRateLimitResponse = ({
-  errorMessage,
-  retryAfterMs,
-}: {
-  errorMessage?: string;
-  retryAfterMs: number;
-}) => {
-  const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
-
-  return NextResponse.json(
-    {
-      message:
-        errorMessage || "Too many requests. Please try again in a few moments.",
-    },
-    {
-      status: 429,
-      headers: {
-        "Retry-After": String(retryAfterSeconds),
-      },
-    },
-  );
-};
-
-const enforceMemoryRateLimit = ({
-  req,
+/**
+ * Redis-based rate limiting (distributed across servers)
+ * Returns true if request is allowed, false if rate limit exceeded
+ */
+export async function checkRateLimit({
   key,
   limit,
   windowMs,
-  userId,
-  errorMessage,
-}: RateLimitOptions): NextResponse | null => {
-  maybeSweepStore();
-
-  const now = Date.now();
-  const identity = userId || getClientIp(req);
-  const bucketKey = `${key}:${identity}`;
-
-  const existing = store.get(bucketKey);
-
-  if (!existing || existing.resetAt <= now) {
-    store.set(bucketKey, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
-    return null;
-  }
-
-  if (existing.count >= limit) {
-    return createRateLimitResponse({
-      errorMessage,
-      retryAfterMs: existing.resetAt - now,
-    });
-  }
-
-  existing.count += 1;
-  store.set(bucketKey, existing);
-
-  return null;
-};
-
-const toSafeNumber = (value: unknown, fallback: number) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-export const enforceRateLimit = async ({
-  req,
-  key,
-  limit,
-  windowMs,
-  userId,
-  errorMessage,
-}: RateLimitOptions): Promise<NextResponse | null> => {
-  const identity = userId || getClientIp(req);
-  const bucketKey = `${key}:${identity}`;
-  const redisClient = await getRedisClient();
-
-  if (redisClient?.isReady) {
-    try {
-      const redisResult = (await redisClient.eval(RATE_LIMIT_LUA_SCRIPT, {
-        keys: [bucketKey],
-        arguments: [String(windowMs)],
-      })) as [unknown, unknown] | null;
-
-      const count = toSafeNumber(redisResult?.[0], 1);
-      const ttlMsRaw = toSafeNumber(redisResult?.[1], windowMs);
-      const ttlMs = ttlMsRaw >= 0 ? ttlMsRaw : windowMs;
-
-      if (count > limit) {
-        return createRateLimitResponse({
-          errorMessage,
-          retryAfterMs: ttlMs,
-        });
-      }
-
-      return null;
-    } catch (error) {
-      logger.error("Redis rate limiting failed, using memory fallback:", error);
+}: RateLimitOptions): Promise<boolean> {
+  try {
+    const redis = await getRedisClient();
+    if (!redis?.isOpen) {
+      logger.warn("Redis unavailable for rate limiting, allowing request");
+      return true;
     }
-  }
 
-  return enforceMemoryRateLimit({
-    req,
-    key,
-    limit,
-    windowMs,
-    userId,
-    errorMessage,
-  });
-};
+    const now = Date.now();
+    const windowStart = now - windowMs;
+
+    // Remove old entries
+    await redis.zRemRangeByScore(key, "-inf", windowStart);
+
+    // Count requests in current window
+    const count = await redis.zCard(key);
+
+    if (count >= limit) {
+      return false;
+    }
+
+    // Add current request with timestamp as score
+    await redis.zAdd(key, {
+      score: now,
+      value: `${now}-${Math.random()}`,
+    });
+
+    // Set expiry on the key
+    await redis.expire(key, Math.ceil(windowMs / 1000) * 2);
+
+    return true;
+  } catch (error) {
+    logger.error("Rate limit check failed, allowing request", error);
+    return true;
+  }
+}
+
+/**
+ * Rate limiting with multiple keys
+ */
+export async function checkMultipleRateLimits(
+  limits: RateLimitOptions[]
+): Promise<boolean> {
+  const results = await Promise.all(
+    limits.map((limit) => checkRateLimit(limit))
+  );
+  return results.every((result) => result);
+}
+
+/**
+ * Get remaining quota for a rate limit key
+ */
+export async function getRateLimitRemaining({
+  key,
+  limit,
+  windowMs,
+}: RateLimitOptions): Promise<number> {
+  try {
+    const redis = await getRedisClient();
+    if (!redis?.isOpen) {
+      return limit;
+    }
+
+    const now = Date.now();
+    const windowStart = now - windowMs;
+
+    await redis.zRemRangeByScore(key, "-inf", windowStart);
+    const count = await redis.zCard(key);
+
+    return Math.max(0, limit - count);
+  } catch {
+    return limit;
+  }
+}
+
+/**
+ * Compatibility wrapper for legacy code
+ * Returns NextResponse if rate limited, null if allowed
+ */
+export async function enforceRateLimit({
+  key,
+  userId,
+  limit = 10,
+  windowMs = 60_000,
+  errorMessage = "Too many requests. Please wait.",
+}: {
+  req?: unknown;
+  key: string;
+  userId?: string;
+  limit?: number;
+  windowMs?: number;
+  errorMessage?: string;
+}): Promise<NextResponse | null> {
+  try {
+    const limitKey = userId ? `${key}:${userId}` : key;
+    const allowed = await checkRateLimit({
+      key: limitKey,
+      limit,
+      windowMs,
+    });
+
+    if (allowed) {
+      return null; // Request allowed
+    }
+
+    // Rate limited - return error response
+    return NextResponse.json(
+      { message: errorMessage },
+      { status: 429 }
+    );
+  } catch (error) {
+    logger.error("Rate limit enforcement failed", error);
+    return null; // On error, allow request
+  }
+}

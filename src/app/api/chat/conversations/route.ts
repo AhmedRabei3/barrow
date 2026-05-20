@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { getUserLastSeen, isUserConnected } from "@/lib/websocketServer";
+import {
+  getUsersLastSeenBatch,
+  getUsersOnlineStatusBatch,
+} from "@/lib/websocketServer";
 import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 20;
@@ -53,18 +56,11 @@ export async function GET(req: NextRequest) {
       ),
     );
 
-    // Presence: WebSocket in-memory / Redis only — zero Firestore reads.
-    const [onlineEntries, lastSeenEntries] = await Promise.all([
-      Promise.all(
-        otherIds.map(async (id) => [id, await isUserConnected(id)] as const),
-      ),
-      Promise.all(
-        otherIds.map(async (id) => [id, await getUserLastSeen(id)] as const),
-      ),
+    // Batch presence lookups: single Redis calls instead of N individual calls
+    const [onlineMap, lastSeenMap] = await Promise.all([
+      getUsersOnlineStatusBatch(otherIds),
+      getUsersLastSeenBatch(otherIds),
     ]);
-
-    const onlineMap = new Map(onlineEntries);
-    const lastSeenMap = new Map(lastSeenEntries);
 
     const conversations = rawConvs.map((c) => {
       const otherParticipantId =

@@ -119,9 +119,29 @@ const formatLastSeen = (value: string | null, isArabic: boolean) => {
     return isArabic ? "آخر ظهور غير معروف" : "Last seen unavailable";
   }
 
-  return isArabic
-    ? `آخر ظهور ${date.toLocaleString()}`
-    : `Last seen ${date.toLocaleString()}`;
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const timeStr = date.toLocaleTimeString(isArabic ? "ar" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isToday) {
+    return isArabic ? `آخر ظهور اليوم ${timeStr}` : `Last seen today at ${timeStr}`;
+  }
+  if (isYesterday) {
+    return isArabic ? `آخر ظهور أمس ${timeStr}` : `Last seen yesterday at ${timeStr}`;
+  }
+
+  const dateStr = date.toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  return isArabic ? `آخر ظهور ${dateStr}` : `Last seen ${dateStr}`;
 };
 
 const resolveMessageStatus = (message: Partial<ChatMessage>): MessageStatus => {
@@ -193,6 +213,7 @@ export default function MessagesPage() {
 
   const lastMessageCountRef = useRef(0);
   const isUserScrollingUpRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -677,6 +698,12 @@ export default function MessagesPage() {
 
     const unsubscribeConnection = subscribeWebSocketConnection((connected) => {
       setWsConnected(connected);
+
+      // Clear typing indicator when WebSocket disconnects
+      if (!connected && isPeerTyping) {
+        setIsPeerTyping(false);
+      }
+
       if (connected) {
         void fetchConversations();
         if (selectedConversationId) {
@@ -813,6 +840,7 @@ export default function MessagesPage() {
     fetchConversations,
     fetchMessages,
     handleIncomingChatMessage,
+    isPeerTyping,
     recipientUserId,
     selectedConversationId,
     userId,
@@ -1237,6 +1265,21 @@ export default function MessagesPage() {
     };
   }, [input, sendTypingStart, sendTypingStop]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input]);
+
+  // Scroll to show typing indicator when peer starts typing
+  useEffect(() => {
+    if (isPeerTyping && isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isPeerTyping, isAtBottom]);
+
   if (status === "loading") {
     return (
       <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-sm text-slate-500 dark:text-slate-400 bg-[#f6faff] dark:bg-[#051424]">
@@ -1340,6 +1383,8 @@ export default function MessagesPage() {
             <MdSettings size={22} />
           </button>
         </header>
+        {/* Spacer for fixed mobile header */}
+        <div className="lg:hidden h-16 shrink-0" />
 
         {/* Desktop column header */}
         <div className="hidden lg:flex items-center px-5 py-4 border-b border-slate-100 dark:border-slate-700/30">
@@ -1529,7 +1574,7 @@ export default function MessagesPage() {
         }`}
       >
         {/* Chat header */}
-        <header className="z-20 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
+        <header className="sticky top-0 z-20 flex justify-between items-center w-full px-4 lg:px-6 h-16 shrink-0 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/30 shadow-sm">
           {/* Left/Start: back + avatar + info */}
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile back arrow */}
@@ -1561,7 +1606,11 @@ export default function MessagesPage() {
                     {otherParticipantNameFallback}
                   </h2>
                   <div className="flex items-center gap-1.5">
-                    {peerOnline ? (
+                    {isPeerTyping ? (
+                      <span className="text-xs text-[#006591] dark:text-[#89ceff] font-medium animate-pulse">
+                        {isArabic ? "يكتب الآن..." : "typing..."}
+                      </span>
+                    ) : peerOnline ? (
                       <>
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                         <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -1768,13 +1817,12 @@ export default function MessagesPage() {
               {/* Typing indicator */}
               {isPeerTyping && (
                 <div
-                  className={`flex flex-col mb-1 ${isArabic ? "items-start" : "items-end"}`}
+                  className={`flex flex-col mb-1 ${isArabic ? "items-end" : "items-start"}`}
                 >
                   <div
                     className="flex gap-1 bg-white dark:bg-[#273647] px-4 py-3 rounded-3xl shadow-md"
                     style={{
-                      borderBottomLeftRadius: isArabic ? "4px" : undefined,
-                      borderBottomRightRadius: isArabic ? undefined : "4px",
+                      borderBottomLeftRadius: "4px",
                     }}
                   >
                     <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0ms]" />
@@ -1827,38 +1875,38 @@ export default function MessagesPage() {
         )}
 
         {/* ── Input footer ── */}
-        <footer className="shrink-0 w-full flex items-center gap-2 px-4 lg:px-6 py-3 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
-          <div className="flex-1 min-w-0 flex overflow-hidden items-center gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-full p-1 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
-            <div className="w-full overflow-hidden">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onBlur={() => sendTypingStop()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void sendMessage();
-                  }
-                }}
-                placeholder={
-                  selectedConversationId && recipientUserId
-                    ? isArabic
-                      ? "أكتب رسالتك هنا..."
-                      : "Write your message..."
-                    : isArabic
-                      ? "اختر محادثة للبدء"
-                      : "Select a conversation to start"
+        <footer className="shrink-0 w-full flex items-end gap-2 px-4 lg:px-6 py-3 bg-white/90 dark:bg-[#0d1c2d]/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/30">
+          <div className="flex-1 min-w-0 flex overflow-hidden items-end gap-3 bg-slate-100 dark:bg-[#1c2b3c] rounded-2xl px-3 py-2 shadow-inner focus-within:ring-2 focus-within:ring-[#006591]/40 dark:focus-within:ring-[#89ceff]/30 transition-all">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onBlur={() => sendTypingStop()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void sendMessage();
                 }
-                disabled={
-                  !selectedConversationId ||
-                  !recipientUserId ||
-                  iBlockedThem ||
-                  theyBlockedMe
-                }
-                className="flex-1 w-full rounded-full px-4 bg-transparent text-slate-900 dark:text-white py-3 text-sm placeholder:text-slate-400 outline-none disabled:cursor-not-allowed"
-              />
-            </div>
+              }}
+              placeholder={
+                selectedConversationId && recipientUserId
+                  ? isArabic
+                    ? "أكتب رسالتك هنا..."
+                    : "Write your message..."
+                  : isArabic
+                    ? "اختر محادثة للبدء"
+                    : "Select a conversation to start"
+              }
+              disabled={
+                !selectedConversationId ||
+                !recipientUserId ||
+                iBlockedThem ||
+                theyBlockedMe
+              }
+              className="flex-1 w-full bg-transparent text-slate-900 dark:text-white py-1 text-sm placeholder:text-slate-400 outline-none disabled:cursor-not-allowed resize-none overflow-hidden leading-5"
+              style={{ maxHeight: "120px" }}
+            />
           </div>
           <button
             onClick={() => void sendMessage()}
@@ -1870,7 +1918,7 @@ export default function MessagesPage() {
               iBlockedThem ||
               theyBlockedMe
             }
-            className="w-11 h-11 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] shadow-lg hover:brightness-110 active:scale-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-[#006591] dark:bg-[#89ceff] text-white dark:text-[#001e2f] shadow-lg hover:brightness-110 active:scale-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 mb-0.5"
           >
             <MdSend size={18} className={isArabic ? "rotate-180" : ""} />
           </button>

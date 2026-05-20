@@ -829,3 +829,90 @@ export async function getUserLastSeen(userId: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Batch lookup for multiple users' last seen timestamps (Redis only)
+ */
+export async function getUsersLastSeenBatch(
+  userIds: string[]
+): Promise<Map<string, string | null>> {
+  const result = new Map<string, string | null>();
+
+  try {
+    const redis = await getRedisClient();
+
+    if (!redis?.isOpen) {
+      // Fallback: return empty map if Redis unavailable
+      userIds.forEach((id) => result.set(id, null));
+      return result;
+    }
+
+    // Use mGet for batch operation (single Redis call instead of N calls)
+    const keys = userIds.map((id) => `last_seen:${id}`);
+    const values = await redis.mGet(keys);
+
+    userIds.forEach((userId, index) => {
+      result.set(userId, values[index] ?? null);
+    });
+
+    return result;
+  } catch (error) {
+    logger.error("Batch last seen lookup failed", error);
+    userIds.forEach((id) => result.set(id, null));
+    return result;
+  }
+}
+
+/**
+ * Batch lookup for multiple users' online status (in-memory + Redis)
+ */
+export async function getUsersOnlineStatusBatch(
+  userIds: string[]
+): Promise<Map<string, boolean>> {
+  const result = new Map<string, boolean>();
+
+  try {
+    // First: check in-memory WebSocket connections (fastest)
+    const inMemoryOnline = new Set<string>();
+    userIds.forEach((userId) => {
+      const sockets = clients.get(userId);
+      if (sockets && sockets.size > 0) {
+        result.set(userId, true);
+        inMemoryOnline.add(userId);
+      }
+    });
+
+    // Second: check Redis for users not found in-memory
+    const redis = await getRedisClient();
+    if (redis?.isOpen) {
+      const usersToCheckRedis = userIds.filter((id) => !inMemoryOnline.has(id));
+      if (usersToCheckRedis.length > 0) {
+        // Use SMEMBERS to get all online users, then check membership
+        // Or use pipeline for multiple sIsMember checks
+        const onlineStatuses = await Promise.all(
+          usersToCheckRedis.map(async (userId) => {
+            const exists = await redis.sIsMember("online_users", userId);
+            return [userId, !!exists] as const;
+          })
+        );
+
+        onlineStatuses.forEach(([userId, isOnline]) => {
+          result.set(userId, isOnline);
+        });
+      }
+    }
+
+    // Default to false for any users not found
+    userIds.forEach((userId) => {
+      if (!result.has(userId)) {
+        result.set(userId, false);
+      }
+    });
+
+    return result;
+  } catch (error) {
+    logger.error("Batch online status lookup failed", error);
+    userIds.forEach((id) => result.set(id, false));
+    return result;
+  }
+}

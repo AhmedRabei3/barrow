@@ -11,6 +11,7 @@ import {
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { sendChatPushNotification } from "@/server/firebase/push";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const sendMessageSchema = z.object({
   recipientUserId: z.string().trim().min(1),
@@ -38,31 +39,6 @@ const normalizeMessageText = (text: string) =>
     .map((line) => line.trimEnd())
     .join("\n")
     .trim();
-
-// ── Per-process rate limiter (in-memory) ────────────────────────────────────
-type RateLimitState = { count: number; windowStartedAt: number };
-type RateLimitGlobals = typeof globalThis & {
-  __chatSendRateLimit?: Map<string, RateLimitState>;
-};
-const rateLimitGlobals = globalThis as RateLimitGlobals;
-const sendRateLimitMap =
-  rateLimitGlobals.__chatSendRateLimit ?? new Map<string, RateLimitState>();
-rateLimitGlobals.__chatSendRateLimit = sendRateLimitMap;
-const SEND_RATE_LIMIT_WINDOW_MS = 10_000;
-const SEND_RATE_LIMIT_MAX = 12;
-
-const canSendMessageNow = (userId: string) => {
-  const now = Date.now();
-  const current = sendRateLimitMap.get(userId);
-  if (!current || now - current.windowStartedAt > SEND_RATE_LIMIT_WINDOW_MS) {
-    sendRateLimitMap.set(userId, { count: 1, windowStartedAt: now });
-    return true;
-  }
-  if (current.count >= SEND_RATE_LIMIT_MAX) return false;
-  current.count += 1;
-  sendRateLimitMap.set(userId, current);
-  return true;
-};
 
 // ── GET /api/chat/messages ───────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -158,7 +134,15 @@ export async function POST(req: NextRequest) {
     }
 
     const senderUserId = session.user.id;
-    if (!canSendMessageNow(senderUserId)) {
+
+    // Redis-based rate limiting (distributed across servers)
+    const allowed = await checkRateLimit({
+      key: `chat:rate-limit:${senderUserId}`,
+      limit: 12,
+      windowMs: 10_000,
+    });
+
+    if (!allowed) {
       return NextResponse.json(
         { message: "Too many messages. Please wait a few seconds." },
         { status: 429 },
